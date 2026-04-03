@@ -1,96 +1,88 @@
-<![CDATA[[![Version](https://img.shields.io/badge/version-1.2.0-blue)](https://github.com/SonyHarv/claude-polyrouter/releases/tag/v1.2.0)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-105%2F105-brightgreen)]()
-[![Languages](https://img.shields.io/badge/languages-10-orange)]()
+# claude-polyrouter
 
-# Claude Polyrouter
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Python](https://img.shields.io/badge/python-3.8+-yellow)
+![Languages](https://img.shields.io/badge/languages-10-orange)
+![Tests](https://img.shields.io/badge/tests-105%20passing-brightgreen)
 
-Intelligent multilingual model routing for Claude Code. Automatically routes queries to the optimal model tier (Haiku/Sonnet/Opus) based on complexity, with native support for 10 languages.
+> Automatic model routing for Claude Code — sends each query to the optimal model tier based on complexity, without sacrificing quality.
+>
+> **10 languages · zero config · no API key · save up to 80% on tokens**
 
-## Features
+---
 
-- **Automatic routing** — Every query is classified and routed to the right model tier via a UserPromptSubmit hook
-- **Length-based pre-classification** — Short queries (<5 words) route to fast tier at 90% confidence
-- **10 languages** — English, Spanish, Portuguese, French, German, Russian, Chinese, Japanese, Korean, Arabic, plus Spanglish detection
-- **CJK-aware word counting** — Accurate tokenization for Chinese, Japanese, and Korean
-- **Zero API keys** — Pure rule-based classification with pre-compiled regex patterns (~1ms latency)
-- **Cost savings** — 50-80% reduction by routing simple queries to cheaper models
-- **Two-level cache** — In-memory LRU + file-based persistent cache for repeated queries
-- **Multi-turn awareness** — Detects follow-up queries and maintains conversation context
-- **Project learning** — Optional knowledge base that fine-tunes routing per project
-- **Configurable levels** — Routing tiers abstracted from models; update models in config, not code
-- **Analytics** — Terminal stats and HTML dashboard with Charts.js visualizations
-- **HUD integration** — Real-time status line showing route, model, confidence, and language
+## How It Routes
 
-## Routing Examples
+| Query | Tier | Model | Reason |
+|-------|------|-------|--------|
+| "hola" / "ok" / "what is X?" | ⚡ Fast | Haiku | Short or simple question |
+| "create a function" / "fix this bug" | ⚙️ Standard | Sonnet | Coding task |
+| "design microservices architecture" | 🧠 Deep | Opus | Complex analysis |
 
-| Query | Tier | Model | Why |
-|-------|------|-------|-----|
-| `hola` | fast | Haiku | Greeting, 1 word |
-| `what is a variable?` | fast | Haiku | Simple question, short |
-| `crea una función que ordene un array` | standard | Sonnet | Implementation task |
-| `fix the login bug in auth.service.ts` | standard | Sonnet | Targeted bugfix |
-| `diseña arquitectura de auth con JWT multi-tenant` | deep | Opus | Architecture design |
-| `refactor the entire payment module for scalability` | deep | Opus | Large-scale refactor |
+Routing happens automatically on every query via a `UserPromptSubmit` hook. No manual intervention needed.
+
+---
 
 ## Installation
 
 ```bash
-# Add the marketplace source
+# Step 1: Add marketplace
 claude plugin marketplace add claude-polyrouter SonyHarv/claude-polyrouter
 
-# Install the plugin
+# Step 2: Install
 claude plugin install claude-polyrouter@claude-polyrouter
+
+# Step 3: Restart Claude Code
 ```
 
-## Quick Start
+That's it. No configuration needed — works out of the box.
 
-After installation, routing works automatically. Every query you type is classified and routed to the optimal model tier.
+---
 
-No configuration needed — it works out of the box.
+## HUD Integration
+
+Real-time routing status in Claude Code's status line:
+
+```
+[OMC#4.9.3] | 5h | session:2m  [polyrouter] ⚡ haiku · es · 45q · $1.36↓
+```
+
+Fields: `model · language · total queries · estimated savings`
+
+To enable, add to `~/.claude/settings.json`:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "node $HOME/.claude/hud/polyrouter-hud.mjs"
+  }
+}
+```
+
+---
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `/claude-polyrouter:route <tier> [query]` | Manual routing override |
 | `/claude-polyrouter:stats` | View routing statistics |
 | `/claude-polyrouter:dashboard` | Open HTML analytics dashboard |
 | `/claude-polyrouter:config` | Show active configuration |
-| `/claude-polyrouter:learn` | Extract routing insights |
-| `/claude-polyrouter:learn-on` | Enable continuous learning |
-| `/claude-polyrouter:learn-off` | Disable continuous learning |
+| `/claude-polyrouter:route <tier> [query]` | Manual routing override |
+| `/claude-polyrouter:retry` | Retry with escalated tier |
+| `/claude-polyrouter:learn` | Extract routing insights from conversation |
+| `/claude-polyrouter:learn-on` | Enable continuous learning mode |
+| `/claude-polyrouter:learn-off` | Disable continuous learning mode |
 | `/claude-polyrouter:knowledge` | View knowledge base status |
 | `/claude-polyrouter:learn-reset` | Clear knowledge base |
-| `/claude-polyrouter:retry` | Retry with escalated tier |
 
-## HUD (Status Line)
-
-Claude Polyrouter integrates with Claude Code's status line to show real-time routing information:
-
-```
-[polyrouter] sonnet · standard · 85% · es
-```
-
-The HUD displays: **model** · **tier** · **confidence** · **language** — updated on every query.
-
-To enable, ensure the HUD path is configured in your `~/.claude/settings.json`:
-
-```json
-{
-  "projects": {
-    "statusLines": [
-      "~/.claude/hud/polyrouter-hud.mjs"
-    ]
-  }
-}
-```
+---
 
 ## Configuration
 
-### Global Config
-
-Create `~/.claude/polyrouter/config.json` to customize:
+Global config at `~/.claude/polyrouter/config.json`:
 
 ```json
 {
@@ -104,9 +96,7 @@ Create `~/.claude/polyrouter/config.json` to customize:
 }
 ```
 
-### Project Override
-
-Create `<project>/.claude-polyrouter/config.json` to override per-project:
+Project override at `<project>/.claude-polyrouter/config.json`:
 
 ```json
 {
@@ -115,9 +105,7 @@ Create `<project>/.claude-polyrouter/config.json` to override per-project:
 }
 ```
 
-### Model Updates
-
-When new models release, update config — no code changes needed:
+When new models release, update config only — no code changes needed:
 
 ```json
 {
@@ -127,6 +115,8 @@ When new models release, update config — no code changes needed:
 }
 ```
 
+---
+
 ## How It Works
 
 1. **Exception check** — Slash commands and meta-queries bypass routing
@@ -135,55 +125,55 @@ When new models release, update config — no code changes needed:
 4. **Language detection** — Stopword-based scoring identifies the query language
 5. **Pattern classification** — Pre-compiled regex patterns per language determine complexity
 6. **Context boost** — Multi-turn awareness adjusts confidence for follow-up queries
-7. **Learned adjustments** — Optional project knowledge base fine-tunes routing
+7. **Learned adjustments** — Optional per-project knowledge base fine-tunes routing
+
+---
 
 ## Supported Languages
 
-| Language | Code | Status |
-|----------|------|--------|
+| Language | Code | Notes |
+|----------|------|-------|
 | English | en | Native patterns |
 | Spanish | es | Native patterns |
 | Portuguese | pt | Native patterns |
 | French | fr | Native patterns |
 | German | de | Native patterns |
 | Russian | ru | Native patterns |
-| Chinese | zh | Native patterns + CJK counting |
-| Japanese | ja | Native patterns + CJK counting |
-| Korean | ko | Native patterns + CJK counting |
+| Chinese | zh | Native patterns + CJK word counting |
+| Japanese | ja | Native patterns + CJK word counting |
+| Korean | ko | Native patterns + CJK word counting |
 | Arabic | ar | Native patterns |
 | Spanglish | en+es | Auto-detected |
 
-## Adding a Language
+To add a language: create `languages/<code>.json` with stopwords and patterns. Auto-discovered — no code changes needed.
 
-Create `languages/<code>.json` with stopwords and patterns. No code changes needed — the plugin auto-discovers language files.
-
-## Contributing
-
-Contributions are welcome. To get started:
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Add tests for new functionality in `tests/`
-4. Ensure all tests pass: `python -m pytest tests/ -v`
-5. Submit a pull request with a clear description
-
-Guidelines:
-- Follow conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
-- Add language patterns to `languages/<code>.json` — no code changes needed
-- Keep classification latency under 5ms
-- Maintain test coverage for all routing paths
+---
 
 ## Roadmap v2
 
-- [ ] Adaptive confidence thresholds based on routing history
-- [ ] Token-count estimation for cost predictions
-- [ ] Streaming classification for long prompts
-- [ ] Custom pattern injection via project config
+- [ ] Multi-agent support: Codex CLI, Gemini CLI
+- [ ] Ultra tier for next-gen models (Kairos, etc.)
+- [ ] Adaptive confidence thresholds from routing history
 - [ ] Analytics export (CSV/JSON) for team reporting
 - [ ] Weighted ensemble classification (rules + embeddings)
 - [ ] Auto-escalation on repeated low-confidence routes
 
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a branch: `git checkout -b feat/my-feature`
+3. Add tests in `tests/`
+4. Run tests: `python -m pytest tests/ -v`
+5. Submit a pull request with a clear description
+
+Commit style: `feat:` `fix:` `refactor:` `test:` `docs:`
+
+Keep classification latency under 5ms. Maintain test coverage for all routing paths.
+
+---
+
 ## License
 
-MIT
-]]>
+MIT — by [SonyHarv](https://github.com/SonyHarv)
