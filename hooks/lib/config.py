@@ -1,0 +1,98 @@
+"""Configuration loading with three-layer merge: defaults -> global -> project."""
+
+import copy
+import json
+from pathlib import Path
+
+GLOBAL_CONFIG_PATH = Path.home() / ".claude" / "polyrouter" / "config.json"
+
+DEFAULT_CONFIG = {
+    "version": "1.0",
+    "levels": {
+        "fast": {
+            "model": "haiku",
+            "agent": "fast-executor",
+            "cost_per_1k_input": 0.001,
+            "cost_per_1k_output": 0.005,
+        },
+        "standard": {
+            "model": "sonnet",
+            "agent": "standard-executor",
+            "cost_per_1k_input": 0.003,
+            "cost_per_1k_output": 0.015,
+        },
+        "deep": {
+            "model": "opus",
+            "agent": "deep-executor",
+            "cost_per_1k_input": 0.005,
+            "cost_per_1k_output": 0.025,
+        },
+    },
+    "default_level": "fast",
+    "confidence_threshold": 0.7,
+    "session_timeout_minutes": 30,
+    "cache": {"memory_size": 50, "file_size": 100, "ttl_days": 30},
+    "learning": {"enabled": False, "informed_routing": False, "max_boost": 0.1},
+    "updates": {"check_on_start": True, "repo": "sonyharv/claude-polyrouter"},
+}
+
+
+def _merge_config(base: dict, override: dict) -> dict:
+    """Shallow merge: dict values are merged one level, scalars are replaced."""
+    result = copy.deepcopy(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = {**result[key], **value}
+        else:
+            result[key] = value
+    return result
+
+
+def find_project_config() -> Path | None:
+    """Search from CWD upward for .claude-polyrouter/config.json.
+
+    Security: stops at .git boundary or home directory to prevent
+    path traversal outside the project.
+    """
+    current = Path.cwd().resolve()
+    home = Path.home().resolve()
+    while current != current.parent and current != home:
+        candidate = current / ".claude-polyrouter" / "config.json"
+        if candidate.exists():
+            # Verify the resolved path is still under current (no symlink traversal)
+            try:
+                resolved = candidate.resolve()
+                if str(resolved).startswith(str(home)):
+                    return candidate
+            except (OSError, ValueError):
+                pass
+            return None
+        if (current / ".git").exists():
+            break
+        current = current.parent
+    return None
+
+
+def _read_json_safe(path: Path) -> dict | None:
+    """Read and parse JSON file, return None on any error."""
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def load_config() -> dict:
+    """Load config with three-layer merge: defaults -> global -> project."""
+    config = copy.deepcopy(DEFAULT_CONFIG)
+
+    global_cfg = _read_json_safe(GLOBAL_CONFIG_PATH)
+    if global_cfg:
+        config = _merge_config(config, global_cfg)
+
+    project_path = find_project_config()
+    if project_path:
+        project_cfg = _read_json_safe(project_path)
+        if project_cfg:
+            config = _merge_config(config, project_cfg)
+
+    return config
