@@ -1,3 +1,5 @@
+![claude-polyrouter](assets/banner.svg)
+
 # claude-polyrouter
 
 ![Version](https://img.shields.io/badge/version-1.2.0-blue)
@@ -45,7 +47,7 @@ That's it. No configuration needed — works out of the box.
 Real-time routing status in Claude Code's status line:
 
 ```
-[OMC#4.9.3] | 5h | session:2m  [polyrouter] ⚡ haiku · es · 45q · $1.36↓
+[polyrouter] ⚡ haiku · es · 45q · $1.36↓
 ```
 
 Fields: `model · language · total queries · estimated savings`
