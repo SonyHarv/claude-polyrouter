@@ -8,7 +8,8 @@
     "so", "noch", "nach", "bei", "über", "nur", "kann", "hat", "war",
     "wird", "aus", "schon", "sehr", "hier", "jetzt", "wo", "wer", "was",
     "alle", "mein", "sein", "ihr", "uns", "euch", "dann", "doch", "man",
-    "immer", "mehr", "viel", "gut", "neu", "alt", "groß", "klein", "haben"
+    "immer", "mehr", "viel", "gut", "neu", "alt", "groß", "klein", "haben",
+    "hallo", "guten", "moin"
   ],
   "patterns": {
     "fast": [

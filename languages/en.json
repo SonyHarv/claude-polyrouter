@@ -8,7 +8,8 @@
     "to", "of", "in", "for", "on", "with", "at", "by", "from",
     "this", "that", "these", "those", "it", "its", "my", "your",
     "and", "or", "but", "not", "if", "then", "than", "when", "what",
-    "how", "which", "who", "where", "why"
+    "how", "which", "who", "where", "why",
+    "hi", "hey", "hello", "greetings"
   ],
   "patterns": {
     "fast": [

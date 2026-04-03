@@ -8,7 +8,8 @@
     "mon", "ma", "mes", "il", "elle", "nous", "vous", "leur", "être",
     "avoir", "faire", "tout", "bien", "aussi", "comme", "mais", "où",
     "quand", "si", "très", "ici", "entre", "même", "encore", "alors",
-    "car", "donc", "dont", "elle", "eux", "y", "en", "on", "lui"
+    "car", "donc", "dont", "elle", "eux", "y", "en", "on", "lui",
+    "bonjour", "salut", "bonsoir"
   ],
   "patterns": {
     "fast": [

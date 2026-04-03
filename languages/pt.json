@@ -8,7 +8,8 @@
     "nos", "já", "ele", "ela", "isso", "isto", "esse", "essa", "muito",
     "bem", "também", "pode", "aqui", "agora", "quando", "onde", "quem",
     "qual", "todo", "cada", "entre", "dos", "das", "nos", "nas", "pelo",
-    "pela", "pelos", "pelas", "num", "numa", "nuns", "numas", "dum", "duma"
+    "pela", "pelos", "pelas", "num", "numa", "nuns", "numas", "dum", "duma",
+    "oi", "olá", "ola"
   ],
   "patterns": {
     "fast": [

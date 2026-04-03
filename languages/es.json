@@ -8,7 +8,8 @@
     "este", "esta", "estos", "estas", "ese", "esa",
     "su", "sus", "mi", "tu", "y", "o", "pero", "como",
     "más", "no", "si", "ya", "se", "le", "lo", "me",
-    "qué", "cómo", "cuál", "dónde", "quién", "cuándo"
+    "qué", "cómo", "cuál", "dónde", "quién", "cuándo",
+    "hola", "buenas", "saludos", "buen"
   ],
   "patterns": {
     "fast": [
