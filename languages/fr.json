@@ -12,15 +12,18 @@
   ],
   "patterns": {
     "fast": [
+      "^(salut|bonjour|bonsoir|merci|au revoir|coucou)[!.,\\s]?$",
+      "^(ok|oui|non|d'accord|parfait|super|bien|entendu|compris|c'est bon)[!.,\\s]?$",
       "^(qu'est-ce que|quel|quelle|quels|quelles) ",
       "^comment (faire|puis-je|est-ce que) ",
-      "^(montre|liste|affiche|donne) .{0,30}$",
-      "\\b(formater|formatte|formater le code)\\b",
-      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge)\\b",
-      "\\b(json|yaml|yml|toml|csv)\\b.{0,20}$",
+      "^(montre|liste|affiche|donne|montre-moi) .{0,30}$",
+      "\\b(formater|formatte|formater le code|traduire|convertir|renommer|trier|nettoyer)\\b",
+      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge|stash|rebase)\\b",
+      "\\b(json|yaml|yml|toml|csv|xml|html|markdown|md)\\b.{0,20}$",
       "\\bregex\\b",
       "\\bsyntaxe (de|pour|du)\\b",
-      "^(qu'est-ce que|comment).{0,50}\\?$"
+      "^(qu'est-ce que|comment|où|quel|quand).{0,50}\\?$",
+      "^(explique|décris|résume|définis) .{0,40}$"
     ],
     "standard": [
       "\\b(crée[rz]?|écri[rstz]+|fai[rst]+|ajoute[rz]?|construi[rstz]+) .{0,20}(fonction|méthode|classe|composant|module|handler|endpoint|route|service|contrôleur)\\b",

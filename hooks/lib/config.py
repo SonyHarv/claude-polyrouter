@@ -29,7 +29,7 @@ DEFAULT_CONFIG = {
             "cost_per_1k_output": 0.025,
         },
     },
-    "default_level": "standard",
+    "default_level": "fast",
     "confidence_threshold": 0.7,
     "session_timeout_minutes": 30,
     "cache": {"memory_size": 50, "file_size": 100, "ttl_days": 30},

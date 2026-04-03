@@ -12,15 +12,18 @@
   ],
   "patterns": {
     "fast": [
+      "^(olá|oi|hey|obrigado|obrigada|tchau|adeus|bom dia|boa tarde|boa noite)[!.,\\s]?$",
+      "^(ok|certo|sim|não|pronto|perfeito|ótimo|beleza|falou|valeu|entendido)[!.,\\s]?$",
       "^(o que|qual) (é|são) ",
       "^como (faço|posso|funciona) ",
-      "^(mostre|liste|exiba|diga) .{0,30}$",
-      "\\b(formatar|formata|formateie)\\b",
-      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge)\\b",
-      "\\b(json|yaml|yml|toml|csv)\\b.{0,20}$",
+      "^(mostre|liste|exiba|diga|me mostre) .{0,30}$",
+      "\\b(formatar|formata|formateie|traduzir|converter|renomear|ordenar|limpar)\\b",
+      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge|stash|rebase)\\b",
+      "\\b(json|yaml|yml|toml|csv|xml|html|markdown|md)\\b.{0,20}$",
       "\\bregex\\b",
       "\\bsintaxe (de|para|do|da)\\b",
-      "^(o que|como).{0,50}\\?$"
+      "^(o que|como|onde|qual|quando).{0,50}\\?$",
+      "^(explique|descreva|resuma|defina) .{0,40}$"
     ],
     "standard": [
       "\\b(crie|escreva|faça|adicione|construa) .{0,20}(função|método|classe|componente|módulo|handler|endpoint|rota|serviço|controlador)\\b",

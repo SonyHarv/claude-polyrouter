@@ -91,13 +91,25 @@ def _decide(signals: dict[str, int], config: dict) -> tuple[str, float]:
     return (config.get("default_level", "fast"), 0.50)
 
 
+def _word_count(query: str) -> int:
+    """Count words in a query, handling CJK characters as individual tokens."""
+    # CJK characters count as individual "words" for length heuristics
+    cjk_chars = len(re.findall(r'[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]', query))
+    ascii_words = len(re.findall(r'[a-zA-Z0-9\u00c0-\u024f\u0400-\u04ff\u0600-\u06ff]+', query))
+    return ascii_words + cjk_chars
+
+
 def classify_query(
     query: str,
     lang_codes: list[str],
     compiled_patterns: dict,
     config: dict,
 ) -> ClassificationResult:
-    """Classify a query using rule-based pattern matching."""
+    """Classify a query using length heuristics + rule-based pattern matching.
+
+    Length rules run first for short queries, but standard/deep keyword
+    signals always override the length-based fast routing.
+    """
     if not isinstance(query, str) or not query.strip():
         return ClassificationResult(
             level=config.get("default_level", "fast"),
@@ -107,7 +119,38 @@ def classify_query(
             matched_languages=lang_codes,
         )
 
+    # Always count signals (needed for keyword override check)
     signals = _count_signals(query, lang_codes, compiled_patterns)
+
+    has_deep = signals.get("deep", 0) > 0
+    has_standard = signals.get("standard", 0) > 0
+    has_tool = signals.get("tool_intensive", 0) > 0
+    has_orch = signals.get("orchestration", 0) > 0
+
+    # Length-based pre-classification for short queries
+    # Only applies when no standard/deep/tool/orchestration signals detected
+    words = _word_count(query)
+
+    if not has_deep and not has_standard:
+        if words < 5 and not has_tool and not has_orch:
+            return ClassificationResult(
+                level="fast",
+                confidence=0.90,
+                method="length",
+                signals=signals,
+                matched_languages=lang_codes,
+            )
+        if words <= 15 and not has_tool and not has_orch:
+            # Mid-length query with no actionable signals → fast
+            return ClassificationResult(
+                level="fast",
+                confidence=0.70,
+                method="length",
+                signals=signals,
+                matched_languages=lang_codes,
+            )
+
+    # Full decision matrix for longer queries or when keywords detected
     level, confidence = _decide(signals, config)
 
     return ClassificationResult(

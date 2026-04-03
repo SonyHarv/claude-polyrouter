@@ -12,15 +12,18 @@
   ],
   "patterns": {
     "fast": [
+      "^(hallo|hi|hey|danke|tschüss|guten morgen|guten tag|guten abend)[!.,\\s]?$",
+      "^(ok|ja|nein|gut|perfekt|super|alles klar|verstanden|einverstanden)[!.,\\s]?$",
       "^was (ist|sind|bedeutet|macht) ",
       "^wie (kann|mache|geht|funktioniert) ",
-      "^(zeige|liste|gib|nenne) .{0,30}$",
-      "\\b(formatieren|formatiere|verschönern)\\b",
-      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge)\\b",
-      "\\b(json|yaml|yml|toml|csv)\\b.{0,20}$",
+      "^(zeige|liste|gib|nenne|zeig mir) .{0,30}$",
+      "\\b(formatieren|formatiere|verschönern|übersetzen|konvertieren|umbenennen|sortieren|bereinigen)\\b",
+      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge|stash|rebase)\\b",
+      "\\b(json|yaml|yml|toml|csv|xml|html|markdown|md)\\b.{0,20}$",
       "\\bregex\\b",
       "\\bSyntax (für|von)\\b",
-      "^(was|wie).{0,50}\\?$"
+      "^(was|wie|wo|welche|wann).{0,50}\\?$",
+      "^(erkläre|beschreibe|fasse zusammen|definiere) .{0,40}$"
     ],
     "standard": [
       "\\b(erstelle|schreibe|mache|füge hinzu|baue) .{0,20}(Funktion|Methode|Klasse|Komponente|Modul|Handler|Endpoint|Route|Service|Controller)\\b",

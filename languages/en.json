@@ -12,15 +12,18 @@
   ],
   "patterns": {
     "fast": [
+      "^(hello|hi|hey|yo|sup|thanks|thank you|bye|goodbye)[!.,\\s]?$",
+      "^(ok|okay|yes|no|sure|done|got it|right|perfect|great|cool|nice|fine|agreed|noted)[!.,\\s]?$",
       "^what (is|are|does) ",
       "^how (do|does|to) ",
-      "^(show|list|get|display) .{0,30}$",
-      "\\b(format|lint|prettify|beautify)\\b",
-      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge)\\b",
-      "\\b(json|yaml|yml|toml|csv)\\b.{0,20}$",
+      "^(show|list|get|display|print|count|check) .{0,30}$",
+      "\\b(format|lint|prettify|beautify|sort|clean|rename|translate|convert)\\b",
+      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge|stash|rebase)\\b",
+      "\\b(json|yaml|yml|toml|csv|xml|html|markdown|md)\\b.{0,20}$",
       "\\bregex\\b",
       "\\bsyntax (for|of)\\b",
-      "^(what|how).{0,50}\\?$"
+      "^(what|how|where|which|when).{0,50}\\?$",
+      "^(explain|describe|summarize|define) .{0,40}$"
     ],
     "standard": [
       "\\b(create|write|make|add|build) .{0,20}(function|method|class|component|module|handler|endpoint|route|service|controller)\\b",
