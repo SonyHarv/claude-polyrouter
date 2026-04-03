@@ -22,6 +22,18 @@
       "\\bSyntax (für|von)\\b",
       "^(was|wie).{0,50}\\?$"
     ],
+    "standard": [
+      "\\b(erstelle|schreibe|mache|füge hinzu|baue) .{0,20}(Funktion|Methode|Klasse|Komponente|Modul|Handler|Endpoint|Route|Service|Controller)\\b",
+      "\\b(implementiere|programmiere|entwickle|codiere) .{0,30}(Funktion|Methode|Klasse|Feature|Logik|Algorithmus)\\b",
+      "\\b(behebe|fixe|löse|repariere|debugge) .{0,20}(Bug|Fehler|Problem|Crash|Ausnahme)\\b",
+      "\\b(aktualisiere|ändere|passe an|modifiziere) .{0,20}(Funktion|Methode|Klasse|Code|Logik|Verhalten)\\b",
+      "\\b(lösche|entferne|eliminiere) .{0,20}(Funktion|Methode|Klasse|Feld|Spalte|Eigenschaft)\\b",
+      "\\b(konvertiere|transformiere|parse|serialisiere|deserialisiere)\\b",
+      "\\b(validiere|bereinige|überprüfe Daten|prüfe Eingabe)\\b",
+      "\\b(füge hinzu|schreibe|erstelle) .{0,15}(Test|Spec|Unit-Test|Integrationstest)\\b",
+      "\\b(behandle|fange|wirf) .{0,15}(Fehler|Ausnahme|Fehlschlag)\\b",
+      "\\b(verbinde|integriere|verknüpfe|verdrahte) .{0,20}(API|Datenbank|Service|Endpoint)\\b"
+    ],
     "deep": [
       "\\b(Architektur|Systemdesign|Entwurfsmuster)\\b",
       "\\bskali(erbar|erbarkeit)\\b",

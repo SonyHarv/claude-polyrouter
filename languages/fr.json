@@ -22,6 +22,18 @@
       "\\bsyntaxe (de|pour|du)\\b",
       "^(qu'est-ce que|comment).{0,50}\\?$"
     ],
+    "standard": [
+      "\\b(crée[rz]?|écri[rstz]+|fai[rst]+|ajoute[rz]?|construi[rstz]+) .{0,20}(fonction|méthode|classe|composant|module|handler|endpoint|route|service|contrôleur)\\b",
+      "\\b(implémente[rz]?|code[rz]?|développe[rz]?|programme[rz]?) .{0,30}(fonction|méthode|classe|feature|logique|algorithme)\\b",
+      "\\b(corrige[rz]?|répare[rz]?|résou[dst]+|débogue[rz]?|fixe[rz]?) .{0,20}(bug|erreur|problème|crash|exception)\\b",
+      "\\b(mets? à jour|modifie[rz]?|change[rz]?|ajuste[rz]?) .{0,20}(fonction|méthode|classe|code|logique|comportement)\\b",
+      "\\b(supprime[rz]?|enlève[rz]?|retire[rz]?|efface[rz]?) .{0,20}(fonction|méthode|classe|champ|colonne|propriété)\\b",
+      "\\b(converti[rstz]+|transforme[rz]?|parse[rz]?|sérialise[rz]?|désérialise[rz]?)\\b",
+      "\\b(valide[rz]?|nettoie[rz]?|vérifie[rz]? les données|contrôle[rz]? l'entrée)\\b",
+      "\\b(ajoute[rz]?|écri[rstz]+|crée[rz]?) .{0,15}(test|spec|test unitaire|test d'intégration)\\b",
+      "\\b(gère[rz]?|attrape[rz]?|lance[rz]?) .{0,15}(erreur|exception|échec)\\b",
+      "\\b(connecte[rz]?|intègre[rz]?|relie[rz]?|branche[rz]?) .{0,20}(api|base de données|service|endpoint)\\b"
+    ],
     "deep": [
       "\\b(architecture|conception de système|patron de conception)\\b",
       "\\bscalab(le|ilité)\\b",

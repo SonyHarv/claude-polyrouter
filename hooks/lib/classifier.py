@@ -60,6 +60,7 @@ def _count_signals(
 def _decide(signals: dict[str, int], config: dict) -> tuple[str, float]:
     """Decision matrix: signals → (level, confidence)."""
     deep = signals.get("deep", 0)
+    standard = signals.get("standard", 0)
     tool = signals.get("tool_intensive", 0)
     orch = signals.get("orchestration", 0)
     fast = signals.get("fast", 0)
@@ -70,6 +71,12 @@ def _decide(signals: dict[str, int], config: dict) -> tuple[str, float]:
         return ("deep", 0.90)
     if deep == 1:
         return ("deep", 0.70)
+    if standard >= 2:
+        return ("standard", 0.90)
+    if standard == 1 and (tool or orch):
+        return ("standard", 0.85)
+    if standard == 1:
+        return ("standard", 0.75)
     if tool >= 2:
         return ("standard", 0.85)
     if tool == 1:

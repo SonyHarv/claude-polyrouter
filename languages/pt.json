@@ -22,6 +22,18 @@
       "\\bsintaxe (de|para|do|da)\\b",
       "^(o que|como).{0,50}\\?$"
     ],
+    "standard": [
+      "\\b(crie|escreva|faça|adicione|construa) .{0,20}(função|método|classe|componente|módulo|handler|endpoint|rota|serviço|controlador)\\b",
+      "\\b(implemente|codifique|desenvolva|programe) .{0,30}(função|método|classe|feature|lógica|algoritmo)\\b",
+      "\\b(corrija|conserte|resolva|repare|debugue) .{0,20}(bug|erro|falha|problema|crash|exceção)\\b",
+      "\\b(atualize|modifique|altere|ajuste) .{0,20}(função|método|classe|código|lógica|comportamento)\\b",
+      "\\b(delete|remova|exclua|apague) .{0,20}(função|método|classe|campo|coluna|propriedade)\\b",
+      "\\b(converta|transforme|parse|serialize|deserialize)\\b",
+      "\\b(valide|sanitize|verifique dados|cheque input)\\b",
+      "\\b(adicione|escreva|crie) .{0,15}(teste|spec|teste unitário|teste de integração)\\b",
+      "\\b(trate|capture|lance) .{0,15}(erro|exceção|falha)\\b",
+      "\\b(conecte|integre|ligue|vincule) .{0,20}(api|banco de dados|serviço|endpoint)\\b"
+    ],
     "deep": [
       "\\b(arquitetura|design de sistema|padrão de projeto)\\b",
       "\\bescaláv(el|el|ilidade)\\b",

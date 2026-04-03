@@ -22,6 +22,18 @@
       "\\bsyntax (for|of)\\b",
       "^(what|how).{0,50}\\?$"
     ],
+    "standard": [
+      "\\b(create|write|make|add|build) .{0,20}(function|method|class|component|module|handler|endpoint|route|service|controller)\\b",
+      "\\b(implement|code|develop|program) .{0,30}(function|method|class|feature|logic|algorithm)\\b",
+      "\\b(fix|debug|resolve|patch|repair) .{0,20}(bug|error|issue|problem|crash|exception)\\b",
+      "\\b(update|modify|change|adjust|tweak) .{0,20}(function|method|class|code|logic|behavior)\\b",
+      "\\b(delete|remove|drop) .{0,20}(function|method|class|field|column|property)\\b",
+      "\\b(convert|transform|parse|serialize|deserialize)\\b",
+      "\\b(validate|sanitize|check input|verify data)\\b",
+      "\\b(add|write|create) .{0,15}(test|spec|unit test|integration test)\\b",
+      "\\b(handle|catch|throw) .{0,15}(error|exception|failure)\\b",
+      "\\b(connect|integrate|hook up|wire) .{0,20}(api|database|service|endpoint)\\b"
+    ],
     "deep": [
       "\\b(architect|architecture|design pattern|system design)\\b",
       "\\bscalab(le|ility)\\b",

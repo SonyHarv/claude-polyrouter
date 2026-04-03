@@ -244,7 +244,8 @@ def main() -> None:
         print(json.dumps(_skip_output("invalid_input")))
         return
 
-    query = input_data.get("query", "")
+    # Claude Code sends user prompt as "prompt"; fall back to "query" for tests
+    query = input_data.get("prompt", "") or input_data.get("query", "")
     if not isinstance(query, str):
         print(json.dumps(_skip_output("invalid_query")))
         return

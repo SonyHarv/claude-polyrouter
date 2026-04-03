@@ -12,9 +12,10 @@
     },
     "patterns": {
       "type": "object",
-      "required": ["fast", "deep", "tool_intensive", "orchestration"],
+      "required": ["fast", "standard", "deep", "tool_intensive", "orchestration"],
       "properties": {
         "fast": { "type": "array", "items": { "type": "string" }, "minItems": 5 },
+        "standard": { "type": "array", "items": { "type": "string" }, "minItems": 5 },
         "deep": { "type": "array", "items": { "type": "string" }, "minItems": 5 },
         "tool_intensive": { "type": "array", "items": { "type": "string" }, "minItems": 3 },
         "orchestration": { "type": "array", "items": { "type": "string" }, "minItems": 3 }
