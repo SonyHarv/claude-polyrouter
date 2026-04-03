@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Combined HUD: OMC + Claude Polyrouter status line
- * Runs OMC HUD via subprocess and appends polyrouter routing indicator.
+ * Passes Claude Code stdin to OMC HUD subprocess and appends polyrouter indicator.
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -18,16 +18,24 @@ const TIER_ICONS = { fast: "⚡", standard: "⚙️", deep: "🧠" };
 const TIER_MODELS = { fast: "haiku", standard: "sonnet", deep: "opus" };
 const OMC_NOISE = [/omc-setup/i, /not installed/i, /not built/i, /\[OMC HUD\]/i, /\[OMC\].*setup/i];
 
-function getOmcOutput() {
+function readStdin() {
+  try {
+    return readFileSync(0, "utf-8");
+  } catch {
+    return "";
+  }
+}
+
+function getOmcOutput(stdin) {
   if (!existsSync(OMC_HUD)) return "";
   try {
     const raw = execSync(`node "${OMC_HUD}"`, {
       timeout: 5000,
       encoding: "utf-8",
+      input: stdin,
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
     if (!raw) return "";
-    // Filter noise line-by-line, keeping valid HUD output
     const clean = raw.split("\n").filter(l => !OMC_NOISE.some(re => re.test(l))).join("\n").trim();
     return clean;
   } catch {
@@ -70,9 +78,10 @@ function getPolyrouter() {
 }
 
 function main() {
+  const stdin = readStdin();
   const parts = [];
 
-  const omc = getOmcOutput();
+  const omc = getOmcOutput(stdin);
   if (omc) parts.push(omc);
 
   const pr = getPolyrouter();
