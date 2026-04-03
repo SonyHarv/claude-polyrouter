@@ -17,14 +17,18 @@ const OMC_HUD = join(home, ".claude", "hud", "omc-hud.mjs");
 const TIER_ICONS = { fast: "⚡", standard: "⚙️", deep: "🧠" };
 const TIER_MODELS = { fast: "haiku", standard: "sonnet", deep: "opus" };
 
+const OMC_NOISE = [/run \/omc-setup/i, /not installed/i, /not built/i, /\[OMC HUD\]/i];
+
 function getOmcOutput() {
   if (!existsSync(OMC_HUD)) return "";
   try {
-    return execSync(`node "${OMC_HUD}"`, {
+    const raw = execSync(`node "${OMC_HUD}"`, {
       timeout: 5000,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
+    if (!raw || OMC_NOISE.some((re) => re.test(raw))) return "";
+    return raw;
   } catch {
     return "";
   }
