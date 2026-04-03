@@ -1,0 +1,63 @@
+{
+  "code": "pt",
+  "name": "Português",
+  "stopwords": [
+    "o", "a", "os", "as", "de", "em", "que", "por", "para", "com",
+    "um", "uma", "do", "da", "no", "na", "se", "ao", "ou", "mas",
+    "como", "mais", "seu", "sua", "está", "são", "foi", "ter", "há",
+    "nos", "já", "ele", "ela", "isso", "isto", "esse", "essa", "muito",
+    "bem", "também", "pode", "aqui", "agora", "quando", "onde", "quem",
+    "qual", "todo", "cada", "entre", "dos", "das", "nos", "nas", "pelo",
+    "pela", "pelos", "pelas", "num", "numa", "nuns", "numas", "dum", "duma"
+  ],
+  "patterns": {
+    "fast": [
+      "^(o que|qual) (é|são) ",
+      "^como (faço|posso|funciona) ",
+      "^(mostre|liste|exiba|diga) .{0,30}$",
+      "\\b(formatar|formata|formateie)\\b",
+      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge)\\b",
+      "\\b(json|yaml|yml|toml|csv)\\b.{0,20}$",
+      "\\bregex\\b",
+      "\\bsintaxe (de|para|do|da)\\b",
+      "^(o que|como).{0,50}\\?$"
+    ],
+    "deep": [
+      "\\b(arquitetura|design de sistema|padrão de projeto)\\b",
+      "\\bescaláv(el|el|ilidade)\\b",
+      "\\b(segurança|vulnerabilidade|auditoria|exploit)\\b",
+      "\\b(em todos os|múltiplos|vários) (arquivos?|componentes?|módulos?)\\b",
+      "\\brefator.{0,20}(codebase|projeto|inteiro|completo)\\b",
+      "\\b(trade-?off|comparar?|prós e contras?)\\b",
+      "\\b(analisa|avalia|compara).{0,30}(opção|abordagem|estratégia)\\b",
+      "\\b(complexo|intrincado|sofisticado)\\b",
+      "\\botimiz.{0,20}(desempenho|velocidade|memória)\\b",
+      "\\b(migração|extração).{0,20}(plano|estratégia)\\b",
+      "\\b(revisão de código|code review|boas práticas)\\b"
+    ],
+    "tool_intensive": [
+      "\\b(buscar|procurar|encontrar) .{0,20}(em|nos|dentro|entre)\\b",
+      "\\b(modificar|alterar|atualizar|editar) .{0,20}(arquivos?|módulos?)\\b",
+      "\\b(executar|rodar|iniciar) .{0,20}(testes?|specs?)\\b",
+      "\\b(instalar|adicionar|remover) .{0,20}(dependência|pacote|biblioteca)\\b",
+      "\\b(compilar|construir|buildar)\\b",
+      "\\b(implantar|deploiar|publicar|lançar)\\b",
+      "\\b(verificar|checar) .{0,15}(estado|logs?|saúde)\\b"
+    ],
+    "orchestration": [
+      "\\b(passo a passo|etapa por etapa|fase por fase)\\b",
+      "\\b(primeiro|depois|em seguida|finalmente).{0,30}(depois|em seguida|finalmente)\\b",
+      "\\b(plano completo|implementação completa|pipeline completo)\\b",
+      "\\b(de ponta a ponta|do zero|desde o início)\\b",
+      "\\bmulti.?etapa\\b",
+      "\\b(criar do zero|implementar completamente)\\b"
+    ]
+  },
+  "follow_up_patterns": [
+    "^(e |mas |também |agora |então )",
+    "^(ok|certo|sim|claro|perfeito|ótimo)[,.]? ",
+    "\\b(o acima|isso|o mesmo|o que você disse)\\b",
+    "\\b(continua|continuar|segue|prossegue|avança)\\b",
+    "^(faça isso|pode ir|soa bem|excelente|ótimo)"
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "code": "fr",
+  "name": "Français",
+  "stopwords": [
+    "le", "la", "les", "de", "du", "des", "un", "une", "et", "est",
+    "dans", "pour", "avec", "sur", "par", "au", "aux", "ce", "cette",
+    "ces", "qui", "que", "ne", "pas", "plus", "son", "sa", "ses",
+    "mon", "ma", "mes", "il", "elle", "nous", "vous", "leur", "être",
+    "avoir", "faire", "tout", "bien", "aussi", "comme", "mais", "où",
+    "quand", "si", "très", "ici", "entre", "même", "encore", "alors",
+    "car", "donc", "dont", "elle", "eux", "y", "en", "on", "lui"
+  ],
+  "patterns": {
+    "fast": [
+      "^(qu'est-ce que|quel|quelle|quels|quelles) ",
+      "^comment (faire|puis-je|est-ce que) ",
+      "^(montre|liste|affiche|donne) .{0,30}$",
+      "\\b(formater|formatte|formater le code)\\b",
+      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge)\\b",
+      "\\b(json|yaml|yml|toml|csv)\\b.{0,20}$",
+      "\\bregex\\b",
+      "\\bsyntaxe (de|pour|du)\\b",
+      "^(qu'est-ce que|comment).{0,50}\\?$"
+    ],
+    "deep": [
+      "\\b(architecture|conception de système|patron de conception)\\b",
+      "\\bscalab(le|ilité)\\b",
+      "\\b(sécurité|vulnérabilité|audit|exploit)\\b",
+      "\\b(dans tous les|plusieurs|multiples) (fichiers?|composants?|modules?)\\b",
+      "\\brefactor.{0,20}(codebase|projet|entier|complet)\\b",
+      "\\b(compromis|comparer?|avantages? et inconvénients?)\\b",
+      "\\b(analys|évalu|compar).{0,30}(option|approche|stratég)\\b",
+      "\\b(complexe|élaboré|sophistiqué)\\b",
+      "\\boptimis.{0,20}(performance|vitesse|mémoire)\\b",
+      "\\b(migration|extraction).{0,20}(plan|stratégie)\\b",
+      "\\b(revue de code|bonnes pratiques|meilleures pratiques)\\b"
+    ],
+    "tool_intensive": [
+      "\\b(chercher|rechercher|trouver|grep) .{0,20}(dans|parmi|entre)\\b",
+      "\\b(modifier|changer|mettre à jour|éditer) .{0,20}(fichiers?|modules?)\\b",
+      "\\b(exécuter|lancer|démarrer) .{0,20}(tests?|specs?)\\b",
+      "\\b(installer|ajouter|supprimer) .{0,20}(dépendance|paquet|bibliothèque)\\b",
+      "\\b(compiler|construire|builder)\\b",
+      "\\b(déployer|publier|livrer)\\b",
+      "\\b(vérifier|contrôler) .{0,15}(état|logs?|santé)\\b"
+    ],
+    "orchestration": [
+      "\\b(étape par étape|phase par phase|pas à pas)\\b",
+      "\\b(d'abord|ensuite|puis|finalement).{0,30}(ensuite|puis|finalement)\\b",
+      "\\b(plan complet|implémentation complète|pipeline complet)\\b",
+      "\\b(de bout en bout|de zéro|depuis le début)\\b",
+      "\\bmulti.?étape\\b",
+      "\\b(créer de zéro|implémenter complètement)\\b"
+    ]
+  },
+  "follow_up_patterns": [
+    "^(et |mais |aussi |maintenant |alors )",
+    "^(ok|oui|bien|parfait|d'accord|super)[,.]? ",
+    "\\b(ce qui précède|ça|la même chose|ce que tu as dit)\\b",
+    "\\b(continue|poursuis|avance|va de l'avant)\\b",
+    "^(fais-le|vas-y|ça semble bien|excellent|parfait)"
+  ]
+}

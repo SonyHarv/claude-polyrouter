@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["code", "name", "stopwords", "patterns", "follow_up_patterns"],
+  "properties": {
+    "code": { "type": "string", "pattern": "^[a-z]{2}$" },
+    "name": { "type": "string" },
+    "stopwords": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 10
+    },
+    "patterns": {
+      "type": "object",
+      "required": ["fast", "deep", "tool_intensive", "orchestration"],
+      "properties": {
+        "fast": { "type": "array", "items": { "type": "string" }, "minItems": 5 },
+        "deep": { "type": "array", "items": { "type": "string" }, "minItems": 5 },
+        "tool_intensive": { "type": "array", "items": { "type": "string" }, "minItems": 3 },
+        "orchestration": { "type": "array", "items": { "type": "string" }, "minItems": 3 }
+      }
+    },
+    "follow_up_patterns": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 3
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "code": "de",
+  "name": "Deutsch",
+  "stopwords": [
+    "der", "die", "das", "ein", "eine", "und", "ist", "in", "von", "mit",
+    "für", "auf", "an", "zu", "den", "dem", "des", "er", "sie", "es",
+    "ich", "wir", "aber", "oder", "wenn", "nicht", "auch", "als", "wie",
+    "so", "noch", "nach", "bei", "über", "nur", "kann", "hat", "war",
+    "wird", "aus", "schon", "sehr", "hier", "jetzt", "wo", "wer", "was",
+    "alle", "mein", "sein", "ihr", "uns", "euch", "dann", "doch", "man",
+    "immer", "mehr", "viel", "gut", "neu", "alt", "groß", "klein", "haben"
+  ],
+  "patterns": {
+    "fast": [
+      "^was (ist|sind|bedeutet|macht) ",
+      "^wie (kann|mache|geht|funktioniert) ",
+      "^(zeige|liste|gib|nenne) .{0,30}$",
+      "\\b(formatieren|formatiere|verschönern)\\b",
+      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge)\\b",
+      "\\b(json|yaml|yml|toml|csv)\\b.{0,20}$",
+      "\\bregex\\b",
+      "\\bSyntax (für|von)\\b",
+      "^(was|wie).{0,50}\\?$"
+    ],
+    "deep": [
+      "\\b(Architektur|Systemdesign|Entwurfsmuster)\\b",
+      "\\bskali(erbar|erbarkeit)\\b",
+      "\\b(Sicherheit|Schwachstelle|Vulnerabilität|Audit|Exploit)\\b",
+      "\\b(alle|mehrere|verschiedene) (Dateien?|Komponenten?|Module?)\\b",
+      "\\bRefactor.{0,20}(Codebase|Projekt|gesamte|komplett)\\b",
+      "\\b(Trade-?off|vergleichen?|Vor- und Nachteile)\\b",
+      "\\b(analysi|bewert|vergleich).{0,30}(Option|Ansatz|Strateg)\\b",
+      "\\b(komplex|aufwändig|anspruchsvoll)\\b",
+      "\\bOptimier.{0,20}(Performance|Geschwindigkeit|Speicher)\\b",
+      "\\b(Migration|Extraktion).{0,20}(Plan|Strategie)\\b",
+      "\\b(Code-Review|Best Practices|bewährte Methoden)\\b"
+    ],
+    "tool_intensive": [
+      "\\b(suchen|finden|grep|nachschlagen) .{0,20}(in|unter|zwischen)\\b",
+      "\\b(ändern|modifizieren|aktualisieren|bearbeiten) .{0,20}(Dateien?|Module?)\\b",
+      "\\b(ausführen|starten|starte) .{0,20}(Tests?|Specs?)\\b",
+      "\\b(installieren|hinzufügen|entfernen) .{0,20}(Abhängigkeit|Paket|Bibliothek)\\b",
+      "\\b(kompilieren|bauen|builden)\\b",
+      "\\b(deployen|veröffentlichen|bereitstellen)\\b",
+      "\\b(prüfen|überprüfen) .{0,15}(Status|Logs?|Gesundheit)\\b"
+    ],
+    "orchestration": [
+      "\\b(Schritt für Schritt|Phase für Phase|Stufe für Stufe)\\b",
+      "\\b(zuerst|dann|danach|schließlich).{0,30}(dann|danach|schließlich)\\b",
+      "\\b(vollständiger Plan|vollständige Implementierung|gesamte Pipeline)\\b",
+      "\\b(von Anfang bis Ende|von Grund auf|von null)\\b",
+      "\\bmehrstufig\\b",
+      "\\b(von Grund auf erstellen|komplett implementieren)\\b",
+      "\\b(weiter|fortfahren|mach weiter|weitermachen)\\b"
+    ]
+  },
+  "follow_up_patterns": [
+    "^(und |aber |auch |jetzt |dann )",
+    "^(ok|ja|gut|perfekt|alles klar|super)[,.]? ",
+    "\\b(das Obige|das|dasselbe|was du gesagt hast)\\b",
+    "\\b(weiter|fortfahren|mach weiter|weitermachen)\\b",
+    "^(mach es|mach weiter|klingt gut|ausgezeichnet|toll)"
+  ]
+}
