@@ -24,7 +24,7 @@
     ],
     "standard": [
       "\\b(crée[rz]?|écri[rstz]+|fai[rst]+|ajoute[rz]?|construi[rstz]+) .{0,20}(fonction|méthode|classe|composant|module|handler|endpoint|route|service|contrôleur)\\b",
-      "\\b(implémente[rz]?|code[rz]?|développe[rz]?|programme[rz]?) .{0,30}(fonction|méthode|classe|feature|logique|algorithme)\\b",
+      "\\b(implémente[rz]?|code[rz]?|développe[rz]?|programme[rz]?) .{0,30}(fonction|méthode|classe|feature|logique|algorithme|endpoint|route|service|contrôleur|api|module|composant|script)\\b",
       "\\b(corrige[rz]?|répare[rz]?|résou[dst]+|débogue[rz]?|fixe[rz]?) .{0,20}(bug|erreur|problème|crash|exception)\\b",
       "\\b(mets? à jour|modifie[rz]?|change[rz]?|ajuste[rz]?) .{0,20}(fonction|méthode|classe|code|logique|comportement)\\b",
       "\\b(supprime[rz]?|enlève[rz]?|retire[rz]?|efface[rz]?) .{0,20}(fonction|méthode|classe|champ|colonne|propriété)\\b",

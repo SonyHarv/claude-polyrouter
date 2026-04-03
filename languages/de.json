@@ -24,7 +24,7 @@
     ],
     "standard": [
       "\\b(erstelle|schreibe|mache|füge hinzu|baue) .{0,20}(Funktion|Methode|Klasse|Komponente|Modul|Handler|Endpoint|Route|Service|Controller)\\b",
-      "\\b(implementiere|programmiere|entwickle|codiere) .{0,30}(Funktion|Methode|Klasse|Feature|Logik|Algorithmus)\\b",
+      "\\b(implementiere|programmiere|entwickle|codiere) .{0,30}(Funktion|Methode|Klasse|Feature|Logik|Algorithmus|Endpoint|Route|Service|Controller|API|Modul|Komponente|Skript)\\b",
       "\\b(behebe|fixe|löse|repariere|debugge) .{0,20}(Bug|Fehler|Problem|Crash|Ausnahme)\\b",
       "\\b(aktualisiere|ändere|passe an|modifiziere) .{0,20}(Funktion|Methode|Klasse|Code|Logik|Verhalten)\\b",
       "\\b(lösche|entferne|eliminiere) .{0,20}(Funktion|Methode|Klasse|Feld|Spalte|Eigenschaft)\\b",

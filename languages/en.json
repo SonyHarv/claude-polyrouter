@@ -24,7 +24,7 @@
     ],
     "standard": [
       "\\b(create|write|make|add|build) .{0,20}(function|method|class|component|module|handler|endpoint|route|service|controller)\\b",
-      "\\b(implement|code|develop|program) .{0,30}(function|method|class|feature|logic|algorithm)\\b",
+      "\\b(implement|code|develop|program) .{0,30}(function|method|class|feature|logic|algorithm|endpoint|route|service|controller|api|module|component|script)\\b",
       "\\b(fix|debug|resolve|patch|repair) .{0,20}(bug|error|issue|problem|crash|exception)\\b",
       "\\b(update|modify|change|adjust|tweak) .{0,20}(function|method|class|code|logic|behavior)\\b",
       "\\b(delete|remove|drop) .{0,20}(function|method|class|field|column|property)\\b",
