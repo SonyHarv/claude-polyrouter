@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Combined HUD: OMC + Claude Polyrouter status line
- * Reads polyrouter session state and appends routing indicator to OMC HUD output.
+ * Runs OMC HUD via subprocess and appends polyrouter routing indicator.
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -16,8 +16,7 @@ const OMC_HUD = join(home, ".claude", "hud", "omc-hud.mjs");
 
 const TIER_ICONS = { fast: "⚡", standard: "⚙️", deep: "🧠" };
 const TIER_MODELS = { fast: "haiku", standard: "sonnet", deep: "opus" };
-
-const OMC_NOISE = [/run \/omc-setup/i, /not installed/i, /not built/i, /\[OMC HUD\]/i];
+const OMC_NOISE = [/omc-setup/i, /not installed/i, /not built/i, /\[OMC HUD\]/i, /\[OMC\].*setup/i];
 
 function getOmcOutput() {
   if (!existsSync(OMC_HUD)) return "";
@@ -27,8 +26,10 @@ function getOmcOutput() {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
-    if (!raw || OMC_NOISE.some((re) => re.test(raw))) return "";
-    return raw;
+    if (!raw) return "";
+    // Filter noise line-by-line, keeping valid HUD output
+    const clean = raw.split("\n").filter(l => !OMC_NOISE.some(re => re.test(l))).join("\n").trim();
+    return clean;
   } catch {
     return "";
   }
@@ -40,7 +41,6 @@ function getPolyrouter() {
     const data = JSON.parse(readFileSync(SESSION_PATH, "utf-8"));
     if (!data || !data.last_route) return null;
 
-    // Check session freshness (30 min timeout)
     const elapsed = (Date.now() / 1000) - (data.last_query_time || 0);
     if (elapsed > 1800) return null;
 
