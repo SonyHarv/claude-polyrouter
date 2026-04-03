@@ -1,0 +1,61 @@
+{
+  "code": "en",
+  "name": "English",
+  "stopwords": [
+    "the", "a", "an", "is", "are", "was", "were", "be", "been",
+    "being", "have", "has", "had", "do", "does", "did", "will",
+    "would", "could", "should", "may", "might", "shall", "can",
+    "to", "of", "in", "for", "on", "with", "at", "by", "from",
+    "this", "that", "these", "those", "it", "its", "my", "your",
+    "and", "or", "but", "not", "if", "then", "than", "when", "what",
+    "how", "which", "who", "where", "why"
+  ],
+  "patterns": {
+    "fast": [
+      "^what (is|are|does) ",
+      "^how (do|does|to) ",
+      "^(show|list|get|display) .{0,30}$",
+      "\\b(format|lint|prettify|beautify)\\b",
+      "\\bgit (status|log|diff|add|commit|push|pull|branch|checkout|merge)\\b",
+      "\\b(json|yaml|yml|toml|csv)\\b.{0,20}$",
+      "\\bregex\\b",
+      "\\bsyntax (for|of)\\b",
+      "^(what|how).{0,50}\\?$"
+    ],
+    "deep": [
+      "\\b(architect|architecture|design pattern|system design)\\b",
+      "\\bscalab(le|ility)\\b",
+      "\\b(security|vulnerab|audit|penetration|exploit)\\b",
+      "\\b(across|multiple|all) (files?|components?|modules?)\\b",
+      "\\brefactor.{0,20}(codebase|project|entire|complete)\\b",
+      "\\b(trade-?off|compare|pros? (and|&) cons?)\\b",
+      "\\b(analy[sz]e|evaluate|assess).{0,30}(option|approach|strateg)\\b",
+      "\\b(complex|intricate|sophisticated)\\b",
+      "\\boptimi[sz](e|ation).{0,20}(performance|speed|memory)\\b",
+      "\\b(migration|standalone|extraction).{0,20}(plan|strategy)\\b"
+    ],
+    "tool_intensive": [
+      "\\b(search|find|grep|look for) .{0,20}(in|across|within)\\b",
+      "\\b(modify|change|update|edit) .{0,20}(files?|modules?)\\b",
+      "\\b(run|execute) .{0,20}(tests?|specs?|suite)\\b",
+      "\\b(install|add|remove) .{0,20}(dependency|package|library)\\b",
+      "\\b(build|compile|bundle)\\b",
+      "\\b(deploy|ship|release)\\b",
+      "\\bcheck .{0,15}(status|health|logs?)\\b"
+    ],
+    "orchestration": [
+      "\\b(step by step|phase by phase|stage by stage)\\b",
+      "\\b(first|then|next|finally|after that).{0,30}(then|next|finally|after that)\\b",
+      "\\b(complete plan|full implementation|entire pipeline)\\b",
+      "\\b(end.to.end|from scratch|ground up)\\b",
+      "\\bmulti.?step\\b"
+    ]
+  },
+  "follow_up_patterns": [
+    "^(and |but |also |now |then )",
+    "^(ok|okay|yes|sure|right|got it|thanks)[,.]? ",
+    "\\b(the above|that|this|it|the same|what you said)\\b",
+    "\\b(continue|go on|proceed|next|keep going)\\b",
+    "^(do it|go ahead|sounds good|perfect|great)"
+  ]
+}
