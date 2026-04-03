@@ -1,0 +1,29 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-polyrouter",
+  "description": "Intelligent multilingual model routing for Claude Code — 10 languages, zero config, no API key required",
+  "owner": {
+    "name": "sonyharv"
+  },
+  "plugins": [
+    {
+      "name": "claude-polyrouter",
+      "description": "Automatically routes queries to the optimal model tier (Haiku/Sonnet/Opus) based on complexity, with native support for 10 languages",
+      "version": "1.0.0",
+      "source": "./",
+      "author": {
+        "name": "sonyharv"
+      },
+      "category": "productivity",
+      "homepage": "https://github.com/SonyHarv/claude-polyrouter",
+      "tags": [
+        "routing",
+        "model-selection",
+        "cost-optimization",
+        "multilingual",
+        "i18n"
+      ]
+    }
+  ],
+  "version": "1.0.0"
+}

@@ -1,0 +1,23 @@
+# Local state and config
+.omc/
+.claude/
+SESSION-PAUSE.md
+PROGRESS.md
+
+# Design docs (internal only)
+docs/superpowers/
+
+# Runtime data
+polyrouter-stats.json
+polyrouter-session.json
+polyrouter-cache.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
