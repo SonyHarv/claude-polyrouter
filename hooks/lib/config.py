@@ -2,6 +2,7 @@
 
 import copy
 import json
+import os
 from pathlib import Path
 
 GLOBAL_CONFIG_PATH = Path.home() / ".claude" / "polyrouter" / "config.json"
@@ -59,10 +60,11 @@ def find_project_config() -> Path | None:
     while current != current.parent and current != home:
         candidate = current / ".claude-polyrouter" / "config.json"
         if candidate.exists():
-            # Verify the resolved path is still under current (no symlink traversal)
+            # Verify resolved path is under current dir (no symlink traversal)
             try:
                 resolved = candidate.resolve()
-                if str(resolved).startswith(str(home)):
+                current_prefix = str(current) + os.sep
+                if str(resolved).startswith(current_prefix) or resolved == current:
                     return candidate
             except (OSError, ValueError):
                 pass
@@ -74,9 +76,10 @@ def find_project_config() -> Path | None:
 
 
 def _read_json_safe(path: Path) -> dict | None:
-    """Read and parse JSON file, return None on any error."""
+    """Read and parse JSON file, return None on any error or non-dict."""
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else None
     except Exception:
         return None
 
