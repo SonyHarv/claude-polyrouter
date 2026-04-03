@@ -74,11 +74,13 @@ def _route_output(
 ) -> dict:
     """Build mandatory routing directive output."""
     pct = f"{confidence * 100:.0f}%"
+    status_line = f"[polyrouter] {model} · {level} · {pct} · {language}\n"
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
             "additionalContext": (
-                "[Claude Polyrouter] MANDATORY ROUTING DIRECTIVE\n"
+                status_line
+                + "[Claude Polyrouter] MANDATORY ROUTING DIRECTIVE\n"
                 f"Route: {level} | Model: {model} | Confidence: {pct} | Method: {method}\n"
                 f"Signals: {signals}\n"
                 f"Language: {language}\n\n"
