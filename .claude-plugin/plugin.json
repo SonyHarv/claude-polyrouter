@@ -1,0 +1,44 @@
+{
+  "name": "claude-polyrouter",
+  "version": "1.0.0",
+  "description": "Intelligent multilingual model routing for Claude Code — routes queries to optimal model tier based on complexity, with native support for 10 languages",
+  "author": { "name": "sonyharv" },
+  "homepage": "https://github.com/sonyharv/claude-polyrouter",
+  "repository": "https://github.com/sonyharv/claude-polyrouter",
+  "license": "MIT",
+  "keywords": [
+    "routing", "model-selection", "cost-optimization",
+    "multilingual", "haiku", "sonnet", "opus",
+    "polyglot", "i18n"
+  ],
+  "agents": [
+    "./agents/fast-executor.md",
+    "./agents/standard-executor.md",
+    "./agents/deep-executor.md",
+    "./agents/opus-orchestrator.md"
+  ],
+  "commands": [
+    { "name": "route",       "description": "Manually route a query to a specific model tier",            "file": "./commands/route.md" },
+    { "name": "stats",       "description": "Display routing statistics and cost savings",                 "file": "./commands/stats.md" },
+    { "name": "dashboard",   "description": "Generate HTML analytics dashboard with Charts.js",            "file": "./commands/dashboard.md" },
+    { "name": "config",      "description": "Show active configuration (global + project merged)",         "file": "./commands/config.md" },
+    { "name": "learn",       "description": "Extract routing insights from current conversation",          "file": "./commands/learn.md" },
+    { "name": "learn-on",    "description": "Enable continuous learning mode",                             "file": "./commands/learn-on.md" },
+    { "name": "learn-off",   "description": "Disable continuous learning mode",                            "file": "./commands/learn-off.md" },
+    { "name": "knowledge",   "description": "Display knowledge base status and recent learnings",          "file": "./commands/knowledge.md" },
+    { "name": "learn-reset", "description": "Clear the knowledge base",                                   "file": "./commands/learn-reset.md" },
+    { "name": "retry",       "description": "Retry last query with escalated model tier",                  "file": "./commands/retry.md" }
+  ],
+  "skills": [
+    { "name": "route",       "file": "./skills/route/SKILL.md" },
+    { "name": "stats",       "file": "./skills/stats/SKILL.md" },
+    { "name": "dashboard",   "file": "./skills/dashboard/SKILL.md" },
+    { "name": "config",      "file": "./skills/config/SKILL.md" },
+    { "name": "learn",       "file": "./skills/learn/SKILL.md" },
+    { "name": "learn-on",    "file": "./skills/learn-on/SKILL.md" },
+    { "name": "learn-off",   "file": "./skills/learn-off/SKILL.md" },
+    { "name": "knowledge",   "file": "./skills/knowledge/SKILL.md" },
+    { "name": "learn-reset", "file": "./skills/learn-reset/SKILL.md" },
+    { "name": "retry",       "file": "./skills/retry/SKILL.md" }
+  ]
+}
