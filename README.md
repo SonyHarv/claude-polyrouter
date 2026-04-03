@@ -8,7 +8,7 @@
 
 > Automatic model routing for Claude Code — sends each query to the optimal model tier based on complexity, without sacrificing quality.
 >
-> **10 languages · zero config · no API key · save up to 80% on tokens**
+> **10 languages · zero config · no API key · save 40-80% on tokens depending on your workload**
 
 ---
 
