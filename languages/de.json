@@ -8,8 +8,7 @@
     "so", "noch", "nach", "bei", "über", "nur", "kann", "hat", "war",
     "wird", "aus", "schon", "sehr", "hier", "jetzt", "wo", "wer", "was",
     "alle", "mein", "sein", "ihr", "uns", "euch", "dann", "doch", "man",
-    "immer", "mehr", "viel", "gut", "neu", "alt", "groß", "klein", "haben",
-    "hallo", "guten", "moin"
+    "immer", "mehr", "viel", "gut", "neu", "alt", "groß", "klein", "haben"
   ],
   "patterns": {
     "fast": [
@@ -49,7 +48,16 @@
       "\\b(komplex|aufwändig|anspruchsvoll)\\b",
       "\\bOptimier.{0,20}(Performance|Geschwindigkeit|Speicher)\\b",
       "\\b(Migration|Extraktion).{0,20}(Plan|Strategie)\\b",
-      "\\b(Code-Review|Best Practices|bewährte Methoden)\\b"
+      "\\b(Code-Review|Best Practices|bewährte Methoden)\\b",
+      "\\b(denk|überlege|analysiere) .{0,20}(gut|gründlich|sorgfältig|genau)\\b",
+      "\\b(bester?|optimaler?|idealer?) (Ansatz|Lösung|Strategie|Weg)\\b",
+      "\\b(plane|entwirf|gestalte) .{0,15}(wie|Implementierung|Ansatz)\\b",
+      "\\b(überprüfe|auditiere|inspiziere) .{0,20}(alles|komplett|ganz)\\b",
+      "\\b(kritisch|wichtig|entscheidend)\\b",
+      "\\b(mehrere|verschiedene) (Optionen|Alternativen|Ansätze)\\b",
+      "\\b(diagnostiziere|untersuche) .{0,20}(Ursache|Grundproblem)\\b",
+      "\\b(neuschreiben|umgestalten|überdenken|umstrukturieren)\\b",
+      "\\b(gründlich|eingehend|detailliert|tiefgehend)\\b"
     ],
     "tool_intensive": [
       "\\b(suchen|finden|grep|nachschlagen) .{0,20}(in|unter|zwischen)\\b",

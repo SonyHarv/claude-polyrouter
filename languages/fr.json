@@ -8,8 +8,7 @@
     "mon", "ma", "mes", "il", "elle", "nous", "vous", "leur", "être",
     "avoir", "faire", "tout", "bien", "aussi", "comme", "mais", "où",
     "quand", "si", "très", "ici", "entre", "même", "encore", "alors",
-    "car", "donc", "dont", "elle", "eux", "y", "en", "on", "lui",
-    "bonjour", "salut", "bonsoir"
+    "car", "donc", "dont", "elle", "eux", "y", "en", "on", "lui"
   ],
   "patterns": {
     "fast": [
@@ -49,7 +48,16 @@
       "\\b(complexe|élaboré|sophistiqué)\\b",
       "\\boptimis.{0,20}(performance|vitesse|mémoire)\\b",
       "\\b(migration|extraction).{0,20}(plan|stratégie)\\b",
-      "\\b(revue de code|bonnes pratiques|meilleures pratiques)\\b"
+      "\\b(revue de code|bonnes pratiques|meilleures pratiques)\\b",
+      "\\b(réfléchis|raisonne|analyse) .{0,20}(bien|profondément|en détail)\\b",
+      "\\b(meilleur|optimal|idéal) (approche|solution|stratégie|méthode)\\b",
+      "\\b(planifie|conçois|élabore) .{0,15}(comment|implémentation|approche)\\b",
+      "\\b(examine|audite|inspecte) .{0,20}(tout|complet|entier)\\b",
+      "\\b(critique|important|crucial)\\b",
+      "\\b(plusieurs|multiples|différentes) (options?|alternatives?|approches?)\\b",
+      "\\b(diagnostique|investigue) .{0,20}(cause racine|problème sous-jacent)\\b",
+      "\\b(réécris|reconçois|repense|restructure)\\b",
+      "\\b(en profondeur|en détail|minutieusement)\\b"
     ],
     "tool_intensive": [
       "\\b(chercher|rechercher|trouver|grep) .{0,20}(dans|parmi|entre)\\b",

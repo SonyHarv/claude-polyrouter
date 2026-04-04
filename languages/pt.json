@@ -8,8 +8,7 @@
     "nos", "já", "ele", "ela", "isso", "isto", "esse", "essa", "muito",
     "bem", "também", "pode", "aqui", "agora", "quando", "onde", "quem",
     "qual", "todo", "cada", "entre", "dos", "das", "nos", "nas", "pelo",
-    "pela", "pelos", "pelas", "num", "numa", "nuns", "numas", "dum", "duma",
-    "oi", "olá", "ola"
+    "pela", "pelos", "pelas", "num", "numa", "nuns", "numas", "dum", "duma"
   ],
   "patterns": {
     "fast": [
@@ -49,7 +48,16 @@
       "\\b(complexo|intrincado|sofisticado)\\b",
       "\\botimiz.{0,20}(desempenho|velocidade|memória)\\b",
       "\\b(migração|extração).{0,20}(plano|estratégia)\\b",
-      "\\b(revisão de código|code review|boas práticas)\\b"
+      "\\b(revisão de código|code review|boas práticas)\\b",
+      "\\b(pense|raciocine|analise) .{0,20}(bem|profund|detalhad)\\b",
+      "\\b(melhor|ótim|ideal) (abordagem|solução|estratégia|forma)\\b",
+      "\\b(planeje|projete|planeje) .{0,15}(como|implementação|abordagem)\\b",
+      "\\b(revise|audite|inspecione) .{0,20}(todo|completo|inteiro)\\b",
+      "\\b(crítico|importante|crucial)\\b",
+      "\\b(várias|múltiplas|diferentes) (opções|alternativas|abordagens)\\b",
+      "\\b(diagnostique|investigue) .{0,20}(causa raiz|problema subjacente)\\b",
+      "\\b(reescreva|redesenhe|repense|reestruture)\\b",
+      "\\b(a fundo|em profundidade|detalhadamente|minuciosamente)\\b"
     ],
     "tool_intensive": [
       "\\b(buscar|procurar|encontrar) .{0,20}(em|nos|dentro|entre)\\b",

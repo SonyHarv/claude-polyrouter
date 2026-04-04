@@ -8,8 +8,7 @@
     "este", "esta", "estos", "estas", "ese", "esa",
     "su", "sus", "mi", "tu", "y", "o", "pero", "como",
     "más", "no", "si", "ya", "se", "le", "lo", "me",
-    "qué", "cómo", "cuál", "dónde", "quién", "cuándo",
-    "hola", "buenas", "saludos", "buen"
+    "qué", "cómo", "cuál", "dónde", "quién", "cuándo"
   ],
   "patterns": {
     "fast": [
@@ -48,7 +47,16 @@
       "\\b(analiz|evalu|compar).{0,30}(opci|enfoque|estrateg)\\b",
       "\\b(complejo|intrincado|sofisticado)\\b",
       "\\boptimiz.{0,20}(rendimiento|velocidad|memoria)\\b",
-      "\\b(migración|extracción).{0,20}(plan|estrategia)\\b"
+      "\\b(migración|extracción).{0,20}(plan|estrategia)\\b",
+      "\\b(piensa|razona|analiza) .{0,20}(bien|profund|detallad)\\b",
+      "\\b(mejor|óptim|ideal) (enfoque|solución|estrategia|forma)\\b",
+      "\\b(planea|diseña|planifica) .{0,15}(cómo|implementación|enfoque)\\b",
+      "\\b(revisa|audita|inspecciona) .{0,20}(todo|completo|entero)\\b",
+      "\\b(crítico|importante|crucial)\\b",
+      "\\b(varias|múltiples|diferentes) (opciones|alternativas|enfoques)\\b",
+      "\\b(diagnostica|investiga) .{0,20}(causa raíz|problema de fondo)\\b",
+      "\\b(reescribe|rediseña|replantea|reestructura)\\b",
+      "\\b(a fondo|en profundidad|detalladamente|minuciosamente)\\b"
     ],
     "tool_intensive": [
       "\\b(busca|encuentra|grep|buscar) .{0,20}(en|dentro|entre)\\b",

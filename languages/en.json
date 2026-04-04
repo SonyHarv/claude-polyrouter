@@ -8,8 +8,7 @@
     "to", "of", "in", "for", "on", "with", "at", "by", "from",
     "this", "that", "these", "those", "it", "its", "my", "your",
     "and", "or", "but", "not", "if", "then", "than", "when", "what",
-    "how", "which", "who", "where", "why",
-    "hi", "hey", "hello", "greetings"
+    "how", "which", "who", "where", "why"
   ],
   "patterns": {
     "fast": [
@@ -48,7 +47,16 @@
       "\\b(analy[sz]e|evaluate|assess).{0,30}(option|approach|strateg)\\b",
       "\\b(complex|intricate|sophisticated)\\b",
       "\\boptimi[sz](e|ation).{0,20}(performance|speed|memory)\\b",
-      "\\b(migration|standalone|extraction).{0,20}(plan|strategy)\\b"
+      "\\b(migration|standalone|extraction).{0,20}(plan|strategy)\\b",
+      "\\b(think|reason|analy[sz]e) .{0,20}(careful|deep|thorough)\\b",
+      "\\b(best|optimal|ideal) (approach|solution|strategy|way)\\b",
+      "\\b(plan|design|architect) .{0,15}(how|implementation|approach)\\b",
+      "\\b(review|audit|inspect) .{0,20}(entire|whole|full|complete)\\b",
+      "\\b(critical|important|crucial).{0,20}(get.{0,5}right|correct|accurate)\\b",
+      "\\b(multiple|several|many) (options?|alternatives?|approaches?)\\b",
+      "\\b(debug|diagnose|investigate) .{0,20}(root cause|underlying|intermittent)\\b",
+      "\\b(rewrite|redesign|rethink|overhaul)\\b",
+      "\\bin.depth\\b"
     ],
     "tool_intensive": [
       "\\b(search|find|grep|look for) .{0,20}(in|across|within)\\b",

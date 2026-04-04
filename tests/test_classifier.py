@@ -62,22 +62,22 @@ class TestLengthRules:
     def test_single_word_routes_fast(self):
         result = classify_query("hola", ["es"], self.patterns, self.config)
         assert result.level == "fast"
-        assert result.confidence == 0.90
+        assert result.confidence == 0.85
         assert result.method == "length"
 
     def test_greeting_routes_fast(self):
         result = classify_query("hello", ["en"], self.patterns, self.config)
         assert result.level == "fast"
-        assert result.confidence == 0.90
+        assert result.confidence == 0.85
 
     def test_ok_routes_fast(self):
         result = classify_query("ok", ["en"], self.patterns, self.config)
         assert result.level == "fast"
-        assert result.confidence == 0.90
+        assert result.confidence == 0.85
 
     def test_short_no_keywords_routes_fast(self):
-        """5-15 words, no standard/deep signals → fast @ 0.70"""
-        result = classify_query("tell me about the weather today please", ["en"], self.patterns, self.config)
+        """4-10 words, no standard/deep signals → fast @ 0.70"""
+        result = classify_query("tell me about the weather today", ["en"], self.patterns, self.config)
         assert result.level == "fast"
         assert result.method == "length"
 
@@ -176,7 +176,7 @@ class TestClassifySpanish:
     def test_greeting_routes_fast(self):
         result = classify_query("hola", ["es"], self.patterns, self.config)
         assert result.level == "fast"
-        assert result.confidence >= 0.90
+        assert result.confidence >= 0.85
 
     def test_confirmation_routes_fast(self):
         result = classify_query("vale", ["es"], self.patterns, self.config)
@@ -243,10 +243,10 @@ class TestExpectedDistribution:
         standard_pct = counts["standard"] / total * 100
         deep_pct = counts["deep"] / total * 100
 
-        # Target: 60%+ fast, 20-35% standard, 5-20% deep
-        assert fast_pct >= 55, f"Fast {fast_pct:.0f}% < 55% target (got {counts})"
+        # Target: ~35% fast, ~40% standard, ~25% deep
+        assert fast_pct >= 30, f"Fast {fast_pct:.0f}% < 30% target (got {counts})"
         assert standard_pct >= 15, f"Standard {standard_pct:.0f}% < 15% (got {counts})"
-        assert deep_pct >= 5, f"Deep {deep_pct:.0f}% < 5% (got {counts})"
+        assert deep_pct >= 8, f"Deep {deep_pct:.0f}% < 8% (got {counts})"
 
 
 class TestDecisionMatrix:

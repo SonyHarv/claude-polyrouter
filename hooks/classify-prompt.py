@@ -23,6 +23,7 @@ from lib.classifier import ClassificationResult, classify_query, compile_pattern
 from lib.config import DEFAULT_CONFIG, load_config
 from lib.context import SessionState
 from lib.detector import detect_language, load_languages
+from lib.intent_override import detect_intent_override
 from lib.learner import get_learned_adjustment
 from lib.stats import Stats
 
@@ -286,6 +287,44 @@ def main() -> None:
         skip_result = _stage_exception_check(query, session)
         if skip_result is not None:
             print(json.dumps(skip_result))
+            return
+    except Exception:
+        pass  # Continue pipeline on error
+
+    # --- Stage 1.5: Intent Override ---
+    try:
+        override = detect_intent_override(query)
+        if override.level is not None:
+            level = override.level
+            level_cfg = config.get("levels", {}).get(level, {})
+            model = level_cfg.get("model", level)
+            agent = level_cfg.get("agent", f"{level}-executor")
+            confidence = override.confidence
+            method = "intent_override"
+            # Detect language for display
+            try:
+                lang_result = detect_language(
+                    query, languages,
+                    last_language=session.read().get("last_language"),
+                )
+                display_language = lang_result.language or "multi"
+            except Exception:
+                display_language = "multi"
+            # Record stats
+            savings = _calculate_savings(level, config)
+            try:
+                stats.record(level, display_language, False, savings)
+            except Exception:
+                pass
+            try:
+                session.update(level, display_language)
+            except Exception:
+                pass
+            output = _route_output(
+                level, model, agent, confidence, method,
+                f"override={override.reason}", display_language, query,
+            )
+            print(json.dumps(output))
             return
     except Exception:
         pass  # Continue pipeline on error

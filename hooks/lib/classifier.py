@@ -70,7 +70,7 @@ def _decide(signals: dict[str, int], config: dict) -> tuple[str, float]:
     if deep >= 2:
         return ("deep", 0.90)
     if deep == 1:
-        return ("deep", 0.70)
+        return ("deep", 0.80)
     if standard >= 2:
         return ("standard", 0.90)
     if standard == 1 and (tool or orch):
@@ -132,15 +132,15 @@ def classify_query(
     words = _word_count(query)
 
     if not has_deep and not has_standard:
-        if words < 5 and not has_tool and not has_orch:
+        if words < 4 and not has_tool and not has_orch:
             return ClassificationResult(
                 level="fast",
-                confidence=0.90,
+                confidence=0.85,
                 method="length",
                 signals=signals,
                 matched_languages=lang_codes,
             )
-        if words <= 15 and not has_tool and not has_orch:
+        if words <= 10 and not has_tool and not has_orch:
             # Mid-length query with no actionable signals → fast
             return ClassificationResult(
                 level="fast",
