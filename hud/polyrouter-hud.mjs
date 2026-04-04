@@ -16,7 +16,7 @@ const OMC_HUD = join(home, ".claude", "hud", "omc-hud.mjs");
 
 const TIER_ICONS = { fast: "⚡", standard: "⚙️", deep: "🧠" };
 const TIER_MODELS = { fast: "haiku", standard: "sonnet", deep: "opus" };
-const OMC_NOISE = [/omc-setup/i, /not installed/i, /not built/i, /\[OMC HUD\]/i, /\[OMC\].*setup/i];
+const OMC_NOISE = [/omc-setup/i, /not installed/i, /not built/i, /\[OMC HUD\]/i, /\[OMC\].*setup/i, /Claude Code has switched/i, /switched to/i, /model changed/i, /switching/i];
 
 function readStdin() {
   try {
