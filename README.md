@@ -57,10 +57,16 @@ Routing happens automatically on every query via a `UserPromptSubmit` hook. No m
 ## Installation
 
 ```bash
-claude plugin add sonyharv/claude-polyrouter
+# Step 1: Add marketplace (one-time)
+claude plugin marketplace add claude-polyrouter SonyHarv/claude-polyrouter
+
+# Step 2: Install
+claude plugin install claude-polyrouter@claude-polyrouter
+
+# Step 3: Restart Claude Code
 ```
 
-That's it. The plugin auto-configures the `UserPromptSubmit` hook in your `settings.json`. No manual setup needed.
+That's it. The plugin auto-configures the `UserPromptSubmit` hook in your `settings.json` on first run — no manual setup needed. The `post-install.sh` script also sets up the HUD symlink and statusLine command automatically.
 
 ---
 

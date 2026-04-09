@@ -24,7 +24,8 @@
   <rect x="0" y="182" width="680" height="38" fill="#161b22"/>
   <rect x="0" y="182" width="680" height="1" fill="#21262d"/>
   <text x="24" y="206" font-family="monospace" font-size="12" fill="#f9fafb">[polyrouter]</text>
-  <text x="120" y="206" font-family="monospace" font-size="12" fill="#6ee7b7">⚡ haiku</text>
-  <text x="188" y="206" font-family="monospace" font-size="12" fill="#6b7280">· es · d18 · 100q ·</text>
-  <text x="328" y="206" font-family="monospace" font-size="12" fill="#34d399">$3.21↓</text>
+  <text x="120" y="206" font-family="monospace" font-size="12" fill="#afa9ec">[^.^]~</text>
+  <text x="168" y="206" font-family="monospace" font-size="12" fill="#6b7280">· sonnet · std ·</text>
+  <text x="310" y="206" font-family="monospace" font-size="12" fill="#28c840">cache:█████</text>
+  <text x="418" y="206" font-family="monospace" font-size="12" fill="#6b7280">· $12.34↓ · es</text>
 </svg>
