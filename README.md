@@ -9,9 +9,7 @@
 ![Token Reduction](https://img.shields.io/badge/token%20reduction-82%25-success)
 ![Accuracy](https://img.shields.io/badge/accuracy-100%25-brightgreen)
 
-> Automatic model routing for Claude Code — sends each query to the optimal model tier based on complexity, without sacrificing quality.
->
-> **10 languages · zero config · no API key · 82% token reduction · 501 tests passing**
+> Tired of hitting Claude Code token limits? claude-polyrouter silently routes every query to the right model — stop paying Opus prices for simple questions. 82% less token waste, 10 languages, zero setup.
 
 ---
 

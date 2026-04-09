@@ -7,6 +7,7 @@ Thank you for your interest in contributing to claude-polyrouter! This guide wil
 ### Prerequisites
 
 - Python 3.8+
+- Node.js 18+
 - Claude Code CLI installed
 - Git
 
@@ -18,7 +19,7 @@ git clone https://github.com/<your-username>/claude-polyrouter.git
 cd claude-polyrouter
 
 # 2. Install as a Claude Code plugin (for local testing)
-claude plugin install --local .
+claude plugin install -s local .
 
 # 3. Run the test suite
 python -m pytest tests/ -v
