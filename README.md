@@ -203,7 +203,18 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 
 ---
 
-## Roadmap v2
+## Roadmap
+
+### v1.4.0 (completed)
+
+- [x] Multi-signal 9-weighted scoring engine
+- [x] 10-language support with accent-tolerant patterns
+- [x] Poly mascot HUD with animated states
+- [x] Cache freshness bar with prefix and warning indicators
+- [x] Auto-hook injection for zero-config setup
+- [x] 82% token reduction in additionalContext
+
+### v2 (planned)
 
 - [ ] Multi-agent support: Codex CLI, Gemini CLI
 - [ ] Ultra tier for next-gen models
@@ -219,10 +230,10 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 1. Fork the repository
 2. Create a branch: `git checkout -b feat/my-feature`
 3. Add tests in `tests/`
-4. Run tests: `python -m pytest tests/ -v`
-5. Submit a pull request with a clear description
-
-Commit style: `feat:` `fix:` `refactor:` `test:` `docs:`
+4. Run the test suite: `python -m pytest tests/ -v`
+5. Ensure all 501+ tests pass before submitting
+6. Commit using conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
+7. Open a pull request with a clear description of the change
 
 Keep classification latency under 5ms. Maintain test coverage for all routing paths.
 

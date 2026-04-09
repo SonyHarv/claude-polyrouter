@@ -25,14 +25,14 @@
   <rect x="0" y="182" width="680" height="1" fill="#21262d"/>
   <text x="24" y="206" font-family="monospace" font-size="12" fill="#f9fafb">[polyrouter]</text>
   <text x="118" y="206" font-family="monospace" font-size="12" fill="#afa9ec">[^.^]~</text>
-  <text x="162" y="206" font-family="monospace" font-size="12" fill="#6b7280">·</text>
-  <text x="172" y="206" font-family="monospace" font-size="12" fill="#93c5fd">sonnet</text>
-  <text x="216" y="206" font-family="monospace" font-size="12" fill="#6b7280">·</text>
-  <text x="226" y="206" font-family="monospace" font-size="12" fill="#9ca3af">std</text>
-  <text x="252" y="206" font-family="monospace" font-size="12" fill="#6b7280">·</text>
-  <text x="262" y="206" font-family="monospace" font-size="12" fill="#28c840">cache:█████</text>
-  <text x="356" y="206" font-family="monospace" font-size="12" fill="#6b7280">·</text>
-  <text x="366" y="206" font-family="monospace" font-size="12" fill="#34d399">$12.34↓</text>
-  <text x="424" y="206" font-family="monospace" font-size="12" fill="#6b7280">·</text>
-  <text x="434" y="206" font-family="monospace" font-size="12" fill="#9ca3af">es</text>
+  <text x="168" y="206" font-family="monospace" font-size="12" fill="#6b7280">·</text>
+  <text x="182" y="206" font-family="monospace" font-size="12" fill="#93c5fd">sonnet</text>
+  <text x="233" y="206" font-family="monospace" font-size="12" fill="#6b7280">·</text>
+  <text x="247" y="206" font-family="monospace" font-size="12" fill="#9ca3af">std</text>
+  <text x="276" y="206" font-family="monospace" font-size="12" fill="#6b7280">·</text>
+  <text x="290" y="206" font-family="monospace" font-size="12" fill="#28c840">cache:█████</text>
+  <text x="377" y="206" font-family="monospace" font-size="12" fill="#6b7280">·</text>
+  <text x="391" y="206" font-family="monospace" font-size="12" fill="#34d399">$12.34↓</text>
+  <text x="449" y="206" font-family="monospace" font-size="12" fill="#6b7280">·</text>
+  <text x="463" y="206" font-family="monospace" font-size="12" fill="#9ca3af">es</text>
 </svg>
