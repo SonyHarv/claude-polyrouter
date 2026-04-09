@@ -235,54 +235,54 @@ class TestCacheBar:
 
     def test_fresh_under_10_min(self):
         bar, color = cache_bar(0)
-        assert bar == "█████"
+        assert bar == "cache:█████"
         assert color == "#97c459"
 
     def test_fresh_at_5_min(self):
         bar, _color = cache_bar(300)
-        assert bar == "█████"
+        assert bar == "cache:█████"
 
     def test_warm_at_15_min(self):
         bar, color = cache_bar(900)
-        assert bar == "████░"
+        assert bar == "cache:████░"
         assert color == "#ef9f27"
 
     def test_cooling_at_35_min(self):
         bar, color = cache_bar(2100)
-        assert bar == "███░░"
+        assert bar == "cache:███░░ !"
         assert color == "#e8853a"
 
     def test_expired_at_55_min(self):
         bar, color = cache_bar(3300)
-        assert bar == "░░░░░"
+        assert bar == "cache:░░░░░ exp"
         assert color == "#e24b4a"
 
     def test_boundary_10_min(self):
         bar, _color = cache_bar(599)
-        assert bar == "█████"
+        assert bar == "cache:█████"
         bar2, _color2 = cache_bar(600)
-        assert bar2 == "████░"
+        assert bar2 == "cache:████░"
 
     def test_boundary_30_min(self):
         bar, _color = cache_bar(1799)
-        assert bar == "████░"
+        assert bar == "cache:████░"
         bar2, _color2 = cache_bar(1800)
-        assert bar2 == "███░░"
+        assert bar2 == "cache:███░░ !"
 
     def test_boundary_50_min(self):
         bar, _color = cache_bar(2999)
-        assert bar == "███░░"
+        assert bar == "cache:███░░ !"
         bar2, _color2 = cache_bar(3000)
-        assert bar2 == "░░░░░"
+        assert bar2 == "cache:░░░░░ exp"
 
     def test_expired_returns_constant(self):
         bar, color = cache_bar(99999)
         assert (bar, color) == CACHE_BAR_EXPIRED
 
-    def test_all_bars_are_5_chars(self):
+    def test_all_bars_have_cache_prefix(self):
         for secs in [0, 300, 900, 2100, 3300]:
             bar, _color = cache_bar(secs)
-            assert len(bar) == 5
+            assert bar.startswith("cache:")
 
 
 class TestFormatStatusLineWithCacheBar:

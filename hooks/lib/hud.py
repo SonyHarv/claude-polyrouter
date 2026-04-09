@@ -50,11 +50,11 @@ def get_frame(state: str, tick: int) -> str:
 # --- Cache freshness bar ---
 
 CACHE_BAR_LEVELS = [
-    (600,  "█████", "#97c459"),   # 0-10 min: fresh, green
-    (1800, "████░", "#ef9f27"),   # 10-30 min: warm, yellow
-    (3000, "███░░", "#e8853a"),   # 30-50 min: cooling, orange
+    (600,  "cache:█████", "#97c459"),         # 0-10 min: fresh, green
+    (1800, "cache:████░", "#ef9f27"),         # 10-30 min: warm, yellow
+    (3000, "cache:███░░ !", "#e8853a"),       # 30-50 min: warning, orange
 ]
-CACHE_BAR_EXPIRED = ("░░░░░", "#e24b4a")  # 50+ min: expired, red
+CACHE_BAR_EXPIRED = ("cache:░░░░░ exp", "#e24b4a")  # 50+ min: expired, red
 
 
 def cache_bar(elapsed_seconds: float) -> tuple[str, str]:

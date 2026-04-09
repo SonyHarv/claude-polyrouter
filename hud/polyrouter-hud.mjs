@@ -53,11 +53,11 @@ const TIER_MODELS = { fast: "haiku", standard: "sonnet", deep: "opus" };
 
 // --- Cache freshness bar ---
 const CACHE_BAR_LEVELS = [
-  { max: 600,  bar: "█████", color: "#97c459" },   // 0-10 min: fresh
-  { max: 1800, bar: "████░", color: "#ef9f27" },   // 10-30 min: warm
-  { max: 3000, bar: "███░░", color: "#e8853a" },   // 30-50 min: cooling
+  { max: 600,  bar: "cache:█████", color: "#97c459" },       // 0-10 min: fresh
+  { max: 1800, bar: "cache:████░", color: "#ef9f27" },       // 10-30 min: warm
+  { max: 3000, bar: "cache:███░░ !", color: "#e8853a" },     // 30-50 min: warning
 ];
-const CACHE_BAR_EXPIRED = { bar: "░░░░░", color: "#e24b4a" }; // 50+ min
+const CACHE_BAR_EXPIRED = { bar: "cache:░░░░░ exp", color: "#e24b4a" }; // 50+ min
 
 function cacheBar(elapsedSec) {
   for (const lvl of CACHE_BAR_LEVELS) {
