@@ -19,7 +19,6 @@ HUD_DIR="$HOME/.claude/hud"
 HUD_LINK="$HUD_DIR/polyrouter-hud.mjs"
 
 # ── 1. Find latest installed version ─────────────────────────────────────────
-# List directories that look like semver (e.g. 1.2.0, 1.3.1), sort, take last.
 latest_version=$(
   ls -1 "$PLUGIN_CACHE_DIR" 2>/dev/null \
   | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
@@ -33,10 +32,17 @@ if [[ -z "$latest_version" ]]; then
 fi
 
 latest_dir="$PLUGIN_CACHE_DIR/$latest_version"
-echo "[polyrouter] Latest installed version: $latest_version"
 
-# ── 2. Create/update `current` symlink ───────────────────────────────────────
-# Remove existing symlink or bail if it's a real directory (safety check).
+# ── 2. Fast path: skip if symlinks already correct ──────────────────────────
+if [[ -L "$CURRENT_LINK" && "$(readlink "$CURRENT_LINK")" == "$latest_dir" ]] \
+&& [[ -L "$HUD_LINK" && "$(readlink "$HUD_LINK")" == "$CURRENT_LINK/hud/polyrouter-hud.mjs" ]] \
+&& [[ -e "$HUD_LINK" ]]; then
+  exit 0
+fi
+
+echo "[polyrouter] Updating symlinks for v$latest_version..."
+
+# ── 3. Create/update `current` symlink ───────────────────────────────────────
 if [[ -L "$CURRENT_LINK" ]]; then
   rm "$CURRENT_LINK"
 elif [[ -e "$CURRENT_LINK" ]]; then
@@ -45,12 +51,11 @@ elif [[ -e "$CURRENT_LINK" ]]; then
 fi
 
 ln -s "$latest_dir" "$CURRENT_LINK"
-echo "[polyrouter] Symlink updated: $CURRENT_LINK -> $latest_dir"
 
-# ── 3. Ensure ~/.claude/hud/ exists ──────────────────────────────────────────
+# ── 4. Ensure ~/.claude/hud/ exists ──────────────────────────────────────────
 mkdir -p "$HUD_DIR"
 
-# ── 4. Create/update HUD symlink via `current` ───────────────────────────────
+# ── 5. Create/update HUD symlink via `current` ───────────────────────────────
 if [[ -L "$HUD_LINK" ]]; then
   rm "$HUD_LINK"
 elif [[ -e "$HUD_LINK" ]]; then
@@ -59,5 +64,4 @@ elif [[ -e "$HUD_LINK" ]]; then
 fi
 
 ln -s "$CURRENT_LINK/hud/polyrouter-hud.mjs" "$HUD_LINK"
-echo "[polyrouter] HUD symlink updated: $HUD_LINK -> $CURRENT_LINK/hud/polyrouter-hud.mjs"
-echo "[polyrouter] Post-install complete."
+echo "[polyrouter] Symlinks updated: current -> v$latest_version, HUD -> current/hud"

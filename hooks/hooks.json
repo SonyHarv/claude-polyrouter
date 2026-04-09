@@ -27,6 +27,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-install.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/check-update.py",
             "timeout": 5
           }
