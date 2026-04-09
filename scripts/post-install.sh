@@ -19,7 +19,7 @@ CURRENT_LINK="$PLUGIN_CACHE_DIR/current"
 HUD_DIR="$HOME/.claude/hud"
 HUD_LINK="$HUD_DIR/polyrouter-hud.mjs"
 SETTINGS_FILE="$HOME/.claude/settings.json"
-HOOK_CMD="python3 \${CLAUDE_PLUGIN_ROOT}/hooks/classify-prompt.py"
+HOOK_CMD="python3 ~/.claude/plugins/cache/claude-polyrouter/claude-polyrouter/current/hooks/classify-prompt.py"
 
 # ── 1. Find latest installed version ─────────────────────────────────────────
 latest_version=$(
@@ -39,7 +39,7 @@ latest_dir="$PLUGIN_CACHE_DIR/$latest_version"
 # ── 2. Fast path: skip if symlinks already correct AND hook already injected ─
 hook_exists() {
   [[ -f "$SETTINGS_FILE" ]] && \
-  jq -e '.hooks.UserPromptSubmit // [] | map(select(.command and (.command | contains("classify-prompt.py")))) | length > 0' "$SETTINGS_FILE" >/dev/null 2>&1
+  jq -e '.hooks.UserPromptSubmit // [] | map(.hooks // [] | map(select(.command and (.command | contains("classify-prompt.py"))))) | flatten | length > 0' "$SETTINGS_FILE" >/dev/null 2>&1
 }
 
 if [[ -L "$CURRENT_LINK" && "$(readlink "$CURRENT_LINK")" == "$latest_dir" ]] \
@@ -81,17 +81,20 @@ inject_hook() {
     return 0  # no settings.json — plugin hooks.json will handle it
   fi
 
-  # Check if the hook already exists
-  if jq -e '.hooks.UserPromptSubmit // [] | map(select(.command and (.command | contains("classify-prompt.py")))) | length > 0' "$SETTINGS_FILE" >/dev/null 2>&1; then
-    return 0  # already present
+  # Check if the hook already exists (nested format: matcher + hooks array)
+  if hook_exists; then
+    return 0
   fi
 
   local hook_entry
-  hook_entry=$(cat <<'HOOKJSON'
+  hook_entry=$(cat <<HOOKJSON
 {
-  "type": "command",
-  "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/classify-prompt.py",
-  "timeout": 15
+  "matcher": "",
+  "hooks": [{
+    "type": "command",
+    "command": "$HOOK_CMD",
+    "timeout": 15
+  }]
 }
 HOOKJSON
   )
