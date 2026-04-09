@@ -44,7 +44,7 @@ class TestMascotDefinitions:
 
     def test_idle_frames(self):
         frames = MASCOT_STATES["idle"]["frames"]
-        assert frames[0] == "[^.^]  ~"
+        assert frames[0] == "[^.^]~"
         assert "[^-^]" in frames[2]
 
     def test_routing_frames(self):
@@ -55,7 +55,7 @@ class TestMascotDefinitions:
     def test_keepalive_frames(self):
         frames = MASCOT_STATES["keepalive"]["frames"]
         assert "zzz" in frames[2]
-        assert "[^.^]  *" == frames[3]
+        assert "[^.^]*" == frames[3]
 
     def test_danger_frames(self):
         frames = MASCOT_STATES["danger"]["frames"]
@@ -65,8 +65,8 @@ class TestMascotDefinitions:
 
     def test_thinking_frames(self):
         frames = MASCOT_STATES["thinking"]["frames"]
-        assert "[^.^] ." == frames[0]
-        assert "[^.~] ..." == frames[-1]
+        assert "[^.^]." == frames[0]
+        assert "[^.~]..." == frames[-1]
 
     def test_compact_frames(self):
         frames = MASCOT_STATES["compact"]["frames"]
@@ -80,7 +80,7 @@ class TestGetFrame:
     """Frame selection and cycling."""
 
     def test_idle_frame_0(self):
-        assert get_frame("idle", 0) == "[^.^]  ~"
+        assert get_frame("idle", 0) == "[^.^]~"
 
     def test_frame_wraps_around(self):
         n = len(MASCOT_STATES["idle"]["frames"])
@@ -181,7 +181,7 @@ class TestFormatStatusLine:
     def test_minimal_idle(self):
         line = format_status_line("idle", 0)
         assert line.startswith("[polyrouter]")
-        assert "[^.^]  ~" in line
+        assert "[^.^]~" in line
 
     def test_full_format(self):
         line = format_status_line(

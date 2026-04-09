@@ -23,27 +23,27 @@ const OMC_HUD = join(home, ".claude", "hud", "omc-hud.mjs");
 
 const MASCOT_STATES = {
   idle: {
-    frames: ["[^.^]  ~", "[^.^]  ~", "[^-^]   ", "[^.^]  ~"],
+    frames: ["[^.^]~", "[^.^]~", "[^-^]", "[^.^]~"],
     color: "#afa9ec",
   },
   routing: {
-    frames: ["[^o^] \u00BB", "[^o^] \u00BB\u00BB", "[^O^] \u00BB\u00BB\u00BB"],
+    frames: ["[^o^]\u00BB", "[^o^]\u00BB\u00BB", "[^O^]\u00BB\u00BB\u00BB"],
     color: "#5dcaa5",
   },
   keepalive: {
-    frames: ["[^.^] z", "[~.~] zz", "[~_~] zzz", "[^.^]  *"],
+    frames: ["[^.^]z", "[~.~]zz", "[~_~]zzz", "[^.^]*"],
     color: "#484f58",
   },
   danger: {
-    frames: ["[\u00B0O\u00B0] !", "[\u00B0O\u00B0] !!", "[>O<] !!!", "[>O<] !!!!"],
+    frames: ["[\u00B0O\u00B0]!", "[\u00B0O\u00B0]!!", "[>O<]!!!", "[>O<]!!!!"],
     color: "#e24b4a",
   },
   thinking: {
-    frames: ["[^.^] .", "[^.^] ..", "[^.^] ...", "[^.~] ..."],
+    frames: ["[^.^].", "[^.^]..", "[^.^]...", "[^.~]..."],
     color: "#ef9f27",
   },
   compact: {
-    frames: ["[^.^] ~", "[^.^] ~~", "[^.^] ~~~", "[^.^] ok"],
+    frames: ["[^.^]~", "[^.^]~~", "[^.^]~~~", "[^.^]ok"],
     color: "#97c459",
   },
 };
