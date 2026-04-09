@@ -1,7 +1,7 @@
 {
   "name": "claude-polyrouter",
   "version": "1.4.0",
-  "description": "Intelligent multilingual model routing for Claude Code — routes queries to optimal model tier based on complexity, with natural language model override and native support for 10 languages",
+  "description": "Intelligent multilingual model routing for Claude Code — 82% token reduction, 100% accuracy across 10 languages, animated Poly mascot HUD, multi-signal scoring engine with 501 tests passing",
   "author": { "name": "sonyharv" },
   "homepage": "https://github.com/sonyharv/claude-polyrouter",
   "repository": "https://github.com/sonyharv/claude-polyrouter",
