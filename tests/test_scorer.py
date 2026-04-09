@@ -44,17 +44,17 @@ class TestShortQueryFastTrack:
     def test_short_with_standard_signal_bypasses_fasttrack(self):
         score, method = compute_score("create function", {"standard": 1}, 2)
         assert method == "scoring"
-        assert score >= 0.19  # pattern alone = 0.19
+        assert score >= 0.38  # pattern alone = 0.38
 
     def test_short_with_deep_signal_bypasses_fasttrack(self):
         score, method = compute_score("design architecture", {"deep": 1}, 2)
         assert method == "scoring"
-        assert score >= 0.30  # pattern = 0.30
+        assert score >= 0.65  # pattern = 0.65
 
     def test_short_with_tool_signal_bypasses_fasttrack(self):
         score, method = compute_score("run tests", {"tool_intensive": 1}, 2)
         assert method == "scoring"
-        assert score >= 0.16
+        assert score >= 0.36
 
     def test_eleven_words_not_fasttracked(self):
         score, method = compute_score(
@@ -65,43 +65,43 @@ class TestShortQueryFastTrack:
 
 
 class TestPatternSignals:
-    """Pattern-based signals contribute to scoring (reduced weight in v1.4.0b)."""
+    """Pattern-based signals contribute to scoring (scaled for plan thresholds)."""
 
     def test_deep_plus_tool_max_pattern(self):
         score, _ = compute_score("x", {"deep": 1, "tool_intensive": 1}, 20)
-        assert score >= 0.35  # pattern max is now 0.35
+        assert score >= 0.70  # pattern max is 0.70
 
     def test_deep_plus_orch_max_pattern(self):
         score, _ = compute_score("x", {"deep": 1, "orchestration": 1}, 20)
-        assert score >= 0.35
+        assert score >= 0.70
 
     def test_double_deep(self):
         score, _ = compute_score("x", {"deep": 2}, 20)
-        assert 0.33 <= score <= 0.40
+        assert 0.65 <= score <= 0.80
 
     def test_single_deep(self):
         score, _ = compute_score("x", {"deep": 1}, 20)
-        assert 0.30 <= score <= 0.38
+        assert 0.60 <= score <= 0.75
 
     def test_double_standard(self):
         score, _ = compute_score("x", {"standard": 2}, 20)
-        assert 0.24 <= score <= 0.30
+        assert 0.45 <= score <= 0.60
 
     def test_single_standard_plus_tool(self):
         score, _ = compute_score("x", {"standard": 1, "tool_intensive": 1}, 20)
-        assert 0.22 <= score <= 0.30
+        assert 0.40 <= score <= 0.55
 
     def test_single_standard(self):
         score, _ = compute_score("x", {"standard": 1}, 20)
-        assert 0.19 <= score <= 0.26
+        assert 0.35 <= score <= 0.48
 
     def test_single_tool(self):
         score, _ = compute_score("x", {"tool_intensive": 1}, 20)
-        assert 0.16 <= score <= 0.24
+        assert 0.33 <= score <= 0.45
 
     def test_single_orch(self):
         score, _ = compute_score("x", {"orchestration": 1}, 20)
-        assert 0.19 <= score <= 0.26
+        assert 0.35 <= score <= 0.48
 
     def test_fast_only(self):
         score, _ = compute_score("x", {"fast": 1}, 20)
@@ -125,7 +125,7 @@ class TestStructuralSignals:
     def test_multiple_code_blocks_capped(self):
         query = "fix ```a``` and ```b``` and ```c```"
         score, _ = compute_score(query, {"standard": 1}, 20)
-        assert score < 0.50  # shouldn't push standard into extreme
+        assert score < 0.60  # shouldn't push standard into deep
 
     def test_error_trace_boost(self):
         query_clean = "fix the login handler"
@@ -232,7 +232,7 @@ class TestContextSignals:
             20,
             context={"last_tool_result_len": 50000, "conversation_depth": 10, "effort_level": "high"},
         )
-        assert score < 0.20  # still fast
+        assert score < 0.35  # still fast
 
 
 # --- score_to_tier tests ---
@@ -249,19 +249,19 @@ class TestScoreToTier:
         assert tier == "fast"
 
     def test_boundary_fast_standard(self):
-        tier, _ = score_to_tier(0.15)
+        tier, _ = score_to_tier(0.35)
         assert tier == "standard"
 
     def test_mid_standard(self):
-        tier, _ = score_to_tier(0.22)
+        tier, _ = score_to_tier(0.50)
         assert tier == "standard"
 
     def test_boundary_standard_deep(self):
-        tier, _ = score_to_tier(0.30)
+        tier, _ = score_to_tier(0.65)
         assert tier == "deep"
 
     def test_high_score_is_deep(self):
-        tier, _ = score_to_tier(0.60)
+        tier, _ = score_to_tier(0.80)
         assert tier == "deep"
 
     def test_max_score_is_deep(self):
@@ -270,12 +270,12 @@ class TestScoreToTier:
         assert conf == 0.95
 
     def test_confidence_higher_far_from_boundary(self):
-        _, conf_edge = score_to_tier(0.15)  # exactly at standard boundary
-        _, conf_mid = score_to_tier(0.22)  # middle of standard
+        _, conf_edge = score_to_tier(0.35)  # exactly at standard boundary
+        _, conf_mid = score_to_tier(0.50)  # middle of standard
         assert conf_mid > conf_edge
 
     def test_deep_high_confidence_for_strong_score(self):
-        _, conf = score_to_tier(0.40)
+        _, conf = score_to_tier(0.75)
         assert conf >= 0.85
 
     def test_custom_thresholds(self):

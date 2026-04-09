@@ -1,36 +1,37 @@
 """Multi-signal scoring engine for query complexity assessment.
 
-Replaces the discrete decision matrix (v1.3) with a continuous 0.0-1.0
-complexity score derived from 11 weighted signals. Tier boundaries are
+Replaces the discrete decision matrix (v1.3) with a continuous 0.0-1.0+
+complexity score derived from weighted signals. Tier boundaries are
 configurable via config.json.
 
-Signal budget (must sum to 1.0):
-  patterns:   0.35  (depth 0.20 + standard 0.15)
-  structural: 0.25  (code_blocks 0.08, errors 0.06, files 0.04, length 0.02,
-                      tech_symbols 0.025, code_identifiers 0.025)
-  context:    0.10  (tool_result 0.04, depth 0.03, effort 0.03)
-  universal:  0.30  (tech_symbols 0.10, code_identifiers 0.10, structural 0.10)
-  -- Total: patterns(0.35) + structural(0.25) + universal(0.20) + context(0.10)
-     + length_norm(0.10) = 1.0
-  Actual: _signal_patterns max 0.35, _signal_structural max 0.25,
-          _signal_universal max 0.20, _signal_context max 0.10
+Signal contributions (max per group):
+  patterns:   0.70  (primary driver — deep combos, single deep, standard, tool)
+  structural: 0.25  (code_blocks, errors, file paths, prompt length)
+  universal:  0.20  (tech_symbols, code_identifiers — language-agnostic)
+  context:    0.10  (tool_result, depth, effort)
+
+Tier thresholds (default):
+  fast:     score < 0.35
+  standard: 0.35 <= score < 0.65
+  deep:     score >= 0.65
 """
 
 import re
 
 DEFAULT_THRESHOLDS = {
-    "fast_max": 0.15,
-    "standard_max": 0.30,
+    "fast_max": 0.35,
+    "standard_max": 0.65,
 }
 
 
 # --- Individual signal extractors ---
 
 def _signal_patterns(signals: dict[str, int]) -> float:
-    """Pattern match signals → 0.0-0.35 contribution.
+    """Pattern match signals → 0.0-0.70 contribution.
 
-    Reduced from 0.50 in v1.4.0a to make room for universal signals
-    that work across all languages without keyword dependency.
+    Scaled to match plan thresholds (fast_max=0.35, standard_max=0.65).
+    A single deep signal alone reaches deep tier; single standard
+    reaches standard tier; combinations reinforce.
     """
     deep = signals.get("deep", 0)
     std = signals.get("standard", 0)
@@ -38,26 +39,26 @@ def _signal_patterns(signals: dict[str, int]) -> float:
     orch = signals.get("orchestration", 0)
     fast = signals.get("fast", 0)
 
-    if deep and (tool or orch):
-        return 0.35
+    if deep and (tool or orch or std):
+        return 0.70
     if deep >= 2:
-        return 0.33
+        return 0.70
     if deep == 1:
-        return 0.30
+        return 0.65
     if std >= 2:
-        return 0.24
+        return 0.50
     if std == 1 and (tool or orch):
-        return 0.22
+        return 0.45
     if std == 1:
-        return 0.19
+        return 0.38
     if tool >= 2:
-        return 0.22
+        return 0.45
     if tool == 1:
-        return 0.16
+        return 0.36
     if orch >= 1:
-        return 0.19
+        return 0.38
     if fast >= 1:
-        return 0.02
+        return 0.05
     return 0.0
 
 
@@ -198,8 +199,8 @@ def score_to_tier(
     Confidence is higher when the score is far from tier boundaries.
     """
     t = thresholds or DEFAULT_THRESHOLDS
-    fast_max = t.get("fast_max", 0.20)
-    standard_max = t.get("standard_max", 0.40)
+    fast_max = t.get("fast_max", 0.35)
+    standard_max = t.get("standard_max", 0.65)
 
     if score < fast_max:
         distance = fast_max - score
