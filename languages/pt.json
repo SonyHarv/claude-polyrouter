@@ -26,8 +26,8 @@
       "^(explique|descreva|resuma|defina) .{0,40}$"
     ],
     "standard": [
-      "\\b(crie|escreva|faça|adicione|construa) .{0,20}(função|método|classe|componente|módulo|handler|endpoint|rota|serviço|controlador)\\b",
-      "\\b(implemente|implementa|codifique|codifica|desenvolva|desenvolve|programe|programa) .{0,30}(função|método|classe|feature|lógica|algoritmo|endpoint|rota|serviço|controlador|api|módulo|componente|script)\\b",
+      "\\b(crie|escreva|faça|adicione|construa) .{0,20}(fun[cç][aã]o|método|classe|componente|módulo|handler|endpoint|rota|serviço|controlador)\\b",
+      "\\b(implemente|implementa|codifique|codifica|desenvolva|desenvolve|programe|programa) .{0,30}(fun[cç][aã]o|método|classe|feature|lógica|algoritmo|endpoint|rota|serviço|controlador|api|módulo|componente|script)\\b",
       "\\b(corrija|conserte|resolva|repare|debugue) .{0,20}(bug|erro|falha|problema|crash|exceção)\\b",
       "\\b(atualize|modifique|altere|ajuste) .{0,20}(função|método|classe|código|lógica|comportamento)\\b",
       "\\b(delete|remova|exclua|apague) .{0,20}(função|método|classe|campo|coluna|propriedade)\\b",

@@ -26,7 +26,7 @@
       "^(explica|describe|resume|define) .{0,40}$"
     ],
     "standard": [
-      "\\b(crea|escribe|haz|agrega|construye) .{0,20}(función|método|clase|componente|módulo|handler|endpoint|ruta|servicio|controlador)\\b",
+      "\\b(crea|escribe|haz|agrega|construye) .{0,20}(funci[oó]n|m[eé]todo|clase|componente|m[oó]dulo|handler|endpoint|ruta|servicio|controlador)\\b",
       "\\b(implementa|codifica|desarrolla|programa) .{0,60}(funci[oó]n|m[eé]todo|clase|feature|l[oó]gica|algoritmo|endpoint|ruta|servicio|controlador|api|m[oó]dulo|componente|script|sistema)\\b",
       "\\b(autenticaci[oó]n|JWT|OAuth|token|login|sesión|sesi[oó]n|credencial)\\b",
       "\\b(arregla|corrige|soluciona|repara|debugea) .{0,20}(bug|error|fallo|problema|crash|excepción)\\b",
