@@ -47,6 +47,31 @@ def get_frame(state: str, tick: int) -> str:
     return frames[tick % len(frames)]
 
 
+# --- Cache freshness bar ---
+
+CACHE_BAR_LEVELS = [
+    (600,  "█████", "#97c459"),   # 0-10 min: fresh, green
+    (1800, "████░", "#ef9f27"),   # 10-30 min: warm, yellow
+    (3000, "███░░", "#e8853a"),   # 30-50 min: cooling, orange
+]
+CACHE_BAR_EXPIRED = ("░░░░░", "#e24b4a")  # 50+ min: expired, red
+
+
+def cache_bar(elapsed_seconds: float) -> tuple[str, str]:
+    """Return (bar_string, hex_color) based on cache age.
+
+    Args:
+        elapsed_seconds: seconds since last API query.
+
+    Returns:
+        Tuple of (bar like '████░', color like '#ef9f27').
+    """
+    for threshold, bar, color in CACHE_BAR_LEVELS:
+        if elapsed_seconds < threshold:
+            return bar, color
+    return CACHE_BAR_EXPIRED
+
+
 def detect_state(
     session: dict | None,
     compact: dict | None = None,
@@ -91,10 +116,11 @@ def format_status_line(
     tier: str | None = None,
     savings: float = 0.0,
     language: str | None = None,
+    elapsed: float | None = None,
 ) -> str:
     """Build the full [polyrouter] status line string.
 
-    Format: [polyrouter] [^.^] ~ · sonnet · std · $12.34↓ · es
+    Format: [polyrouter] [^.^] ~ · sonnet · std · ████░ · $12.34↓ · es
     """
     frame = get_frame(state, tick)
     parts = [frame]
@@ -104,6 +130,10 @@ def format_status_line(
         short = TIER_SHORT.get(tier, tier)
         parts.append(model)
         parts.append(short)
+
+    if elapsed is not None:
+        bar, _color = cache_bar(elapsed)
+        parts.append(bar)
 
     if savings > 0:
         parts.append(f"${savings:.2f}\u2193")

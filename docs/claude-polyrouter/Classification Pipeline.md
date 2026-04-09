@@ -120,3 +120,18 @@ Query → Exception? → Intent? → Cache? → Lang → Patterns → Score → 
 |-------|--------|---------|
 | `PostToolUse` | `cache-keepalive.py` | Detect prompt cache expiration risk |
 | `StatusLine` | `polyrouter-hud.mjs` | Zero-token animated HUD display |
+
+## StatusLine Format
+
+```
+[polyrouter] [^.^] ~ · sonnet · std · ████░ · $10.63↓ · es
+             ╰mascot╯  ╰model╯ ╰tier╯ ╰cache╯ ╰savings╯ ╰lang╯
+```
+
+**Cache freshness bar** (5 blocks):
+- `█████` green (#97c459) — 0–10 min, cache fresh
+- `████░` yellow (#ef9f27) — 10–30 min, cache warm
+- `███░░` orange (#e8853a) — 30–50 min, cache cooling
+- `░░░░░` red (#e24b4a) — 50+ min, cache expired → danger state
+
+**Mascot animation**: frame selected by `timestamp % frame_count`, producing visible animation on each StatusLine refresh.

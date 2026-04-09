@@ -5,7 +5,7 @@
  * Reads session + stats JSON, resolves OMC coexistence, outputs a single
  * statusLine string with zero additionalContext token cost.
  *
- * Format: [polyrouter] [^.^] ~ · sonnet · std · $12.34↓ · es
+ * Format: [polyrouter] [^.^] ~ · sonnet · std · ████░ · $12.34↓ · es
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -50,6 +50,21 @@ const MASCOT_STATES = {
 
 const TIER_SHORT = { fast: "fast", standard: "std", deep: "deep" };
 const TIER_MODELS = { fast: "haiku", standard: "sonnet", deep: "opus" };
+
+// --- Cache freshness bar ---
+const CACHE_BAR_LEVELS = [
+  { max: 600,  bar: "█████", color: "#97c459" },   // 0-10 min: fresh
+  { max: 1800, bar: "████░", color: "#ef9f27" },   // 10-30 min: warm
+  { max: 3000, bar: "███░░", color: "#e8853a" },   // 30-50 min: cooling
+];
+const CACHE_BAR_EXPIRED = { bar: "░░░░░", color: "#e24b4a" }; // 50+ min
+
+function cacheBar(elapsedSec) {
+  for (const lvl of CACHE_BAR_LEVELS) {
+    if (elapsedSec < lvl.max) return lvl;
+  }
+  return CACHE_BAR_EXPIRED;
+}
 const OMC_NOISE = [
   /omc-setup/i, /not installed/i, /not built/i, /\[OMC HUD\]/i,
   /\[OMC\].*setup/i, /Claude Code has switched/i, /switched to/i,
@@ -124,8 +139,13 @@ function main() {
 
   // Determine Poly state and frame
   const state = detectState(session, compact);
-  const tick = session ? Math.floor((session.conversation_depth || 0)) : 0;
+  const tick = Math.floor(Date.now() / 1000);
   const frame = getFrame(state, tick);
+
+  // Elapsed seconds since last query (for cache bar)
+  const elapsed = session && session.last_query_time
+    ? (Date.now() / 1000) - session.last_query_time
+    : null;
 
   // Build Poly segment
   const parts = [frame];
@@ -136,6 +156,11 @@ function main() {
     const short = TIER_SHORT[tier] || tier;
     parts.push(model);
     parts.push(short);
+  }
+
+  // Cache freshness bar
+  if (elapsed !== null) {
+    parts.push(cacheBar(elapsed).bar);
   }
 
   // Stats: savings

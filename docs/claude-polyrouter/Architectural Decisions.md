@@ -69,3 +69,47 @@
 **Decision:** Short affirmative tokens (`"sí"`, `"ok"`, `"yes"`, `"continúa"`) reuse `last_route` from session state instead of being re-classified.
 
 **Rationale:** These tokens carry no complexity signal. Re-classifying them would always route to `fast` (50% confidence), breaking the flow when the user is mid-conversation with Opus on a complex task.
+
+---
+
+## AD-009: Multi-Signal Scoring over Decision Matrix (v1.4.0)
+
+**Decision:** Replace the discrete pattern-count decision matrix with a continuous 0.0–1.0 scoring engine that combines 9 weighted signals (pattern depth, structural features, session context).
+
+**Rationale:** Pattern counting produced binary "deep or not" decisions with no confidence gradient. The weighted scorer allows nuanced routing — a prompt with 2 deep patterns but short length routes differently than one with 2 deep patterns and 3 code blocks. Weights are configurable via `config.json`.
+
+**Alternatives considered:**
+- LLM-based classification — rejected per AD-005 (no API calls)
+- Bayesian classifier — rejected as overengineered for the signal count
+
+---
+
+## AD-010: Compact Advisory over Direct Message Manipulation (v1.4.0)
+
+**Decision:** The compact system operates as an advisory — it detects stale tool results and token thresholds, then emits a recommendation in `additionalContext`. It does not directly modify conversation messages.
+
+**Rationale:** Claude Code hooks receive the user prompt but not the full message history. Direct manipulation is architecturally impossible. The advisory approach leverages Claude Code's native compact system while polyrouter tracks and reports.
+
+---
+
+## AD-011: Zero-Token StatusLine HUD (v1.4.0)
+
+**Decision:** Move all display information (confidence, method, signals, language, cache bar) to the `StatusLine` hook. Keep `additionalContext` to the minimal routing directive only (~50 tokens).
+
+**Rationale:** The v1.3 HUD consumed ~150 tokens per query in `additionalContext` for display purposes. StatusLine is rendered by Claude Code's UI at zero token cost. This reduces per-query overhead by ~67%.
+
+---
+
+## AD-012: Timestamp-Based Animation Ticks (v1.4.0)
+
+**Decision:** Use `Date.now()` (mjs) / `time.time()` (Python) modulo frame count for mascot animation, not conversation depth.
+
+**Rationale:** Conversation depth changes slowly (once per user message), producing a static mascot. Timestamp-based ticks produce a different frame on each StatusLine refresh (~1-3s intervals), creating visible animation.
+
+---
+
+## AD-013: Cache Freshness Bar (v1.4.0)
+
+**Decision:** Display a 5-block visual bar (█████ → ░░░░░) in the StatusLine showing prompt cache age, with color coding: green (0-10min), yellow (10-30min), orange (30-50min), red (50+min expired).
+
+**Rationale:** Cache state is invisible to the user but affects cost. The bar provides at-a-glance awareness. The 50-min expired threshold aligns with the keep-alive hook's threshold and triggers the danger mascot state.

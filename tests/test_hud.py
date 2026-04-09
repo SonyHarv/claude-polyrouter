@@ -9,9 +9,12 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
 
 from lib.hud import (
+    CACHE_BAR_EXPIRED,
+    CACHE_BAR_LEVELS,
     MASCOT_STATES,
     TIER_MODELS,
     TIER_SHORT,
+    cache_bar,
     detect_state,
     format_status_line,
     get_color,
@@ -182,11 +185,12 @@ class TestFormatStatusLine:
 
     def test_full_format(self):
         line = format_status_line(
-            "idle", 0, tier="standard", savings=12.34, language="es"
+            "idle", 0, tier="standard", savings=12.34, language="es", elapsed=300.0
         )
         assert "[polyrouter]" in line
         assert "sonnet" in line
         assert "std" in line
+        assert "█████" in line
         assert "$12.34\u2193" in line
         assert "es" in line
 
@@ -221,6 +225,91 @@ class TestFormatStatusLine:
         line0 = format_status_line("routing", 0, tier="standard")
         line1 = format_status_line("routing", 1, tier="standard")
         assert line0 != line1
+
+
+# --- cache_bar ---
+
+
+class TestCacheBar:
+    """Cache freshness bar rendering."""
+
+    def test_fresh_under_10_min(self):
+        bar, color = cache_bar(0)
+        assert bar == "█████"
+        assert color == "#97c459"
+
+    def test_fresh_at_5_min(self):
+        bar, _color = cache_bar(300)
+        assert bar == "█████"
+
+    def test_warm_at_15_min(self):
+        bar, color = cache_bar(900)
+        assert bar == "████░"
+        assert color == "#ef9f27"
+
+    def test_cooling_at_35_min(self):
+        bar, color = cache_bar(2100)
+        assert bar == "███░░"
+        assert color == "#e8853a"
+
+    def test_expired_at_55_min(self):
+        bar, color = cache_bar(3300)
+        assert bar == "░░░░░"
+        assert color == "#e24b4a"
+
+    def test_boundary_10_min(self):
+        bar, _color = cache_bar(599)
+        assert bar == "█████"
+        bar2, _color2 = cache_bar(600)
+        assert bar2 == "████░"
+
+    def test_boundary_30_min(self):
+        bar, _color = cache_bar(1799)
+        assert bar == "████░"
+        bar2, _color2 = cache_bar(1800)
+        assert bar2 == "███░░"
+
+    def test_boundary_50_min(self):
+        bar, _color = cache_bar(2999)
+        assert bar == "███░░"
+        bar2, _color2 = cache_bar(3000)
+        assert bar2 == "░░░░░"
+
+    def test_expired_returns_constant(self):
+        bar, color = cache_bar(99999)
+        assert (bar, color) == CACHE_BAR_EXPIRED
+
+    def test_all_bars_are_5_chars(self):
+        for secs in [0, 300, 900, 2100, 3300]:
+            bar, _color = cache_bar(secs)
+            assert len(bar) == 5
+
+
+class TestFormatStatusLineWithCacheBar:
+    """Cache bar integration in status line."""
+
+    def test_cache_bar_present_when_elapsed_given(self):
+        line = format_status_line("idle", 0, tier="standard", elapsed=100.0)
+        assert "█████" in line
+
+    def test_cache_bar_absent_when_no_elapsed(self):
+        line = format_status_line("idle", 0, tier="standard")
+        assert "█" not in line
+        assert "░" not in line
+
+    def test_cache_bar_position_between_tier_and_savings(self):
+        line = format_status_line(
+            "idle", 0, tier="standard", savings=5.0, elapsed=2100.0, language="en"
+        )
+        # Order: frame · model · short · bar · savings · lang
+        parts = line.split(" · ")
+        bar_idx = next(i for i, p in enumerate(parts) if "░" in p or "█" in p)
+        savings_idx = next(i for i, p in enumerate(parts) if "$" in p)
+        assert bar_idx < savings_idx
+
+    def test_expired_bar_format(self):
+        line = format_status_line("danger", 0, tier="deep", elapsed=3500.0)
+        assert "░░░░░" in line
 
 
 # --- get_color ---
