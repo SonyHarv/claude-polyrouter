@@ -54,6 +54,12 @@ Routing happens automatically on every query via a `UserPromptSubmit` hook. No m
 
 ---
 
+## Requirements
+
+- Claude Code v2.1.70+
+- Python 3.8+
+- Node.js 18+
+
 ## Installation
 
 ```bash
