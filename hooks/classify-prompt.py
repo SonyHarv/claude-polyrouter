@@ -1,12 +1,14 @@
 """Pipeline orchestrator for Claude Polyrouter UserPromptSubmit hook.
 
-Six-stage classification pipeline:
+Eight-stage classification pipeline (v1.4):
 1. Exception check (slash commands, meta-queries, empty input, continuations)
-2. Cache lookup (fingerprint -> L1/L2 cache)
-3. Language detection (stopword scoring)
-4. Classification (pattern matching -> decision matrix)
-5. Context boost (follow-up detection -> confidence boost)
-6. Learned adjustments (keyword matching from project learnings)
+2. Intent override (natural language model forcing)
+3. Cache lookup (fingerprint -> L1/L2 cache)
+4. Language detection (stopword scoring)
+5. Pattern extraction (raw signal counting, no tier decision)
+6. Multi-signal scoring (patterns + structural + context → score → tier)
+7. Context boost (follow-up detection → confidence boost)
+8. Learned adjustments (keyword matching from project learnings)
 """
 
 import json
@@ -19,12 +21,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from lib.cache import Cache, fingerprint
-from lib.classifier import ClassificationResult, classify_query, compile_patterns
+from lib.classifier import ClassificationResult, extract_signals, compile_patterns
 from lib.config import DEFAULT_CONFIG, load_config
 from lib.context import SessionState
 from lib.detector import detect_language, load_languages
 from lib.intent_override import detect_intent_override
 from lib.learner import get_learned_adjustment
+from lib.effort import compute_effort
+from lib.compact import CompactAdvisor, load_compact_state, save_compact_state
+from lib.scorer import compute_score, score_to_tier
 from lib.stats import Stats
 
 # --- Constants ---
@@ -72,26 +77,20 @@ def _route_output(
     signals: str,
     language: str,
     query: str,
+    effort: str = "medium",
 ) -> dict:
-    """Build mandatory routing directive output."""
-    pct = f"{confidence * 100:.0f}%"
-    status_line = f"[polyrouter] {model} · {level} · {pct} · {language}\n"
+    """Build minimal routing directive output (~50 tokens).
+
+    Display info (confidence, method, signals, language) lives in the
+    statusLine via polyrouter-hud.mjs — zero token cost there.
+    additionalContext carries ONLY the routing directive.
+    """
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
             "additionalContext": (
-                status_line
-                + "[Claude Polyrouter] MANDATORY ROUTING DIRECTIVE\n"
-                f"Route: {level} | Model: {model} | Confidence: {pct} | Method: {method}\n"
-                f"Signals: {signals}\n"
-                f"Language: {language}\n\n"
-                "CRITICAL: You MUST use the Task tool NOW to spawn the "
-                f'"polyrouter:{agent}" subagent.\n'
-                "Do NOT respond to the user directly. Do NOT skip this step. "
-                "Delegate immediately.\n\n"
-                "Example:\n"
-                f'Task(subagent_type="polyrouter:{agent}", '
-                f'prompt="{query[:80]}", description="Route to {model}")'
+                f"[Claude Polyrouter] Route: {level} | Model: {model}\n"
+                f'CRITICAL: Spawn "polyrouter:{agent}" subagent.'
             ),
         }
     }
@@ -176,32 +175,66 @@ def _stage_language_detection(
     return result.language, result.multi_eval, lang_codes
 
 
-def _stage_classify(
+def _stage_extract_signals(
     query: str,
     lang_codes: list[str],
     compiled_patterns: dict,
+):
+    """Stage 5: Extract raw pattern signals without making a tier decision."""
+    return extract_signals(query, lang_codes, compiled_patterns)
+
+
+def _stage_scoring(
+    query: str,
+    pattern_signals,
+    session: SessionState,
     config: dict,
-) -> ClassificationResult:
-    """Stage 4: Classify query using pattern matching and decision matrix."""
-    return classify_query(query, lang_codes, compiled_patterns, config)
+) -> tuple[str, float, str]:
+    """Stage 6: Multi-signal scoring → (level, confidence, method).
+
+    Combines pattern signals with structural analysis and session context
+    to produce a composite complexity score, then maps to tier.
+    """
+    context = session.get_scorer_context()
+
+    # Pick up effort from env if not already tracked in session
+    env_effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "")
+    if env_effort in ("low", "medium", "high", "max"):
+        context["effort_level"] = env_effort
+
+    score, method = compute_score(
+        query, pattern_signals.signals, pattern_signals.word_count, context,
+    )
+    thresholds = config.get("scoring", {}).get("thresholds", None)
+    level, confidence = score_to_tier(score, thresholds)
+
+    # Preserve backward-compatible confidence for length fast-track
+    if method == "length":
+        if pattern_signals.word_count < 4:
+            confidence = 0.85
+        else:
+            confidence = 0.70
+
+    return level, confidence, method
 
 
 def _stage_context_boost(
     query: str,
-    classification: ClassificationResult,
+    level: str,
+    confidence: float,
+    matched_languages: list[str],
     session: SessionState,
     compiled_patterns: dict,
     languages: dict,
 ) -> float:
-    """Stage 5: Apply context boost for follow-up queries.
+    """Stage 7: Apply context boost for follow-up queries.
 
     Returns the adjusted confidence.
     """
-    confidence = classification.confidence
 
     # Compile follow-up patterns from all relevant languages
     follow_up_patterns = []
-    for code in classification.matched_languages:
+    for code in matched_languages:
         lang_data = languages.get(code, {})
         for pattern_str in lang_data.get("follow_up_patterns", []):
             if isinstance(pattern_str, str):
@@ -225,7 +258,7 @@ def _stage_learned_adjustments(
     confidence: float,
     config: dict,
 ) -> tuple[float, str | None]:
-    """Stage 6: Apply learned adjustments from project knowledge base."""
+    """Stage 8: Apply learned adjustments from project knowledge base."""
     learnings_dir = PLUGIN_ROOT / "learnings"
     boost, reason = get_learned_adjustment(
         query, level, confidence, config, learnings_dir
@@ -291,7 +324,7 @@ def main() -> None:
     except Exception:
         pass  # Continue pipeline on error
 
-    # --- Stage 1.5: Intent Override ---
+    # --- Stage 2: Intent Override (always max priority) ---
     try:
         override = detect_intent_override(query)
         if override.level is not None:
@@ -301,7 +334,6 @@ def main() -> None:
             agent = level_cfg.get("agent", f"{level}-executor")
             confidence = override.confidence
             method = "intent_override"
-            # Detect language for display
             try:
                 lang_result = detect_language(
                     query, languages,
@@ -310,7 +342,6 @@ def main() -> None:
                 display_language = lang_result.language or "multi"
             except Exception:
                 display_language = "multi"
-            # Record stats
             savings = _calculate_savings(level, config)
             try:
                 stats.record(level, display_language, False, savings)
@@ -320,21 +351,21 @@ def main() -> None:
                 session.update(level, display_language)
             except Exception:
                 pass
+            effort = compute_effort(level)
             output = _route_output(
                 level, model, agent, confidence, method,
                 f"override={override.reason}", display_language, query,
+                effort=effort,
             )
             print(json.dumps(output))
             return
     except Exception:
         pass  # Continue pipeline on error
 
-    # --- Stage 2: Cache lookup ---
-    cache_hit = False
+    # --- Stage 3: Cache lookup ---
     try:
         cached = _stage_cache_lookup(query, cache)
         if cached is not None:
-            cache_hit = True
             level = cached.get("level", config.get("default_level", "fast"))
             level_cfg = config.get("levels", {}).get(level, {})
             model = level_cfg.get("model", level)
@@ -349,22 +380,23 @@ def main() -> None:
                 stats.record(level, language, True, savings)
             except Exception:
                 pass
-
             try:
                 session.update(level, language)
             except Exception:
                 pass
 
+            effort = compute_effort(level)
             output = _route_output(
                 level, model, agent, confidence, method,
                 str(signals), language, query,
+                effort=effort,
             )
             print(json.dumps(output))
             return
     except Exception:
         pass  # Continue to full classification on cache error
 
-    # --- Stage 3: Language detection ---
+    # --- Stage 4: Language detection ---
     try:
         language, multi_eval, lang_codes = _stage_language_detection(
             query, languages, session
@@ -374,32 +406,38 @@ def main() -> None:
         multi_eval = True
         lang_codes = list(languages.keys()) if languages else []
 
-    # --- Stage 4: Classification ---
+    # --- Stage 5: Pattern extraction (raw signals, no tier decision) ---
     try:
-        classification = _stage_classify(
-            query, lang_codes, compiled_patterns, config
+        pattern_signals = _stage_extract_signals(
+            query, lang_codes, compiled_patterns
         )
     except Exception:
-        classification = ClassificationResult(
-            level=config.get("default_level", "fast"),
-            confidence=0.5,
-            method="rules",
-            signals={},
-            matched_languages=lang_codes,
+        from lib.classifier import PatternSignals
+        pattern_signals = PatternSignals(
+            signals={}, word_count=0, matched_languages=lang_codes,
         )
 
-    level = classification.level
-    confidence = classification.confidence
+    # --- Stage 6: Multi-signal scoring → tier ---
+    try:
+        level, confidence, method = _stage_scoring(
+            query, pattern_signals, session, config
+        )
+    except Exception:
+        level = config.get("default_level", "fast")
+        confidence = 0.5
+        method = "scoring"
 
-    # --- Stage 5: Context boost ---
+    # --- Stage 7: Context boost ---
     try:
         confidence = _stage_context_boost(
-            query, classification, session, compiled_patterns, languages
+            query, level, confidence,
+            pattern_signals.matched_languages,
+            session, compiled_patterns, languages,
         )
     except Exception:
         pass  # Keep existing confidence
 
-    # --- Stage 6: Learned adjustments ---
+    # --- Stage 8: Learned adjustments ---
     learned_reason = None
     try:
         confidence, learned_reason = _stage_learned_adjustments(
@@ -408,18 +446,25 @@ def main() -> None:
     except Exception:
         pass  # Keep existing confidence
 
+    # --- Sync effort from env into session ---
+    try:
+        env_effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "")
+        if env_effort in ("low", "medium", "high", "max"):
+            session.update_effort(env_effort)
+    except Exception:
+        pass
+
     # --- Build output ---
     level_cfg = config.get("levels", {}).get(level, {})
     model = level_cfg.get("model", level)
     agent = level_cfg.get("agent", f"{level}-executor")
     display_language = language or "multi"
-    method = classification.method
     if learned_reason:
         method = f"{method}+learned"
 
     signals_str = ", ".join(
-        f"{k}={v}" for k, v in classification.signals.items()
-    ) if classification.signals else "none"
+        f"{k}={v}" for k, v in pattern_signals.signals.items()
+    ) if pattern_signals.signals else "none"
 
     # Cache the result
     try:
@@ -427,7 +472,7 @@ def main() -> None:
         cache.set(key, {
             "level": level,
             "confidence": confidence,
-            "method": classification.method,
+            "method": method,
             "signals": signals_str,
             "language": display_language,
         })
@@ -448,10 +493,25 @@ def main() -> None:
     except Exception:
         pass
 
+    effort = compute_effort(level)
     output = _route_output(
         level, model, agent, confidence, method,
         signals_str, display_language, query,
+        effort=effort,
     )
+
+    # --- Compact advisory (append to output if warranted) ---
+    try:
+        compact_advisor = CompactAdvisor(config)
+        compact_state = load_compact_state()
+        advisory = compact_advisor.get_advisory(compact_state)
+        if advisory:
+            ctx = output.get("hookSpecificOutput", {}).get("additionalContext", "")
+            output["hookSpecificOutput"]["additionalContext"] = ctx + "\n\n" + advisory
+            save_compact_state(compact_state)
+    except Exception:
+        pass  # Never block routing on compact failure
+
     print(json.dumps(output))
 
 

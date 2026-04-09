@@ -8,7 +8,7 @@ from pathlib import Path
 GLOBAL_CONFIG_PATH = Path.home() / ".claude" / "polyrouter" / "config.json"
 
 DEFAULT_CONFIG = {
-    "version": "1.0",
+    "version": "1.4.0",
     "levels": {
         "fast": {
             "model": "haiku",
@@ -34,6 +34,9 @@ DEFAULT_CONFIG = {
     "session_timeout_minutes": 30,
     "cache": {"memory_size": 50, "file_size": 100, "ttl_days": 30},
     "learning": {"enabled": False, "informed_routing": False, "max_boost": 0.1},
+    "keepalive": {"enabled": True, "threshold_minutes": 50, "idle_cutoff_minutes": 120},
+    "compact": {"enabled": True, "keep_last_n": 5, "circuit_breaker_max": 3},
+    "hud": {"mascot_enabled": True, "statusline_native": True, "minimal_context": True},
     "updates": {"check_on_start": True, "repo": "sonyharv/claude-polyrouter"},
 }
 

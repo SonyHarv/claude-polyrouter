@@ -11,6 +11,8 @@ DEFAULT_SESSION = {
     "conversation_depth": 0,
     "last_query_time": None,
     "last_language": None,
+    "last_tool_result_len": 0,
+    "effort_level": "medium",
 }
 
 
@@ -41,6 +43,15 @@ class SessionState:
             self._state = {**DEFAULT_SESSION}
             return self._state
 
+    def get_scorer_context(self) -> dict:
+        """Return context dict for the multi-signal scorer."""
+        state = self.read()
+        return {
+            "conversation_depth": state.get("conversation_depth", 0),
+            "last_tool_result_len": state.get("last_tool_result_len", 0),
+            "effort_level": state.get("effort_level", "medium"),
+        }
+
     def update(self, level: str, language: str | None) -> None:
         state = self.read()
         state["last_route"] = level
@@ -51,6 +62,21 @@ class SessionState:
             state["last_language"] = language
         self._state = state
         self._write(state)
+
+    def update_tool_result_len(self, length: int) -> None:
+        """Track the length of the last tool result (set by PostToolUse hook)."""
+        state = self.read()
+        state["last_tool_result_len"] = max(0, int(length))
+        self._state = state
+        self._write(state)
+
+    def update_effort(self, effort: str) -> None:
+        """Track effort level from environment or user override."""
+        if effort in ("low", "medium", "high", "max"):
+            state = self.read()
+            state["effort_level"] = effort
+            self._state = state
+            self._write(state)
 
     def is_follow_up(self, query: str, compiled_patterns: list[re.Pattern]) -> bool:
         state = self.read()

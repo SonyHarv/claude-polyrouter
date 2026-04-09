@@ -7,17 +7,6 @@ import time
 from collections import OrderedDict
 from pathlib import Path
 
-_PLUGIN_JSON = Path(__file__).resolve().parents[2] / "plugin.json"
-
-
-def _read_plugin_version() -> str:
-    """Read current plugin version from plugin.json."""
-    try:
-        data = json.loads(_PLUGIN_JSON.read_text(encoding="utf-8"))
-        return data.get("version", "unknown")
-    except Exception:
-        return "unknown"
-
 
 def fingerprint(query: str) -> str:
     """Generate order-independent MD5 fingerprint of normalized query."""
@@ -46,7 +35,6 @@ class Cache:
 
         if cache_file:
             self._load_l2()
-            self._check_version()
 
     def get(self, key: str) -> dict | None:
         """Look up a cached route by fingerprint key. L1 first, then L2."""
@@ -95,7 +83,6 @@ class Cache:
         try:
             self._cache_file.parent.mkdir(parents=True, exist_ok=True)
             data = {
-                "plugin_version": _read_plugin_version(),
                 "version": "1.0",
                 "entries": {k: v for k, v in self._l2.items()},
             }
@@ -103,21 +90,6 @@ class Cache:
             tmp_path.write_text(json.dumps(data), encoding="utf-8")
             tmp_path.replace(self._cache_file)
             self._l2_dirty = False
-        except Exception:
-            pass
-
-    def _check_version(self) -> None:
-        """Invalidate L2 cache if plugin version changed."""
-        if not self._cache_file or not self._cache_file.exists():
-            return
-        try:
-            data = json.loads(self._cache_file.read_text(encoding="utf-8"))
-            cached_version = data.get("plugin_version", "")
-            current_version = _read_plugin_version()
-            if cached_version != current_version:
-                self._l2.clear()
-                self._l2_dirty = True
-                self.flush()
         except Exception:
             pass
 

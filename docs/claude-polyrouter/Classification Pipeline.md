@@ -2,7 +2,7 @@
 
 ## Overview
 
-Six-stage pipeline that runs on every `UserPromptSubmit` hook. Total latency: ~1ms for rule-based classification. Zero external API calls.
+Eight-stage pipeline (v1.4) that runs on every `UserPromptSubmit` hook. Total latency: ~3ms for multi-signal scoring. Zero external API calls.
 
 ## Stages
 
@@ -17,7 +17,15 @@ Detects queries that should bypass routing entirely:
 | Empty/whitespace | `len(query.strip()) == 0` | Skip, pass-through |
 | Continuation tokens | `"sí"`, `"ok"`, `"yes"`, `"continúa"`, etc. | Reuse `last_route` from session |
 
-### 2. Cache Lookup (~0ms)
+### 2. Intent Override (~0ms)
+
+Natural language model forcing with maximum priority:
+
+- Detects explicit model requests: "use opus", "con haiku", "think deeply"
+- Always overrides all other routing decisions
+- Confidence: 0.99 for direct model references
+
+### 3. Cache Lookup (~0ms)
 
 Two-level cache with MD5 fingerprinting:
 
@@ -26,7 +34,7 @@ Two-level cache with MD5 fingerprinting:
 - **Key**: MD5 of normalized query (lowercase, no punctuation, sorted words)
 - Cache hit returns stored route immediately
 
-### 3. Language Detection (~0.1ms)
+### 4. Language Detection (~0.1ms)
 
 Hybrid stopword-based detection:
 
@@ -36,32 +44,44 @@ Hybrid stopword-based detection:
 4. Spanglish: both `en` and `es` score high → evaluate both
 5. Short queries (<4 words) → use `last_language` from session or evaluate all
 
-### 4. Rule-Based Classification (~0.5ms)
+### 5. Pattern Extraction (~0.5ms)
 
-Pattern matching against language-specific regex patterns:
+Raw signal counting from language-specific regex patterns (no tier decision):
 
-**Categories** (fixed, map to decision matrix signals):
+**Categories** (fixed, feed into scorer):
 - `fast`: Simple questions, formatting, git ops, syntax
 - `deep`: Architecture, security, multi-file, trade-offs
 - `tool_intensive`: Codebase search, multi-file mods, tests
 - `orchestration`: Multi-step workflows, sequential tasks
 
-**Decision matrix priority**:
+Returns `PatternSignals` with raw match counts and word count.
+
+### 6. Multi-Signal Scoring (~1ms)
+
+Weighted composite scoring engine combining 9 signals:
+
+| Signal | Weight | Source |
+|--------|--------|--------|
+| Pattern depth | 0.30 | Deep pattern matches from stage 5 |
+| Pattern standard | 0.20 | Standard pattern matches from stage 5 |
+| Code blocks | 0.15 | Count of ``` blocks in prompt |
+| Error traces | 0.10 | Stacktrace/traceback/error patterns |
+| File paths | 0.08 | `/path/to/file` references |
+| Prompt length | 0.07 | Normalized chars / 2000, capped at 1.0 |
+| Tool result length | 0.05 | Previous tool_result length from session |
+| Conversation depth | 0.03 | Turn count in current session |
+| Effort level | 0.02 | User effort setting as signal |
+
+**Score → Tier mapping**:
 ```
-deep + (tool OR orch) → deep @ 0.95
-deep >= 2             → deep @ 0.90
-deep == 1             → deep @ 0.70
-tool >= 2             → standard @ 0.85
-tool == 1             → standard @ 0.70
-orch >= 1             → standard @ 0.75
-fast >= 2             → fast @ 0.90
-fast == 1             → fast @ 0.70
-no signals            → default_level @ 0.50
+score < 0.30  → fast   (confidence based on distance from boundary)
+0.30 ≤ score < 0.65 → standard
+score ≥ 0.65  → deep
 ```
 
-Early exit if confidence >= 0.85.
+Short queries (<4 words, no signals) fast-track to `fast` at 0.85 confidence.
 
-### 5. Context Boost (~0ms)
+### 7. Context Boost (~0ms)
 
 Multi-turn awareness via session state:
 
@@ -70,7 +90,7 @@ Multi-turn awareness via session state:
 - Session expires after 30 min inactivity
 - `conversation_depth` tracks query count in session
 
-### 6. Learned Adjustments (~0ms)
+### 8. Learned Adjustments (~0ms)
 
 Optional knowledge-based micro-adjustments:
 
@@ -82,14 +102,21 @@ Optional knowledge-based micro-adjustments:
 
 ## Output
 
-The pipeline produces a level (`fast`/`standard`/`deep`), which is resolved to a model and agent via config lookup. The result is injected as a `MANDATORY ROUTING DIRECTIVE` in the hook's `additionalContext`.
+The pipeline produces a level (`fast`/`standard`/`deep`), which is resolved to a model and agent via config lookup. The result is injected as a minimal routing directive (~50 tokens) in the hook's `additionalContext`. Display info (confidence, method, signals, language) is shown via the StatusLine hook at zero token cost.
 
 ## Data Flow
 
 ```
-Query → Exception? → Cache? → Detect Lang → Classify → Context → Learn → Output
-         ↓ skip      ↓ hit                                                  ↓
-         pass        return                                          level → config
-         through     cached                                          → model + agent
-                     route                                           → inject directive
+Query → Exception? → Intent? → Cache? → Lang → Patterns → Score → Context → Learn → Output
+         ↓ skip      ↓ force   ↓ hit                                                  ↓
+         pass        return    return                                          level → config
+         through     override  cached                                          → model + agent
+                     route     route                                           → minimal directive
 ```
+
+## Additional Hooks
+
+| Event | Script | Purpose |
+|-------|--------|---------|
+| `PostToolUse` | `cache-keepalive.py` | Detect prompt cache expiration risk |
+| `StatusLine` | `polyrouter-hud.mjs` | Zero-token animated HUD display |

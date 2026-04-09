@@ -33,16 +33,16 @@ class TestPipelineEndToEnd:
     def test_english_simple_query_routes_fast(self):
         output = run_hook("what is a variable in python")
         ctx = output["hookSpecificOutput"]["additionalContext"]
-        assert "MANDATORY ROUTING DIRECTIVE" in ctx
         assert "Route: fast" in ctx
+        assert "CRITICAL: Spawn" in ctx
 
     def test_spanish_architecture_routes_deep(self):
         output = run_hook(
             "diseña la arquitectura de un sistema distribuido escalable"
         )
         ctx = output["hookSpecificOutput"]["additionalContext"]
-        assert "MANDATORY ROUTING DIRECTIVE" in ctx
         assert "Route: deep" in ctx
+        assert "CRITICAL: Spawn" in ctx
 
     def test_slash_command_skips_routing(self):
         output = run_hook("/polyrouter:stats")

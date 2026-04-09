@@ -1,7 +1,14 @@
-"""Rule-based query classification with pre-compiled regex patterns."""
+"""Rule-based query classification with pre-compiled regex patterns.
+
+v1.4: Pattern extraction separated from tier decision. The discrete
+decision matrix (_decide) is replaced by the multi-signal scorer.
+classify_query() remains backward-compatible for existing consumers.
+"""
 
 import re
 from dataclasses import dataclass
+
+from lib.scorer import compute_score, score_to_tier
 
 
 @dataclass
@@ -10,6 +17,14 @@ class ClassificationResult:
     confidence: float
     method: str
     signals: dict[str, int]
+    matched_languages: list[str]
+
+
+@dataclass
+class PatternSignals:
+    """Raw pattern match results before tier decision."""
+    signals: dict[str, int]
+    word_count: int
     matched_languages: list[str]
 
 
@@ -57,46 +72,34 @@ def _count_signals(
     return signals
 
 
-def _decide(signals: dict[str, int], config: dict) -> tuple[str, float]:
-    """Decision matrix: signals → (level, confidence)."""
-    deep = signals.get("deep", 0)
-    standard = signals.get("standard", 0)
-    tool = signals.get("tool_intensive", 0)
-    orch = signals.get("orchestration", 0)
-    fast = signals.get("fast", 0)
-
-    if deep and (tool or orch):
-        return ("deep", 0.95)
-    if deep >= 2:
-        return ("deep", 0.90)
-    if deep == 1:
-        return ("deep", 0.80)
-    if standard >= 2:
-        return ("standard", 0.90)
-    if standard == 1 and (tool or orch):
-        return ("standard", 0.85)
-    if standard == 1:
-        return ("standard", 0.75)
-    if tool >= 2:
-        return ("standard", 0.85)
-    if tool == 1:
-        return ("standard", 0.70)
-    if orch:
-        return ("standard", 0.75)
-    if fast >= 2:
-        return ("fast", 0.90)
-    if fast == 1:
-        return ("fast", 0.70)
-
-    return (config.get("default_level", "fast"), 0.50)
-
-
 def _word_count(query: str) -> int:
     """Count words in a query, handling CJK characters as individual tokens."""
-    # CJK characters count as individual "words" for length heuristics
     cjk_chars = len(re.findall(r'[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]', query))
     ascii_words = len(re.findall(r'[a-zA-Z0-9\u00c0-\u024f\u0400-\u04ff\u0600-\u06ff]+', query))
     return ascii_words + cjk_chars
+
+
+def extract_signals(
+    query: str,
+    lang_codes: list[str],
+    compiled_patterns: dict,
+) -> PatternSignals:
+    """Extract raw pattern signals without making a tier decision.
+
+    This is the v1.4 entry point for the pipeline: extract signals first,
+    then pass them to the scorer along with context data.
+    """
+    if not isinstance(query, str) or not query.strip():
+        return PatternSignals(signals={}, word_count=0, matched_languages=lang_codes)
+
+    signals = _count_signals(query, lang_codes, compiled_patterns)
+    words = _word_count(query)
+
+    return PatternSignals(
+        signals=signals,
+        word_count=words,
+        matched_languages=lang_codes,
+    )
 
 
 def classify_query(
@@ -104,11 +107,12 @@ def classify_query(
     lang_codes: list[str],
     compiled_patterns: dict,
     config: dict,
+    context: dict | None = None,
 ) -> ClassificationResult:
-    """Classify a query using length heuristics + rule-based pattern matching.
+    """Classify a query using multi-signal scoring.
 
-    Length rules run first for short queries, but standard/deep keyword
-    signals always override the length-based fast routing.
+    Backward-compatible wrapper: extracts pattern signals, runs the
+    scorer with optional context, and returns a ClassificationResult.
     """
     if not isinstance(query, str) or not query.strip():
         return ClassificationResult(
@@ -119,44 +123,23 @@ def classify_query(
             matched_languages=lang_codes,
         )
 
-    # Always count signals (needed for keyword override check)
-    signals = _count_signals(query, lang_codes, compiled_patterns)
+    ps = extract_signals(query, lang_codes, compiled_patterns)
+    thresholds = config.get("scoring", {}).get("thresholds", None)
 
-    has_deep = signals.get("deep", 0) > 0
-    has_standard = signals.get("standard", 0) > 0
-    has_tool = signals.get("tool_intensive", 0) > 0
-    has_orch = signals.get("orchestration", 0) > 0
+    score, method = compute_score(query, ps.signals, ps.word_count, context)
+    level, confidence = score_to_tier(score, thresholds)
 
-    # Length-based pre-classification for short queries
-    # Only applies when no standard/deep/tool/orchestration signals detected
-    words = _word_count(query)
-
-    if not has_deep and not has_standard:
-        if words < 4 and not has_tool and not has_orch:
-            return ClassificationResult(
-                level="fast",
-                confidence=0.85,
-                method="length",
-                signals=signals,
-                matched_languages=lang_codes,
-            )
-        if words <= 10 and not has_tool and not has_orch:
-            # Mid-length query with no actionable signals → fast
-            return ClassificationResult(
-                level="fast",
-                confidence=0.70,
-                method="length",
-                signals=signals,
-                matched_languages=lang_codes,
-            )
-
-    # Full decision matrix for longer queries or when keywords detected
-    level, confidence = _decide(signals, config)
+    # Preserve backward-compatible confidence for length fast-track
+    if method == "length":
+        if ps.word_count < 4:
+            confidence = 0.85
+        else:
+            confidence = 0.70
 
     return ClassificationResult(
         level=level,
         confidence=confidence,
-        method="rules",
-        signals=signals,
+        method=method,
+        signals=ps.signals,
         matched_languages=lang_codes,
     )

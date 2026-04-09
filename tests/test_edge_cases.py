@@ -97,14 +97,14 @@ class TestLengthGateBoundaries:
         assert result.level == "fast"
         assert result.method == "length"
 
-    def test_11_words_no_signals_reaches_matrix(self):
-        """11+ words without signals should reach the decision matrix."""
+    def test_11_words_no_signals_reaches_scoring(self):
+        """11+ words without signals should reach the scoring engine."""
         result = classify_query(
             "can you help me understand how this specific process works in our system",
             ["en"], self.patterns, self.config,
         )
-        # 13 words, no deep/standard signals → reaches decision matrix → default
-        assert result.method == "rules"
+        # 13 words, no deep/standard signals → bypasses length fast-track → scoring
+        assert result.method == "scoring"
 
     def test_deep_keyword_overrides_short_length(self):
         """Deep keyword in short query must override length gate."""

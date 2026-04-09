@@ -5,7 +5,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
 
-from lib.classifier import classify_query, compile_patterns, ClassificationResult, _word_count
+from lib.classifier import classify_query, compile_patterns, extract_signals, ClassificationResult, PatternSignals, _word_count
 from lib.detector import load_languages
 from lib.config import DEFAULT_CONFIG
 
@@ -85,13 +85,13 @@ class TestLengthRules:
         """Short query with standard keyword → standard, not fast"""
         result = classify_query("create a function for sorting", ["en"], self.patterns, self.config)
         assert result.level == "standard"
-        assert result.method == "rules"
+        assert result.method == "scoring"
 
     def test_short_with_deep_keyword_overrides_length(self):
         """Short query with deep keyword → deep, not fast"""
         result = classify_query("design the architecture", ["en"], self.patterns, self.config)
         assert result.level == "deep"
-        assert result.method == "rules"
+        assert result.method == "scoring"
 
     def test_short_spanish_standard_overrides(self):
         result = classify_query("crea función sort", ["es"], self.patterns, self.config)
