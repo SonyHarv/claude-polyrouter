@@ -1,19 +1,45 @@
-# Claude Polyrouter
+![claude-polyrouter](assets/banner.svg)
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue) ![Tests](https://img.shields.io/badge/tests-501%20passed-brightgreen) ![Languages](https://img.shields.io/badge/languages-10-orange) ![Token Reduction](https://img.shields.io/badge/token%20reduction-82%25-success)
+# claude-polyrouter
 
-Intelligent multilingual model routing for Claude Code. Automatically routes queries to the optimal model tier (Haiku/Sonnet/Opus) based on complexity, with native support for 10 languages.
+![Version](https://img.shields.io/badge/version-1.4.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Tests](https://img.shields.io/badge/tests-501%20passed-brightgreen)
+![Languages](https://img.shields.io/badge/languages-10-orange)
+![Token Reduction](https://img.shields.io/badge/token%20reduction-82%25-success)
+![Accuracy](https://img.shields.io/badge/accuracy-100%25-brightgreen)
 
-## Highlights
+> Automatic model routing for Claude Code — sends each query to the optimal model tier based on complexity, without sacrificing quality.
+>
+> **10 languages · zero config · no API key · 82% token reduction · 501 tests passing**
+
+---
+
+## How It Routes
+
+| Query | Tier | Model | Reason |
+|-------|------|-------|--------|
+| "hola" / "ok" / "what is X?" | Fast | Haiku | Short or simple question |
+| "create a function" / "fix this bug" | Standard | Sonnet | Coding task |
+| "design microservices architecture" | Deep | Opus | Complex analysis |
+
+Routing happens automatically on every query via a `UserPromptSubmit` hook. No manual intervention needed.
+
+---
+
+## v1.4.0 Highlights
 
 - **82% token reduction** — additionalContext reduced from ~150 tokens (v1.3) to ~27 tokens
-- **100% classification accuracy** — 30/30 on multilingual test suite across 10 languages
-- **501 tests passing** — Full coverage across scorer, HUD, effort, keepalive, compact, and more
-- **Zero configuration** — Works out of the box with auto-hook injection
+- **100% classification accuracy** — 30/30 on multilingual test suite across all 10 languages
+- **Multi-signal scoring** — 9-signal weighted engine replaces simple pattern counting
+- **Poly mascot HUD** — Animated ASCII mascot with cache freshness bar, zero token cost
+- **Auto-hook injection** — Zero-config installation, hooks configured automatically
+
+---
 
 ## Features
 
-- **Multi-signal scoring** — 9-signal weighted scoring engine (patterns, code blocks, error traces, file paths, prompt length, tool results, conversation depth, effort level, universal tech symbols) for accurate routing
+- **Multi-signal scoring** — 9-signal weighted scoring engine (patterns, code blocks, error traces, file paths, prompt length, tool results, conversation depth, effort level, universal tech symbols)
 - **10 languages** — English, Spanish, Portuguese, French, German, Russian, Chinese, Japanese, Korean, Arabic, plus Spanglish detection
 - **Zero API keys** — Pure rule-based classification with pre-compiled regex patterns (~3ms latency)
 - **Cost savings** — 50-80% reduction by routing simple queries to cheaper models
@@ -26,19 +52,17 @@ Intelligent multilingual model routing for Claude Code. Automatically routes que
 - **Project learning** — Optional knowledge base that fine-tunes routing per project
 - **Analytics** — Terminal stats and HTML dashboard with Charts.js visualizations
 
+---
+
 ## Installation
 
 ```bash
 claude plugin add sonyharv/claude-polyrouter
 ```
 
-The plugin auto-configures the `UserPromptSubmit` hook in your `settings.json`. No manual setup needed.
+That's it. The plugin auto-configures the `UserPromptSubmit` hook in your `settings.json`. No manual setup needed.
 
-## Quick Start
-
-After installation, routing works automatically. Every query you type is classified and routed to the optimal model tier.
-
-No configuration needed — it works out of the box.
+---
 
 ## HUD — Poly Mascot
 
@@ -61,12 +85,14 @@ Poly lives in your statusLine and shows routing state at zero token cost:
 
 ### Cache Freshness Bar
 
-| Time | Display | Color |
-|------|---------|-------|
-| 0-10 min | `cache:█████` | Green (fresh) |
-| 10-30 min | `cache:████░` | Yellow (warm) |
-| 30-50 min | `cache:███░░ !` | Orange (warning) |
-| 50+ min | `cache:░░░░░ exp` | Red (expired) |
+| Time | Display | Color | Meaning |
+|------|---------|-------|---------|
+| 0-10 min | `cache:█████` | Green | Fresh — cache is warm |
+| 10-30 min | `cache:████░` | Yellow | Warm — still healthy |
+| 30-50 min | `cache:███░░ !` | Orange | Warning — consider a query |
+| 50+ min | `cache:░░░░░ exp` | Red | Expired — triggers danger state |
+
+---
 
 ## Commands
 
@@ -76,18 +102,18 @@ Poly lives in your statusLine and shows routing state at zero token cost:
 | `/polyrouter:stats` | View routing statistics |
 | `/polyrouter:dashboard` | Open HTML analytics dashboard |
 | `/polyrouter:config` | Show active configuration |
-| `/polyrouter:learn` | Extract routing insights |
-| `/polyrouter:learn-on` | Enable continuous learning |
-| `/polyrouter:learn-off` | Disable continuous learning |
+| `/polyrouter:learn` | Extract routing insights from conversation |
+| `/polyrouter:learn-on` | Enable continuous learning mode |
+| `/polyrouter:learn-off` | Disable continuous learning mode |
 | `/polyrouter:knowledge` | View knowledge base status |
 | `/polyrouter:learn-reset` | Clear knowledge base |
 | `/polyrouter:retry` | Retry with escalated tier |
 
+---
+
 ## Configuration
 
-### Global Config
-
-Create `~/.claude/polyrouter/config.json` to customize:
+Global config at `~/.claude/polyrouter/config.json`:
 
 ```json
 {
@@ -108,9 +134,7 @@ Create `~/.claude/polyrouter/config.json` to customize:
 }
 ```
 
-### Project Override
-
-Create `<project>/.claude-polyrouter/config.json` to override per-project:
+Project override at `<project>/.claude-polyrouter/config.json`:
 
 ```json
 {
@@ -119,9 +143,7 @@ Create `<project>/.claude-polyrouter/config.json` to override per-project:
 }
 ```
 
-### Model Updates
-
-When new models release, update config — no code changes needed:
+When new models release, update config only — no code changes needed:
 
 ```json
 {
@@ -130,6 +152,8 @@ When new models release, update config — no code changes needed:
   }
 }
 ```
+
+---
 
 ## How It Works
 
@@ -142,26 +166,53 @@ When new models release, update config — no code changes needed:
 7. **Context boost** — Multi-turn awareness adjusts confidence for follow-up queries
 8. **Learned adjustments** — Optional project knowledge base fine-tunes routing
 
+---
+
 ## Supported Languages
 
-| Language | Code | Status |
-|----------|------|--------|
+| Language | Code | Notes |
+|----------|------|-------|
 | English | en | Native patterns |
 | Spanish | es | Native patterns (accent-tolerant) |
 | Portuguese | pt | Native patterns (accent-tolerant) |
 | French | fr | Native patterns |
 | German | de | Native patterns |
 | Russian | ru | Native patterns (declension-aware) |
-| Chinese | zh | Native patterns |
+| Chinese | zh | Native patterns + CJK word counting |
 | Japanese | ja | Native patterns (SOV word order) |
-| Korean | ko | Native patterns |
+| Korean | ko | Native patterns + CJK word counting |
 | Arabic | ar | Native patterns |
 | Spanglish | en+es | Auto-detected |
 
-## Adding a Language
+To add a language: create `languages/<code>.json` with stopwords and patterns. Auto-discovered — no code changes needed.
 
-Create `languages/<code>.json` with stopwords and patterns. No code changes needed — the plugin auto-discovers language files.
+---
+
+## Roadmap v2
+
+- [ ] Multi-agent support: Codex CLI, Gemini CLI
+- [ ] Ultra tier for next-gen models
+- [ ] Adaptive confidence thresholds from routing history
+- [ ] Analytics export (CSV/JSON) for team reporting
+- [ ] Weighted ensemble classification (rules + embeddings)
+- [ ] Auto-escalation on repeated low-confidence routes
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a branch: `git checkout -b feat/my-feature`
+3. Add tests in `tests/`
+4. Run tests: `python -m pytest tests/ -v`
+5. Submit a pull request with a clear description
+
+Commit style: `feat:` `fix:` `refactor:` `test:` `docs:`
+
+Keep classification latency under 5ms. Maintain test coverage for all routing paths.
+
+---
 
 ## License
 
-MIT
+MIT — by [SonyHarv](https://github.com/SonyHarv)
