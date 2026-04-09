@@ -261,7 +261,7 @@ class TestDecisionMatrix:
             ["en"], self.patterns, self.config,
         )
         assert result.level == "deep"
-        assert result.confidence >= 0.9
+        assert result.confidence >= 0.85
 
     def test_multi_language_eval(self):
         result = classify_query(

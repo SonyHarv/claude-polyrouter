@@ -27,7 +27,8 @@
     ],
     "standard": [
       "\\b(crea|escribe|haz|agrega|construye) .{0,20}(función|método|clase|componente|módulo|handler|endpoint|ruta|servicio|controlador)\\b",
-      "\\b(implementa|codifica|desarrolla|programa) .{0,30}(funci[oó]n|m[eé]todo|clase|feature|l[oó]gica|algoritmo|endpoint|ruta|servicio|controlador|api|m[oó]dulo|componente|script)\\b",
+      "\\b(implementa|codifica|desarrolla|programa) .{0,60}(funci[oó]n|m[eé]todo|clase|feature|l[oó]gica|algoritmo|endpoint|ruta|servicio|controlador|api|m[oó]dulo|componente|script|sistema)\\b",
+      "\\b(autenticaci[oó]n|JWT|OAuth|token|login|sesión|sesi[oó]n|credencial)\\b",
       "\\b(arregla|corrige|soluciona|repara|debugea) .{0,20}(bug|error|fallo|problema|crash|excepción)\\b",
       "\\b(actualiza|modifica|cambia|ajusta) .{0,20}(función|método|clase|código|lógica|comportamiento)\\b",
       "\\b(elimina|borra|quita|remueve) .{0,20}(función|método|clase|campo|columna|propiedad)\\b",
@@ -41,7 +42,7 @@
     "deep": [
       "\\b(arquitectura|diseño de sistema|patrón de diseño)\\b",
       "\\bescalab(le|ilidad)\\b",
-      "\\b(seguridad|vulnerab|auditoría|exploit)\\b",
+      "\\b(seguridad|vulnerab|auditoría|exploit|autenticaci[oó]n|autorizaci[oó]n|cifrado|encriptaci[oó]n)\\b",
       "\\b(todos los|múltiples|varios) (archivos?|componentes?|módulos?)\\b",
       "\\brefactor.{0,20}(codebase|proyecto|entero|completo)\\b",
       "\\b(trade-?off|comparar?|pros? y contras?)\\b",

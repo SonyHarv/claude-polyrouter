@@ -71,6 +71,18 @@ const OMC_NOISE = [
   /model changed/i, /switching/i,
 ];
 
+// --- ANSI true-color helpers ---
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function ansiColor(text, hex) {
+  const [r, g, b] = hexToRgb(hex);
+  return `\x1b[38;2;${r};${g};${b}m${text}\x1b[0m`;
+}
+
 // --- Helpers ---
 
 function readStdin() {
@@ -141,14 +153,15 @@ function main() {
   const state = detectState(session, compact);
   const tick = Math.floor(Date.now() / 1000);
   const frame = getFrame(state, tick);
+  const stateColor = MASCOT_STATES[state]?.color || MASCOT_STATES.idle.color;
 
   // Elapsed seconds since last query (for cache bar)
   const elapsed = session && session.last_query_time
     ? (Date.now() / 1000) - session.last_query_time
     : null;
 
-  // Build Poly segment
-  const parts = [frame];
+  // Build Poly segment — apply ANSI colors
+  const parts = [ansiColor(frame, stateColor)];
 
   if (session && session.last_route) {
     const tier = session.last_route;
@@ -158,9 +171,10 @@ function main() {
     parts.push(short);
   }
 
-  // Cache freshness bar
+  // Cache freshness bar (colored by cache age)
   if (elapsed !== null) {
-    parts.push(cacheBar(elapsed).bar);
+    const cb = cacheBar(elapsed);
+    parts.push(ansiColor(cb.bar, cb.color));
   }
 
   // Stats: savings
