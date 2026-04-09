@@ -9,7 +9,7 @@
     {
       "name": "claude-polyrouter",
       "description": "Automatically routes queries to the optimal model tier (Haiku/Sonnet/Opus) based on complexity, with native support for 10 languages",
-      "version": "1.2.0",
+      "version": "1.4.0",
       "source": "./",
       "author": {
         "name": "sonyharv"
@@ -25,5 +25,5 @@
       ]
     }
   ],
-  "version": "1.2.0"
+  "version": "1.4.0"
 }

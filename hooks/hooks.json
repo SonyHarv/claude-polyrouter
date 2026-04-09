@@ -22,17 +22,6 @@
         ]
       }
     ],
-    "StatusLine": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/hud/polyrouter-hud.mjs",
-            "timeout": 3
-          }
-        ]
-      }
-    ],
     "SessionStart": [
       {
         "hooks": [

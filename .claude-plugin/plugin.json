@@ -1,7 +1,7 @@
 {
   "name": "claude-polyrouter",
-  "version": "1.2.0",
-  "description": "Intelligent multilingual model routing for Claude Code — routes queries to optimal model tier based on complexity, with native support for 10 languages",
+  "version": "1.4.0",
+  "description": "Intelligent multilingual model routing for Claude Code — routes queries to optimal model tier based on complexity, with natural language model override and native support for 10 languages",
   "author": { "name": "sonyharv" },
   "homepage": "https://github.com/sonyharv/claude-polyrouter",
   "repository": "https://github.com/sonyharv/claude-polyrouter",
