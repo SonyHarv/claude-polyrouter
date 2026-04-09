@@ -58,15 +58,18 @@ Routing happens automatically on every query via a `UserPromptSubmit` hook. No m
 
 ```bash
 # Step 1: Add marketplace (one-time)
-claude plugin marketplace add claude-polyrouter SonyHarv/claude-polyrouter
+claude plugin marketplace add SonyHarv/claude-polyrouter
 
-# Step 2: Install
+# Step 2: Install plugin
 claude plugin install claude-polyrouter@claude-polyrouter
 
 # Step 3: Restart Claude Code
 ```
 
-That's it. The plugin auto-configures the `UserPromptSubmit` hook in your `settings.json` on first run — no manual setup needed. The `post-install.sh` script also sets up the HUD symlink and statusLine command automatically.
+That's it. On first run, the plugin auto-configures:
+- `UserPromptSubmit` hook in `settings.json` for automatic routing
+- HUD symlink for the Poly mascot statusLine
+- `current` symlink for version-agnostic paths
 
 ---
 
@@ -131,7 +134,7 @@ Global config at `~/.claude/polyrouter/config.json`:
     "deep":     { "model": "opus",   "agent": "deep-executor" }
   },
   "scoring": {
-    "thresholds": { "fast_max": 0.30, "standard_max": 0.65 }
+    "thresholds": { "fast_max": 0.35, "standard_max": 0.65 }
   },
   "effort": { "auto": true },
   "keepalive": { "enabled": true, "threshold_minutes": 50 },
