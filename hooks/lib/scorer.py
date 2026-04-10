@@ -147,7 +147,7 @@ def _signal_context(context: dict | None) -> float:
 
     # User effort level preference
     effort = context.get("effort_level", "medium")
-    effort_scores = {"low": 0.0, "medium": 0.01, "high": 0.03, "max": 0.03}
+    effort_scores = {"low": 0.0, "medium": 0.01, "high": 0.03}
     score += effort_scores.get(effort, 0.01)
 
     return score

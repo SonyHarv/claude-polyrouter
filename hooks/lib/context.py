@@ -72,7 +72,7 @@ class SessionState:
 
     def update_effort(self, effort: str) -> None:
         """Track effort level from environment or user override."""
-        if effort in ("low", "medium", "high", "max"):
+        if effort in ("low", "medium", "high"):
             state = self.read()
             state["effort_level"] = effort
             self._state = state

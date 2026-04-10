@@ -199,8 +199,10 @@ def _stage_scoring(
 
     # Pick up effort from env if not already tracked in session
     env_effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "")
-    if env_effort in ("low", "medium", "high", "max"):
+    if env_effort in ("low", "medium", "high"):
         context["effort_level"] = env_effort
+    elif env_effort == "max":
+        context["effort_level"] = "high"
 
     score, method = compute_score(
         query, pattern_signals.signals, pattern_signals.word_count, context,
@@ -449,8 +451,9 @@ def main() -> None:
     # --- Sync effort from env into session ---
     try:
         env_effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "")
-        if env_effort in ("low", "medium", "high", "max"):
-            session.update_effort(env_effort)
+        normalized_effort = "high" if env_effort == "max" else env_effort
+        if normalized_effort in ("low", "medium", "high"):
+            session.update_effort(normalized_effort)
     except Exception:
         pass
 

@@ -219,10 +219,10 @@ class TestContextSignals:
         score_high, _ = compute_score("x", {"standard": 1}, 20, context={"effort_level": "high"})
         assert score_high > score_low
 
-    def test_effort_max_same_as_high(self):
-        score_high, _ = compute_score("x", {"standard": 1}, 20, context={"effort_level": "high"})
-        score_max, _ = compute_score("x", {"standard": 1}, 20, context={"effort_level": "max"})
-        assert score_max == score_high
+    def test_effort_unknown_defaults_to_medium(self):
+        score_med, _ = compute_score("x", {"standard": 1}, 20, context={"effort_level": "medium"})
+        score_unk, _ = compute_score("x", {"standard": 1}, 20, context={"effort_level": "unknown"})
+        assert score_unk == score_med
 
     def test_context_never_dominates(self):
         """Context alone cannot push a no-signal query into standard tier."""

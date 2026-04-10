@@ -6,7 +6,7 @@
 
 ### Added
 - **Multi-signal scoring engine** — Replaces discrete decision matrix with weighted composite scoring across 9 signals (pattern depth, code blocks, error traces, file paths, prompt length, tool results, conversation depth, effort level, universal tech symbols)
-- **Dynamic effort mapping** — Automatic effort level computation (low/medium/high/max) based on routing tier, with user and environment override support
+- **Dynamic effort mapping** — Automatic effort level computation (low/medium/high) based on routing tier, with user and environment override support
 - **Cache keep-alive hook** — PostToolUse hook that detects prompt cache expiration risk and recommends keep-alive pings (50-min threshold, 120-min idle cutoff)
 - **Compact advisory system** — Two-layer context management: MicroCompact for stale tool results, SessionMemoryCompact for token thresholds, with circuit breaker (max 3 consecutive failures)
 - **Poly animated mascot HUD** — ASCII mascot with 6 states and multi-frame animation: idle `[^.^]~`, routing `[^o^]»»`, keepalive `[~_~]zzz`, danger `[°O°]!!!`, thinking `[^.^]...`, compact `[^.^]~~~`

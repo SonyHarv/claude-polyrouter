@@ -12,7 +12,7 @@ EFFORT_MAP = {
     "deep": "high",
 }
 
-VALID_EFFORTS = {"low", "medium", "high", "max"}
+VALID_EFFORTS = {"low", "medium", "high"}
 
 
 def compute_effort(tier: str, user_override: str | None = None) -> str:
@@ -21,12 +21,15 @@ def compute_effort(tier: str, user_override: str | None = None) -> str:
     Priority: user_override > env var > tier mapping.
     """
     # Explicit user override always wins
-    if user_override and user_override in VALID_EFFORTS:
-        return user_override
+    if user_override:
+        normalized = "high" if user_override == "max" else user_override
+        if normalized in VALID_EFFORTS:
+            return normalized
 
     # Environment variable is next priority
     env_effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "")
-    if env_effort in VALID_EFFORTS:
-        return env_effort
+    normalized_env = "high" if env_effort == "max" else env_effort
+    if normalized_env in VALID_EFFORTS:
+        return normalized_env
 
     return EFFORT_MAP.get(tier, "medium")

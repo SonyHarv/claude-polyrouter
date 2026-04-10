@@ -43,7 +43,7 @@ Routing happens automatically on every query via a `UserPromptSubmit` hook. No m
 - **Cost savings** — 50-80% reduction by routing simple queries to cheaper models
 - **Two-level cache** — In-memory LRU + file-based persistent cache for repeated queries
 - **Multi-turn awareness** — Detects follow-up queries and maintains conversation context
-- **Dynamic effort** — Automatic effort level mapping (low/medium/high/max) based on routing tier
+- **Dynamic effort** — Automatic effort level mapping (low/medium/high) based on routing tier
 - **Cache keep-alive** — PostToolUse hook detects prompt cache expiration risk
 - **Compact advisory** — Recommends context compaction when stale tool results accumulate
 - **Poly mascot HUD** — Animated ASCII mascot in statusLine with 6 states, cache freshness bar, zero token cost

@@ -40,8 +40,8 @@ class TestUserOverride:
     def test_override_high_on_fast_tier(self):
         assert compute_effort("fast", user_override="high") == "high"
 
-    def test_override_max(self):
-        assert compute_effort("standard", user_override="max") == "max"
+    def test_override_max_falls_back_to_high(self):
+        assert compute_effort("standard", user_override="max") == "high"
 
     def test_override_medium(self):
         assert compute_effort("deep", user_override="medium") == "medium"
@@ -60,14 +60,14 @@ class TestEnvOverride:
     """Environment variable is second priority after user override."""
 
     @patch.dict(os.environ, {"CLAUDE_CODE_EFFORT_LEVEL": "max"})
-    def test_env_overrides_tier(self):
-        assert compute_effort("fast") == "max"
+    def test_env_max_falls_back_to_high(self):
+        assert compute_effort("fast") == "high"
 
     @patch.dict(os.environ, {"CLAUDE_CODE_EFFORT_LEVEL": "low"})
     def test_env_low_overrides_deep(self):
         assert compute_effort("deep") == "low"
 
-    @patch.dict(os.environ, {"CLAUDE_CODE_EFFORT_LEVEL": "max"})
+    @patch.dict(os.environ, {"CLAUDE_CODE_EFFORT_LEVEL": "high"})
     def test_user_override_beats_env(self):
         assert compute_effort("fast", user_override="low") == "low"
 
@@ -94,4 +94,4 @@ class TestConstants:
             assert effort in VALID_EFFORTS
 
     def test_valid_efforts_complete(self):
-        assert VALID_EFFORTS == {"low", "medium", "high", "max"}
+        assert VALID_EFFORTS == {"low", "medium", "high"}
