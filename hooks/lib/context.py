@@ -71,8 +71,13 @@ class SessionState:
         self._write(state)
 
     def update_effort(self, effort: str) -> None:
-        """Track effort level from environment or user override."""
-        if effort in ("low", "medium", "high"):
+        """Track effort level from environment or user override.
+
+        Accepts display labels including "xhigh" (polyrouter-only v1.5).
+        The raw label is stored; callers that need a Claude-Code-valid
+        env value should normalize via effort.normalize_effort_for_env().
+        """
+        if effort in ("low", "medium", "high", "xhigh"):
             state = self.read()
             state["effort_level"] = effort
             self._state = state

@@ -1,7 +1,7 @@
 ---
 name: standard-executor
 description: Standard coding tasks using the standard-tier model
-model: sonnet
+model: claude-sonnet-4-6
 tools: "*"
 ---
 

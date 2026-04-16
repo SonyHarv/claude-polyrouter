@@ -1,7 +1,7 @@
 ---
 name: deep-executor
 description: Complex analysis using the deep-tier model
-model: opus
+model: claude-opus-4-7
 tools: "*"
 ---
 

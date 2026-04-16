@@ -1,7 +1,7 @@
 ---
 name: opus-orchestrator
 description: Orchestrates complex multi-step tasks, delegates subtasks to cheaper tiers
-model: opus
+model: claude-opus-4-7
 tools: "*"
 ---
 

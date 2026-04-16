@@ -27,7 +27,13 @@ from lib.context import SessionState
 from lib.detector import detect_language, load_languages
 from lib.intent_override import detect_intent_override
 from lib.learner import get_learned_adjustment
-from lib.effort import compute_effort
+from lib.effort import (
+    compute_effort,
+    compute_deep_effort,
+    normalize_effort_for_env,
+    requires_advisor,
+    maybe_promote_to_deep_xhigh,
+)
 from lib.compact import CompactAdvisor, load_compact_state, save_compact_state
 from lib.scorer import compute_score, score_to_tier
 from lib.stats import Stats
@@ -78,18 +84,25 @@ def _route_output(
     language: str,
     query: str,
     effort: str = "medium",
+    advisor: bool = False,
 ) -> dict:
     """Build minimal routing directive output (~50 tokens).
 
     Display info (confidence, method, signals, language) lives in the
     statusLine via polyrouter-hud.mjs — zero token cost there.
-    additionalContext carries ONLY the routing directive.
+    additionalContext carries the routing directive + effort level and
+    (when xhigh) an Advisor flag for Point 5 consumers.
     """
+    header = f"[Claude Polyrouter] Route: {level} | Model: {model}"
+    if effort and effort != "medium":
+        header += f" | Effort: {effort}"
+    if advisor:
+        header += " | Advisor: required"
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
             "additionalContext": (
-                f"[Claude Polyrouter] Route: {level} | Model: {model}\n"
+                f"{header}\n"
                 f'CRITICAL: Spawn "polyrouter:{agent}" subagent.'
             ),
         }
@@ -189,11 +202,13 @@ def _stage_scoring(
     pattern_signals,
     session: SessionState,
     config: dict,
-) -> tuple[str, float, str]:
-    """Stage 6: Multi-signal scoring → (level, confidence, method).
+) -> tuple[str, float, str, float]:
+    """Stage 6: Multi-signal scoring → (level, confidence, method, score).
 
     Combines pattern signals with structural analysis and session context
-    to produce a composite complexity score, then maps to tier.
+    to produce a composite complexity score, then maps to tier. The raw
+    score is returned so downstream stages (e.g., dynamic deep effort)
+    can reuse it without recomputing.
     """
     context = session.get_scorer_context()
 
@@ -217,7 +232,7 @@ def _stage_scoring(
         else:
             confidence = 0.70
 
-    return level, confidence, method
+    return level, confidence, method, score
 
 
 def _stage_context_boost(
@@ -421,13 +436,28 @@ def main() -> None:
 
     # --- Stage 6: Multi-signal scoring → tier ---
     try:
-        level, confidence, method = _stage_scoring(
+        level, confidence, method, score = _stage_scoring(
             query, pattern_signals, session, config
         )
     except Exception:
         level = config.get("default_level", "fast")
         confidence = 0.5
         method = "scoring"
+        score = 0.0
+
+    # --- Stage 6b: Architectural promotion (standard → deep+xhigh) ---
+    # When an arch keyword (architecture, major refactor, rediseño…) appears
+    # with ≥1 standard/tool/orch signal, promote tier so downstream stages
+    # see the escalated routing. Env override still wins later for effort.
+    arch_promoted = False
+    try:
+        level, arch_promoted = maybe_promote_to_deep_xhigh(
+            level, pattern_signals.signals, query,
+        )
+        if arch_promoted:
+            method = f"{method}+arch"
+    except Exception:
+        pass
 
     # --- Stage 7: Context boost ---
     try:
@@ -448,7 +478,7 @@ def main() -> None:
     except Exception:
         pass  # Keep existing confidence
 
-    # --- Sync effort from env into session ---
+    # --- Sync effort from env into session (user override path) ---
     try:
         env_effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "")
         normalized_effort = "high" if env_effort == "max" else env_effort
@@ -496,11 +526,33 @@ def main() -> None:
     except Exception:
         pass
 
+    # --- Dynamic effort: deep tier gets sub-classification ---
+    # User override (env var) wins over dynamic; compute_effort already honors it.
+    env_effort_present = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "") in (
+        "low", "medium", "high", "max",
+    )
     effort = compute_effort(level)
+    advisor_flag = False
+    if level == "deep" and not env_effort_present:
+        if arch_promoted:
+            # Promotion already identified arch scope → xhigh directly.
+            effort = "xhigh"
+        else:
+            effort = compute_deep_effort(
+                score, pattern_signals.signals, query, pattern_signals.word_count,
+            )
+        advisor_flag = requires_advisor(effort)
+        # Persist the display label (supports "xhigh")
+        try:
+            session.update_effort(effort)
+        except Exception:
+            pass
+
     output = _route_output(
         level, model, agent, confidence, method,
         signals_str, display_language, query,
         effort=effort,
+        advisor=advisor_flag,
     )
 
     # --- Compact advisory (append to output if warranted) ---

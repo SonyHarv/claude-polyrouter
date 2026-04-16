@@ -117,10 +117,13 @@ def format_status_line(
     savings: float = 0.0,
     language: str | None = None,
     elapsed: float | None = None,
+    effort: str | None = None,
 ) -> str:
     """Build the full [polyrouter] status line string.
 
     Format: [polyrouter] [^.^] ~ · sonnet · std · ████░ · $12.34↓ · es
+    For deep tier with elevated effort, adds the sub-effort label:
+           [polyrouter] [^.^] ~ · opus · deep · xhigh · ████░ · ...
     """
     frame = get_frame(state, tick)
     parts = [frame]
@@ -130,6 +133,9 @@ def format_status_line(
         short = TIER_SHORT.get(tier, tier)
         parts.append(model)
         parts.append(short)
+        # Show sub-effort for deep tier when above default (medium)
+        if tier == "deep" and effort in ("high", "xhigh"):
+            parts.append(effort)
 
     if elapsed is not None:
         bar, _color = cache_bar(elapsed)

@@ -19,9 +19,15 @@ class TestDefaultConfig:
     def test_each_level_has_model_and_agent(self):
         for level_name, level in DEFAULT_CONFIG["levels"].items():
             assert "model" in level, f"{level_name} missing model"
+            assert "model_id" in level, f"{level_name} missing model_id"
             assert "agent" in level, f"{level_name} missing agent"
             assert "cost_per_1k_input" in level, f"{level_name} missing cost_per_1k_input"
             assert "cost_per_1k_output" in level, f"{level_name} missing cost_per_1k_output"
+
+    def test_model_ids_pin_explicit_versions(self):
+        assert DEFAULT_CONFIG["levels"]["fast"]["model_id"] == "claude-haiku-4-5"
+        assert DEFAULT_CONFIG["levels"]["standard"]["model_id"] == "claude-sonnet-4-6"
+        assert DEFAULT_CONFIG["levels"]["deep"]["model_id"] == "claude-opus-4-7"
 
     def test_default_level_is_fast(self):
         assert DEFAULT_CONFIG["default_level"] == "fast"

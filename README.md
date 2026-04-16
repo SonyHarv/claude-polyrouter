@@ -133,9 +133,9 @@ Global config at `~/.claude/polyrouter/config.json`:
   "default_level": "fast",
   "confidence_threshold": 0.7,
   "levels": {
-    "fast":     { "model": "haiku",  "agent": "fast-executor" },
-    "standard": { "model": "sonnet", "agent": "standard-executor" },
-    "deep":     { "model": "opus",   "agent": "deep-executor" }
+    "fast":     { "model": "haiku",  "model_id": "claude-haiku-4-5",  "agent": "fast-executor" },
+    "standard": { "model": "sonnet", "model_id": "claude-sonnet-4-6", "agent": "standard-executor" },
+    "deep":     { "model": "opus",   "model_id": "claude-opus-4-7",   "agent": "deep-executor" }
   },
   "scoring": {
     "thresholds": { "fast_max": 0.35, "standard_max": 0.65 }

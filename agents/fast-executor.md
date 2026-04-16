@@ -1,7 +1,7 @@
 ---
 name: fast-executor
 description: Quick answers using the fast-tier model
-model: haiku
+model: claude-haiku-4-5
 tools:
   - Read
   - Grep

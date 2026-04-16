@@ -169,6 +169,10 @@ function main() {
     const short = TIER_SHORT[tier] || tier;
     parts.push(model);
     parts.push(short);
+    // Deep tier sub-effort: show high/xhigh (medium is the default, elided)
+    if (tier === "deep" && (session.effort_level === "high" || session.effort_level === "xhigh")) {
+      parts.push(session.effort_level);
+    }
   }
 
   // Cache freshness bar (colored by cache age)

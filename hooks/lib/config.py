@@ -12,18 +12,21 @@ DEFAULT_CONFIG = {
     "levels": {
         "fast": {
             "model": "haiku",
+            "model_id": "claude-haiku-4-5",
             "agent": "fast-executor",
             "cost_per_1k_input": 0.001,
             "cost_per_1k_output": 0.005,
         },
         "standard": {
             "model": "sonnet",
+            "model_id": "claude-sonnet-4-6",
             "agent": "standard-executor",
             "cost_per_1k_input": 0.003,
             "cost_per_1k_output": 0.015,
         },
         "deep": {
             "model": "opus",
+            "model_id": "claude-opus-4-7",
             "agent": "deep-executor",
             "cost_per_1k_input": 0.005,
             "cost_per_1k_output": 0.025,

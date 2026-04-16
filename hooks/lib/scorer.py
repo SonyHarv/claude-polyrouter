@@ -145,9 +145,10 @@ def _signal_context(context: dict | None) -> float:
     if isinstance(depth, (int, float)) and depth > 0:
         score += min(0.03, depth / 10 * 0.03)
 
-    # User effort level preference
+    # User effort level preference (xhigh = polyrouter display label for
+    # architecturally-complex deep tasks; treated like high with a slight bump)
     effort = context.get("effort_level", "medium")
-    effort_scores = {"low": 0.0, "medium": 0.01, "high": 0.03}
+    effort_scores = {"low": 0.0, "medium": 0.01, "high": 0.03, "xhigh": 0.04}
     score += effort_scores.get(effort, 0.01)
 
     return score
