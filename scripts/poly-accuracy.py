@@ -39,6 +39,8 @@ from lib.effort import (  # noqa: E402
 from lib.scorer import compute_score, score_to_tier  # noqa: E402
 
 TIERS = ("fast", "standard", "deep")
+EFFORT_TIERS = ("medium", "high", "xhigh")
+DEFAULT_EFFORT_TARGET = 0.90
 
 
 def classify(query: str, lang: str, languages: dict, compiled: dict, config: dict):
@@ -72,6 +74,9 @@ def evaluate(corpus: dict, languages: dict, compiled: dict, config: dict):
     per_lang_total = defaultdict(int)
     per_lang_correct = defaultdict(int)
     confusion = defaultdict(lambda: defaultdict(int))
+    effort_confusion = defaultdict(lambda: defaultdict(int))
+    effort_correct = 0
+    effort_total = 0
 
     correct = 0
     for item in corpus.get("prompts", []):
@@ -96,11 +101,19 @@ def evaluate(corpus: dict, languages: dict, compiled: dict, config: dict):
             per_tier_fn[expected] += 1
             per_tier_fp[predicted] += 1
 
+        expected_effort = item.get("expected_effort")
+        if expected_effort:
+            effort_total += 1
+            effort_confusion[expected_effort][effort] += 1
+            if effort == expected_effort:
+                effort_correct += 1
+
         results.append({
             "lang": lang,
             "expected": expected,
             "predicted": predicted,
             "effort": effort,
+            "expected_effort": expected_effort,
             "score": score,
             "advisor": requires_advisor(effort),
             "signals": signals,
@@ -143,6 +156,8 @@ def evaluate(corpus: dict, languages: dict, compiled: dict, config: dict):
         for lang in per_lang_total
     }
 
+    effort_overall = effort_correct / effort_total if effort_total else 0.0
+
     return {
         "results": results,
         "overall": overall,
@@ -151,6 +166,10 @@ def evaluate(corpus: dict, languages: dict, compiled: dict, config: dict):
         "per_tier": per_tier_metrics,
         "per_lang": per_lang_metrics,
         "confusion": {k: dict(v) for k, v in confusion.items()},
+        "effort_confusion": {k: dict(v) for k, v in effort_confusion.items()},
+        "effort_overall": effort_overall,
+        "effort_correct": effort_correct,
+        "effort_total": effort_total,
     }
 
 
@@ -210,6 +229,45 @@ def render_report(report: dict, corpus: dict, target: float) -> str:
         )
     lines.append("")
 
+    lines.append("## Effort confusion matrix (deep-tier only)")
+    lines.append("")
+    lines.append(
+        f"- **Effort accuracy:** {report['effort_overall']:.1%} "
+        f"({report['effort_correct']}/{report['effort_total']})"
+    )
+    lines.append("")
+    lines.append("Rows are the **gold** effort, columns are what the scorer predicted.")
+    lines.append("")
+    lines.append("| gold \\ predicted | medium | high | xhigh |")
+    lines.append("|------------------|--------|------|-------|")
+    for et in EFFORT_TIERS:
+        row = report["effort_confusion"].get(et, {})
+        lines.append(
+            f"| {et} | {row.get('medium', 0)} | "
+            f"{row.get('high', 0)} | {row.get('xhigh', 0)} |"
+        )
+    lines.append("")
+
+    effort_misrouted = [
+        r for r in report["results"]
+        if r.get("expected_effort") and r["effort"] != r["expected_effort"]
+    ]
+    lines.append(f"## Effort misclassifications ({len(effort_misrouted)})")
+    lines.append("")
+    if not effort_misrouted:
+        lines.append("None — 100% effort accuracy.")
+    else:
+        lines.append("| lang | expected_effort | actual_effort | query |")
+        lines.append("|------|-----------------|---------------|-------|")
+        for r in effort_misrouted:
+            q = r["query"].replace("|", "\\|")
+            if len(q) > 80:
+                q = q[:77] + "..."
+            lines.append(
+                f"| {r['lang']} | {r['expected_effort']} | {r['effort']} | {q} |"
+            )
+    lines.append("")
+
     misrouted = [r for r in report["results"] if not r["hit"]]
     lines.append(f"## Misrouted prompts ({len(misrouted)})")
     lines.append("")
@@ -257,6 +315,10 @@ def main() -> int:
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--target", type=float, default=DEFAULT_TARGET)
     parser.add_argument(
+        "--effort-target", type=float, default=DEFAULT_EFFORT_TARGET,
+        help="minimum effort accuracy to pass CI gate (default 0.90)",
+    )
+    parser.add_argument(
         "--quiet", action="store_true", help="suppress stdout summary",
     )
     args = parser.parse_args()
@@ -287,9 +349,14 @@ def main() -> int:
             m = report["per_tier"][tier]
             print(f"  {tier:<8} acc={m['accuracy']:.1%}  "
                   f"P={m['precision']:.1%}  R={m['recall']:.1%}  F1={m['f1']:.2f}")
+        print(f"Effort accuracy: {report['effort_overall']:.1%} "
+              f"({report['effort_correct']}/{report['effort_total']}) "
+              f"[target {args.effort_target:.0%}]")
         print(f"Report: {args.report}")
 
-    return 0 if report["overall"] >= args.target else 1
+    level_pass = report["overall"] >= args.target
+    effort_pass = report["effort_overall"] >= args.effort_target
+    return 0 if (level_pass and effort_pass) else 1
 
 
 if __name__ == "__main__":
