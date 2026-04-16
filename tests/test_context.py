@@ -112,3 +112,30 @@ class TestSessionState:
             on_disk = json.loads(path.read_text())
             assert on_disk["subagent_active"] is False
             assert on_disk["last_route"] == "standard"
+
+    def test_requires_advisor_default_false(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            assert session.read().get("requires_advisor", False) is False
+
+    def test_update_sets_requires_advisor(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.update(level="deep", language="en", requires_advisor=True)
+            assert session.read()["requires_advisor"] is True
+
+    def test_set_advisor_toggles_flag(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.update(level="deep", language="en")
+            session.set_advisor(True)
+            assert session.read()["requires_advisor"] is True
+            session.set_advisor(False)
+            assert session.read()["requires_advisor"] is False
+
+    def test_mark_subagent_stopped_clears_advisor(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.update(level="deep", language="en", requires_advisor=True)
+            session.mark_subagent_stopped()
+            assert session.read()["requires_advisor"] is False

@@ -258,6 +258,37 @@ class TestFormatStatusLine:
         line = format_status_line("idle", 0, subagent_active=True)
         assert "(subagente)" not in line
 
+    def test_advisor_tag_shown_when_required(self):
+        line = format_status_line(
+            "idle", 0, tier="deep", effort="xhigh", requires_advisor=True
+        )
+        assert " \u00b7 adv" in line or line.endswith("adv")
+
+    def test_advisor_tag_omitted_when_not_required(self):
+        line = format_status_line(
+            "idle", 0, tier="deep", effort="xhigh", requires_advisor=False
+        )
+        assert " \u00b7 adv" not in line
+        assert not line.endswith(" adv")
+
+    def test_advisor_tag_position_after_effort_before_subagente(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="deep",
+            effort="xhigh",
+            requires_advisor=True,
+            subagent_active=True,
+        )
+        xhigh_idx = line.index("xhigh")
+        adv_idx = line.index(" \u00b7 adv")
+        sub_idx = line.index("(subagente)")
+        assert xhigh_idx < adv_idx < sub_idx
+
+    def test_advisor_tag_not_shown_without_tier(self):
+        line = format_status_line("idle", 0, requires_advisor=True)
+        assert " \u00b7 adv" not in line
+
 
 # --- cache_bar ---
 

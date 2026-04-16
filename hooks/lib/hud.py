@@ -119,6 +119,7 @@ def format_status_line(
     elapsed: float | None = None,
     effort: str | None = None,
     subagent_active: bool = False,
+    requires_advisor: bool = False,
 ) -> str:
     """Build the full [polyrouter] status line string.
 
@@ -127,6 +128,8 @@ def format_status_line(
            [polyrouter] [^.^] ~ · opus · deep · xhigh · ████░ · ...
     When a routed subagent is executing, appends "(subagente)" after the tier:
            [polyrouter] [^.^] ~ · haiku · fast · (subagente) · ████░ · ...
+    When the Advisor (Opus on-demand) is required, appends "adv":
+           [polyrouter] [^.^] ~ · opus · deep · xhigh · adv · (subagente) · ...
     """
     frame = get_frame(state, tick)
     parts = [frame]
@@ -139,6 +142,9 @@ def format_status_line(
         # Show sub-effort for deep tier when above default (medium)
         if tier == "deep" and effort in ("high", "xhigh"):
             parts.append(effort)
+        # Advisor (Opus on-demand) engagement signal
+        if requires_advisor:
+            parts.append("adv")
         # Indicate the spawned subagent is currently executing
         if subagent_active:
             parts.append("(subagente)")

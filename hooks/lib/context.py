@@ -14,6 +14,7 @@ DEFAULT_SESSION = {
     "last_tool_result_len": 0,
     "effort_level": "medium",
     "subagent_active": False,
+    "requires_advisor": False,
 }
 
 
@@ -53,13 +54,19 @@ class SessionState:
             "effort_level": state.get("effort_level", "medium"),
         }
 
-    def update(self, level: str, language: str | None) -> None:
+    def update(
+        self,
+        level: str,
+        language: str | None,
+        requires_advisor: bool = False,
+    ) -> None:
         state = self.read()
         state["last_route"] = level
         state["last_level"] = level
         state["conversation_depth"] = state.get("conversation_depth", 0) + 1
         state["last_query_time"] = time.time()
         state["subagent_active"] = True
+        state["requires_advisor"] = bool(requires_advisor)
         if language and isinstance(language, str):
             state["last_language"] = language
         self._state = state
@@ -69,6 +76,7 @@ class SessionState:
         """Clear the subagent_active flag (called by SubagentStop hook)."""
         state = self.read()
         state["subagent_active"] = False
+        state["requires_advisor"] = False
         self._state = state
         self._write(state)
 
@@ -91,6 +99,13 @@ class SessionState:
             state["effort_level"] = effort
             self._state = state
             self._write(state)
+
+    def set_advisor(self, required: bool) -> None:
+        """Persist whether the Advisor (Opus on-demand) should be engaged."""
+        state = self.read()
+        state["requires_advisor"] = bool(required)
+        self._state = state
+        self._write(state)
 
     def is_follow_up(self, query: str, compiled_patterns: list[re.Pattern]) -> bool:
         state = self.read()

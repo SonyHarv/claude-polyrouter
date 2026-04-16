@@ -173,6 +173,10 @@ function main() {
     if (tier === "deep" && (session.effort_level === "high" || session.effort_level === "xhigh")) {
       parts.push(session.effort_level);
     }
+    // Advisor (Opus on-demand) engagement signal
+    if (session.requires_advisor) {
+      parts.push("adv");
+    }
     // Indicate the spawned subagent is currently executing
     if (session.subagent_active) {
       parts.push("(subagente)");

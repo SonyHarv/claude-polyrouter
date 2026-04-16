@@ -542,9 +542,13 @@ def main() -> None:
                 score, pattern_signals.signals, query, pattern_signals.word_count,
             )
         advisor_flag = requires_advisor(effort)
-        # Persist the display label (supports "xhigh")
+        # Persist the display label (supports "xhigh") and advisor flag
         try:
             session.update_effort(effort)
+        except Exception:
+            pass
+        try:
+            session.set_advisor(advisor_flag)
         except Exception:
             pass
 
