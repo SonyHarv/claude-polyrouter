@@ -402,11 +402,23 @@ def main() -> None:
             except Exception:
                 pass
 
-            effort = compute_effort(level)
+            # Replay effort + advisor from cache (backward-compat: use safe defaults)
+            effort = cached.get("effort", compute_effort(level))
+            cached_advisor = cached.get("advisor", False)
+            try:
+                session.update_effort(effort)
+            except Exception:
+                pass
+            try:
+                session.set_advisor(cached_advisor)
+            except Exception:
+                pass
+
             output = _route_output(
                 level, model, agent, confidence, method,
                 str(signals), language, query,
                 effort=effort,
+                advisor=cached_advisor,
             )
             print(json.dumps(output))
             return
@@ -499,7 +511,7 @@ def main() -> None:
         f"{k}={v}" for k, v in pattern_signals.signals.items()
     ) if pattern_signals.signals else "none"
 
-    # Cache the result
+    # Cache the result (include effort + advisor so cache hits replay correctly)
     try:
         key = fingerprint(query)
         cache.set(key, {
@@ -508,6 +520,8 @@ def main() -> None:
             "method": method,
             "signals": signals_str,
             "language": display_language,
+            "effort": effort,
+            "advisor": advisor_flag,
         })
         cache.flush()
     except Exception:
