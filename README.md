@@ -2,9 +2,9 @@
 
 # claude-polyrouter
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue)
+![Version](https://img.shields.io/badge/version-1.5.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-501%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-558%20passed-brightgreen)
 ![Languages](https://img.shields.io/badge/languages-10-orange)
 ![Token Reduction](https://img.shields.io/badge/token%20reduction-82%25-success)
 ![Accuracy](https://img.shields.io/badge/accuracy-100%25-brightgreen)
@@ -15,13 +15,35 @@
 
 ## How It Routes
 
-| Query | Tier | Model | Reason |
-|-------|------|-------|--------|
-| "hola" / "ok" / "what is X?" | Fast | Haiku | Short or simple question |
-| "create a function" / "fix this bug" | Standard | Sonnet | Coding task |
-| "design microservices architecture" | Deep | Opus | Complex analysis |
+| Query | Tier | Model | Effort | Reason |
+|-------|------|-------|--------|--------|
+| "hola" / "ok" / "what is X?" | Fast | Haiku 4.5 | low | Short or simple question |
+| "create a function" / "fix this bug" | Standard | Sonnet 4.6 | medium | Coding task |
+| "debug this stack trace across 3 files" | Deep | Opus 4.7 | high | Multi-file, tool-heavy |
+| "redesign the auth architecture" | Deep | Opus 4.7 | **xhigh + adv** | Architectural scope → Advisor engaged |
 
 Routing happens automatically on every query via a `UserPromptSubmit` hook. No manual intervention needed.
+
+---
+
+## v1.5 Highlights
+
+- **Pinned model IDs** — `claude-haiku-4-5`, `claude-sonnet-4-6`, `claude-opus-4-7` — display stays compact, versions stay explicit
+- **Dynamic deep-tier effort** — `medium` → `high` → `xhigh` chosen per-query from multi-signal score (architecture, file count, code blocks, tool intensity)
+- **xhigh tier** — polyrouter-only display label for architectural/critical work; normalizes to `high` for the `CLAUDE_CODE_EFFORT_LEVEL` env var
+- **Advisor Strategy** — `requires_advisor=true` flag set automatically on `xhigh`; surfaces as `adv` in the HUD so the executor can engage the Advisor (Opus on-demand) for architectural calls
+- **Subagent lifecycle tracking** — HUD shows `(subagente)` while the spawned executor is running; `SubagentStop` hook clears it
+- **Architectural promotion** — non-deep queries with architecture keywords + standard signals auto-promote to `deep + xhigh` (e.g. _"plan a major refactor across services"_)
+
+### Dynamic Escalation Examples
+
+| Query | Tier | Effort | Advisor | Why |
+|-------|------|--------|---------|-----|
+| "fix typo in README" | fast | low | — | Short, no signals |
+| "add pagination to /api/users" | standard | medium | — | Single-file standard task |
+| "debug this 200-line stack trace" | deep | high | — | Deep + tool-intensive |
+| "redesign the billing subsystem" | deep | **xhigh** | **adv** | Architectural keyword match |
+| "refactor auth.py login.py session.py as a strategic migration" | deep | **xhigh** | **adv** | Arch keyword + 3 files + orchestration |
 
 ---
 
@@ -83,7 +105,21 @@ Poly lives in your statusLine and shows routing state at zero token cost:
 
 ```
 [polyrouter] [^.^]~ · sonnet · std · cache:█████ · $12.34↓ · es
+[polyrouter] [^.^]~ · opus · deep · xhigh · adv · (subagente) · cache:█████ · $12.34↓ · es
 ```
+
+### Status Line Tokens (left → right)
+
+| Token | When | Meaning |
+|-------|------|---------|
+| `haiku` / `sonnet` / `opus` | Always (after a route) | Model family selected |
+| `fast` / `std` / `deep` | Always (after a route) | Routing tier |
+| `high` / `xhigh` | Deep tier only | Dynamic sub-effort — `medium` is elided |
+| `adv` | `requires_advisor=true` | Advisor (Opus on-demand) is engaged |
+| `(subagente)` | While subagent runs | Executor subagent currently processing |
+| `cache:…` | Session active | Freshness bar (see below) |
+| `$x.xx↓` | Savings > 0 | Estimated cost saved vs. always-Opus |
+| language code | Language detected | `en` / `es` / `pt` / ... |
 
 ### Mascot States
 
@@ -177,7 +213,10 @@ When new models release, update config only — no code changes needed:
 5. **Pattern extraction** — Raw signal counting from language-specific regex patterns
 6. **Multi-signal scoring** — Weighted 9-signal composite score maps to tier (fast <0.35, standard <0.65, deep >=0.65)
 7. **Context boost** — Multi-turn awareness adjusts confidence for follow-up queries
-8. **Learned adjustments** — Optional project knowledge base fine-tunes routing
+8. **Architectural promotion** — non-deep tiers with arch keywords + signals auto-promote to deep + xhigh
+9. **Dynamic effort** — deep tier receives a sub-effort (medium/high/xhigh) from score + signal mix
+10. **Advisor flag** — `xhigh` sets `requires_advisor=true`, surfaced as `adv` in the HUD
+11. **Learned adjustments** — Optional project knowledge base fine-tunes routing
 
 ---
 
@@ -203,6 +242,14 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 
 ## Roadmap
 
+### v1.5 (completed)
+
+- [x] Pinned model IDs (haiku-4-5 / sonnet-4-6 / opus-4-7) with compact display names
+- [x] Dynamic deep-tier effort classification (medium / high / xhigh)
+- [x] Architectural promotion: non-deep → deep + xhigh on arch keywords + signals
+- [x] Advisor Strategy: `requires_advisor` flag + `adv` HUD tag
+- [x] Subagent lifecycle tracking: `(subagente)` HUD tag + `SubagentStop` hook
+
 ### v1.4.0 (completed)
 
 - [x] Multi-signal 9-weighted scoring engine
@@ -211,6 +258,12 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 - [x] Cache freshness bar with prefix and warning indicators
 - [x] Auto-hook injection for zero-config setup
 - [x] 82% token reduction in additionalContext
+
+### v1.6 (planned)
+
+- [ ] Retry-escalation arrow in HUD (e.g. `fast → deep`)
+- [ ] Advisor hand-off protocol: standardized way for executors to consult Opus
+- [ ] Effort override via `/polyrouter:effort <level>` slash command
 
 ### v2 (planned)
 
@@ -229,7 +282,7 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 2. Create a branch: `git checkout -b feat/my-feature`
 3. Add tests in `tests/`
 4. Run the test suite: `python -m pytest tests/ -v`
-5. Ensure all 501+ tests pass before submitting
+5. Ensure all 558+ tests pass before submitting
 6. Commit using conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
 7. Open a pull request with a clear description of the change
 

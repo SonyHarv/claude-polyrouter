@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.5.0] - 2026-04-16
+
+**Pinned model IDs · Dynamic deep-tier effort · Advisor Strategy · 558 tests passing**
+
+### Added
+- **Pinned model IDs** — `levels.*.model_id` now pins explicit versions: `claude-haiku-4-5`, `claude-sonnet-4-6`, `claude-opus-4-7`. The compact `model` name (haiku/sonnet/opus) is preserved for HUD display.
+- **Dynamic deep-tier effort** — Deep routes receive a sub-effort (`medium` / `high` / `xhigh`) derived from composite score + signal mix (architecture keywords, file paths, code blocks, tool intensity, orchestration).
+- **xhigh display label** — Polyrouter-only effort label for architectural/critical work. Normalizes to `high` when emitted as `CLAUDE_CODE_EFFORT_LEVEL` (upstream env var supports low/medium/high only).
+- **Architectural promotion** — Non-deep queries with architecture keywords + at least one standard/tool/orchestration signal auto-promote to `deep + xhigh` (e.g. _"plan a strategic migration across auth, billing, session"_).
+- **Advisor Strategy** — `requires_advisor=true` flag raised automatically on `xhigh`. Persisted in session state, surfaced in the routing header (`Advisor: required`) and as `adv` in the HUD so executors can engage the Advisor (Opus on-demand) for architectural decisions.
+- **Subagent lifecycle tracking** — Session state gains `subagent_active`; `session.update()` sets it True when a route is emitted. New `SubagentStop` hook clears it. HUD appends `(subagente)` while the spawned executor is running.
+- **New session keys** — `effort_level`, `subagent_active`, `requires_advisor` added to `DEFAULT_SESSION`.
+
+### Changed
+- **HUD format extended** — `[polyrouter] · opus · deep · xhigh · adv · (subagente) · cache:… · $…↓ · es`. Order: tier → sub-effort (deep only, medium elided) → advisor flag → subagent tag → cache → savings → language.
+- **Effort map tests** — `test_effort.py` and `test_hud.py` cover medium/high/xhigh transitions, architectural promotion, advisor wiring, and subagent tag rendering.
+
+### Fixed
+- Removed deprecated `max` effort level (graceful fallback to `high`).
+
 ## [1.4.0] - 2026-04-09
 
 **82% token reduction · 100% multilingual accuracy · 501 tests passing**
