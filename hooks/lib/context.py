@@ -13,6 +13,7 @@ DEFAULT_SESSION = {
     "last_language": None,
     "last_tool_result_len": 0,
     "effort_level": "medium",
+    "subagent_active": False,
 }
 
 
@@ -58,8 +59,16 @@ class SessionState:
         state["last_level"] = level
         state["conversation_depth"] = state.get("conversation_depth", 0) + 1
         state["last_query_time"] = time.time()
+        state["subagent_active"] = True
         if language and isinstance(language, str):
             state["last_language"] = language
+        self._state = state
+        self._write(state)
+
+    def mark_subagent_stopped(self) -> None:
+        """Clear the subagent_active flag (called by SubagentStop hook)."""
+        state = self.read()
+        state["subagent_active"] = False
         self._state = state
         self._write(state)
 

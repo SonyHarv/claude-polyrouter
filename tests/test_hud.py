@@ -226,6 +226,38 @@ class TestFormatStatusLine:
         line1 = format_status_line("routing", 1, tier="standard")
         assert line0 != line1
 
+    def test_subagent_tag_shown_when_active(self):
+        line = format_status_line(
+            "idle", 0, tier="fast", subagent_active=True
+        )
+        assert "(subagente)" in line
+        assert "haiku" in line
+        assert "fast" in line
+
+    def test_subagent_tag_omitted_when_inactive(self):
+        line = format_status_line(
+            "idle", 0, tier="fast", subagent_active=False
+        )
+        assert "(subagente)" not in line
+
+    def test_subagent_tag_default_false(self):
+        line = format_status_line("idle", 0, tier="standard")
+        assert "(subagente)" not in line
+
+    def test_subagent_tag_after_tier(self):
+        line = format_status_line(
+            "idle", 0, tier="deep", effort="xhigh", subagent_active=True
+        )
+        # Order: frame · model · short · effort · (subagente) · ...
+        deep_idx = line.index("deep")
+        xhigh_idx = line.index("xhigh")
+        sub_idx = line.index("(subagente)")
+        assert deep_idx < xhigh_idx < sub_idx
+
+    def test_subagent_tag_not_shown_without_tier(self):
+        line = format_status_line("idle", 0, subagent_active=True)
+        assert "(subagente)" not in line
+
 
 # --- cache_bar ---
 

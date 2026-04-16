@@ -118,12 +118,15 @@ def format_status_line(
     language: str | None = None,
     elapsed: float | None = None,
     effort: str | None = None,
+    subagent_active: bool = False,
 ) -> str:
     """Build the full [polyrouter] status line string.
 
     Format: [polyrouter] [^.^] ~ · sonnet · std · ████░ · $12.34↓ · es
     For deep tier with elevated effort, adds the sub-effort label:
            [polyrouter] [^.^] ~ · opus · deep · xhigh · ████░ · ...
+    When a routed subagent is executing, appends "(subagente)" after the tier:
+           [polyrouter] [^.^] ~ · haiku · fast · (subagente) · ████░ · ...
     """
     frame = get_frame(state, tick)
     parts = [frame]
@@ -136,6 +139,9 @@ def format_status_line(
         # Show sub-effort for deep tier when above default (medium)
         if tier == "deep" and effort in ("high", "xhigh"):
             parts.append(effort)
+        # Indicate the spawned subagent is currently executing
+        if subagent_active:
+            parts.append("(subagente)")
 
     if elapsed is not None:
         bar, _color = cache_bar(elapsed)

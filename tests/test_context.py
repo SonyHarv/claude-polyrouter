@@ -87,3 +87,28 @@ class TestSessionState:
             session = SessionState(path, timeout_minutes=30)
             state = session.read()
             assert state["conversation_depth"] == 0
+
+    def test_update_sets_subagent_active(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            assert session.read().get("subagent_active", False) is False
+            session.update(level="fast", language="en")
+            assert session.read()["subagent_active"] is True
+
+    def test_mark_subagent_stopped_clears_flag(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.update(level="deep", language="en")
+            assert session.read()["subagent_active"] is True
+            session.mark_subagent_stopped()
+            assert session.read()["subagent_active"] is False
+
+    def test_mark_subagent_stopped_persists_to_disk(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "session.json"
+            session = SessionState(path, timeout_minutes=30)
+            session.update(level="standard", language="es")
+            session.mark_subagent_stopped()
+            on_disk = json.loads(path.read_text())
+            assert on_disk["subagent_active"] is False
+            assert on_disk["last_route"] == "standard"
