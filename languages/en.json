@@ -26,23 +26,27 @@
       "^(explain|describe|summarize|define) .{0,40}$"
     ],
     "standard": [
-      "\\b(create|write|make|add|build) .{0,20}(function|method|class|component|module|handler|endpoint|route|service|controller)\\b",
-      "\\b(implement|code|develop|program) .{0,30}(function|method|class|feature|logic|algorithm|endpoint|route|service|controller|api|module|component|script)\\b",
-      "\\b(fix|debug|resolve|patch|repair) .{0,20}(bug|error|issue|problem|crash|exception)\\b",
-      "\\b(update|modify|change|adjust|tweak) .{0,20}(function|method|class|code|logic|behavior)\\b",
-      "\\b(delete|remove|drop) .{0,20}(function|method|class|field|column|property)\\b",
+      "\\b(create|write|make|add|build) .{0,60}(function|method|class|component|module|handler|endpoint|route|service|controller|form|modal|dialog|table|button|field|column|migration|parameter|spinner|wrapper|toggle|variable|cache|filter|hook|helper|dropdown|header|footer)\\b",
+      "\\b(implement|code|develop|program) .{0,60}(function|method|class|feature|logic|algorithm|endpoint|route|service|controller|api|module|component|script|system|behavior|flow|queue|worker|soft-?delete)\\b",
+      "\\b(fix|debug|resolve|patch|repair) .{0,30}(bug|error|issue|problem|crash|exception|regression)\\b",
+      "\\b(update|modify|change|adjust|tweak|extend) .{0,60}(function|method|class|code|logic|behavior|model|schema|config|readme|documentation|route|middleware)\\b",
+      "\\b(delete|remove|drop) .{0,30}(function|method|class|field|column|property|entry|item)\\b",
       "\\b(refactor|restructure)\\b",
       "\\b(convert|transform|parse|serialize|deserialize)\\b",
       "\\b(validate|sanitize|check input|verify data)\\b",
-      "\\b(add|write|create) .{0,15}(test|spec|unit test|integration test)\\b",
-      "\\b(handle|catch|throw) .{0,15}(error|exception|failure)\\b",
-      "\\b(connect|integrate|hook up|wire) .{0,20}(api|database|service|endpoint)\\b"
+      "\\b(add|write|create) .{0,30}(test|spec|unit test|integration test|e2e test)\\b",
+      "\\b(handle|catch|throw) .{0,30}(error|exception|failure|timeout|retry)\\b",
+      "\\b(connect|integrate|hook up|wire) .{0,30}(api|database|service|endpoint|queue)\\b",
+      "\\b(add|implement|create|update|modify|cache|handle|filter|inject|wire|include|integrate|parse|extend|attach) (a|an|the|new|some) \\w{3,}",
+      "\\b(cache|memoize) .{0,40}(result|response|value|query|call)\\b",
+      "\\b(add|set) .{0,10}(environment|env) variable\\b",
+      "\\b(soft.?delete|retry.?on.?timeout|pagination|dark mode|loading spinner)\\b"
     ],
     "deep": [
       "\\b(architect|architecture|design pattern|system design)\\b",
       "\\bscalab(le|ility)\\b",
       "\\b(security|vulnerab|audit|penetration|exploit)\\b",
-      "\\b(across|multiple|all) (files?|components?|modules?)\\b",
+      "\\b(across|multiple|all) (files?|components?|modules?|services?|regions?|layers?|goroutines?)\\b",
       "\\brefactor.{0,20}(codebase|project|entire|complete)\\b",
       "\\b(trade-?off|compare|pros? (and|&) cons?)\\b",
       "\\b(analy[sz]e|evaluate|assess).{0,30}(option|approach|strateg|alternativ)",
@@ -57,8 +61,14 @@
       "\\b(critical|important|crucial).{0,20}(get.{0,5}right|correct|accurate)\\b",
       "\\b(multiple|several|many) (options?|alternatives?|approaches?)\\b",
       "\\b(debug|diagnose|investigate) .{0,20}(root cause|underlying|intermittent)\\b",
-      "\\b(rewrite|redesign|rethink|overhaul)\\b",
-      "\\bin.depth\\b"
+      "\\b(rewrite|redesign|rethink|overhaul|re.?architect)\\b",
+      "\\bin.depth\\b",
+      "\\b(distributed|multi.?region|multi.?tenant|zero.?downtime|cross.?region|cross.?service|event.?driven)\\b",
+      "\\b(failover|cascading failure|cascading failures|schema evolution|bounded contexts?|event flow|rate limiter|caching strategy|idempotenc[yi])\\b",
+      "\\b(memory leak|p99 latency|latency spike|race condition|consistency model)\\b",
+      "\\b(trace|debug|diagnose|investigate|analy[sz]e) .{0,80}(across|through|spans?|spanning|between) \\w+",
+      "\\b(design|architect|decompose|propose|devise|plan) .{0,60}(strategy|layer|pipeline|system|architecture|lifecycle|subsystem|boundary|bounded contexts?|platform|consumer group|monolith)\\b",
+      "\\b(architectural decision record|ADR|modular monolith|monolith to microservices|message queue consumer)\\b"
     ],
     "tool_intensive": [
       "\\b(search|find|grep|look for) .{0,20}(in|across|within)\\b",
