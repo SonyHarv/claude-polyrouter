@@ -2,8 +2,10 @@
 /**
  * Poly HUD v1.6 — Animated ASCII mascot statusLine for Claude Polyrouter.
  *
- * Reads session + stats JSON, resolves OMC coexistence, outputs a single
- * statusLine string with zero additionalContext token cost.
+ * Reads Claude Code's statusLine stdin JSON for live ctx% and rate_limits,
+ * with graceful fallback to the session-state file when stdin is absent or
+ * fields are missing. Outputs a single statusLine string with zero
+ * additionalContext token cost.
  *
  * Format (no subagent):
  *   [poly v1.6] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
@@ -108,6 +110,11 @@ function readStdin() {
   try { return readFileSync(0, "utf-8"); } catch { return ""; }
 }
 
+function parseStdinJson(stdin) {
+  if (!stdin) return null;
+  try { return JSON.parse(stdin); } catch { return null; }
+}
+
 function readJson(path) {
   if (!existsSync(path)) return null;
   try { return JSON.parse(readFileSync(path, "utf-8")); } catch { return null; }
@@ -132,19 +139,35 @@ function formatSeconds(sec) {
   return `${d}d${h}h`;
 }
 
-function detectState(session, compact) {
+// Resolve a rate-limit block from Claude Code stdin (preferred) or fall
+// back to the session-file shape. Returns { pct, rem } where rem is
+// remaining seconds or null.
+function resolveLimit(ccBlock, sessionPct, sessionRem) {
+  const nowSec = Date.now() / 1000;
+  let pct = null, rem = null;
+  if (ccBlock && typeof ccBlock.used_percentage === "number") {
+    pct = Math.round(ccBlock.used_percentage);
+  }
+  if (ccBlock && typeof ccBlock.resets_at === "number") {
+    rem = Math.max(0, Math.floor(ccBlock.resets_at - nowSec));
+  }
+  if (pct == null && sessionPct != null) pct = sessionPct;
+  if (rem == null && sessionRem != null) rem = sessionRem;
+  return { pct, rem };
+}
+
+function detectState(session, compact, ctxPct) {
   if (!session || !session.last_route) return "idle";
 
   const elapsed = (Date.now() / 1000) - (session.last_query_time || 0);
-  const ctxPct = session.ctx_tokens || 0;
   const limits = session.limits || {};
 
-  // Critical: any limit ≥ 90% or ctx ≥ 90%
+  // Critical: any limit >= 90% or ctx >= 90%
   const anyLimitCritical = ["five_hour_pct", "weekly_pct", "sonnet_weekly_pct"]
     .some(k => limits[k] != null && limits[k] >= 90);
-  if (ctxPct >= 90 || anyLimitCritical) return "critical";
+  if ((ctxPct != null && ctxPct >= 90) || anyLimitCritical) return "critical";
 
-  if (ctxPct >= 70) return "ctx_high";
+  if (ctxPct != null && ctxPct >= 70) return "ctx_high";
 
   if (elapsed > 3000) return "danger";
   if (elapsed > 2400) return "keepalive";
@@ -177,6 +200,7 @@ function terminalCols() {
 
 function main() {
   const stdin = readStdin();
+  const cc = parseStdinJson(stdin); // Claude Code statusLine input (may be null)
   const session = readJson(SESSION_PATH);
   const stats = readJson(STATS_PATH);
   const compact = readJson(COMPACT_PATH);
@@ -196,7 +220,27 @@ function main() {
     }
   }
 
-  const state = detectState(session, compact);
+  // --- Resolve live data: prefer Claude Code stdin, fallback to session ---
+  const sessionLimits = (session && session.limits) ? session.limits : {};
+  const liveCtx = cc?.context_window?.used_percentage;
+  const ctxPct = (typeof liveCtx === "number")
+    ? Math.round(liveCtx)
+    : ((session && session.ctx_tokens) ? session.ctx_tokens : null);
+  const fh = resolveLimit(
+    cc?.rate_limits?.five_hour,
+    sessionLimits.five_hour_pct,
+    sessionLimits.five_hour_remaining_sec,
+  );
+  const wk = resolveLimit(
+    cc?.rate_limits?.seven_day,
+    sessionLimits.weekly_pct,
+    sessionLimits.weekly_remaining_sec,
+  );
+  // snt: not exposed by Claude Code stdin; keep session source only.
+  const sntPct = sessionLimits.sonnet_weekly_pct;
+  const sntRem = sessionLimits.sonnet_weekly_remaining_sec;
+
+  const state = detectState(session, compact, ctxPct);
   const tick = Math.floor(Date.now() / 1000);
   const frame = getFrame(state, tick);
   const stateColor = MASCOT_STATES[state]?.color || MASCOT_STATES.idle.color;
@@ -205,9 +249,9 @@ function main() {
     ? (Date.now() / 1000) - session.last_query_time
     : null;
 
-  const ctxPct = (session && session.ctx_tokens) ? session.ctx_tokens : null;
-  const limits = (session && session.limits) ? session.limits : null;
   const subagentActive = session && session.subagent_active;
+  // Subagent counter source: session-only. Claude Code stdin does not
+  // currently expose an agents/subagents field.
   const subagentCount = (session && session.subagent_count) || 0;
   const execModel = session && session.exec_model;
   const execEffort = session && session.exec_effort;
@@ -238,8 +282,10 @@ function main() {
       }
     }
 
-    // ⚠compact when ctx ≥ 70%
-    if (ctxPct !== null && ctxPct >= 70) {
+    // ⚠compact when ctx >= 70% or Claude Code flags 200k overflow
+    const ctxCompact = (ctxPct !== null && ctxPct >= 70)
+      || (cc && cc.exceeds_200k_tokens === true);
+    if (ctxCompact) {
       modelSeg += " \u26A0compact";
     }
   }
@@ -277,42 +323,23 @@ function main() {
   }
 
   // --- Limits group (tiered hiding) ---
+  // Live values from Claude Code stdin override session-file values when
+  // present. snt segment is session-only since Claude Code does not expose
+  // Sonnet weekly usage.
   const limitsParts = [];
-  if (limits && cols >= 120) {
-    const fhPct = limits.five_hour_pct;
-    const fhRem = limits.five_hour_remaining_sec;
-    const wkPct = limits.weekly_pct;
-    const wkRem = limits.weekly_remaining_sec;
-    const sntPct = limits.sonnet_weekly_pct;
-    const sntRem = limits.sonnet_weekly_remaining_sec;
-
-    if (fhPct != null) {
-      const r = formatSeconds(fhRem);
-      limitsParts.push(r ? `5h:${fhPct}%(${r})` : `5h:${fhPct}%`);
-    }
-    if (wkPct != null) {
-      const r = formatSeconds(wkRem);
-      limitsParts.push(r ? `wk:${wkPct}%(${r})` : `wk:${wkPct}%`);
-    }
-    // snt only at full width
-    if (sntPct != null) {
-      const r = formatSeconds(sntRem);
-      limitsParts.push(r ? `snt:${sntPct}%(${r})` : `snt:${sntPct}%`);
-    }
-  } else if (limits && cols >= 80) {
+  const renderLimit = (label, pct, remSec) => {
+    if (pct == null) return null;
+    const r = formatSeconds(remSec);
+    return r ? `${label}:${pct}%(${r})` : `${label}:${pct}%`;
+  };
+  if (cols >= 120) {
+    const a = renderLimit("5h", fh.pct, fh.rem); if (a) limitsParts.push(a);
+    const b = renderLimit("wk", wk.pct, wk.rem); if (b) limitsParts.push(b);
+    const c = renderLimit("snt", sntPct, sntRem); if (c) limitsParts.push(c);
+  } else if (cols >= 80) {
     // cols 80-119: show 5h + wk, drop snt
-    const fhPct = limits.five_hour_pct;
-    const fhRem = limits.five_hour_remaining_sec;
-    const wkPct = limits.weekly_pct;
-    const wkRem = limits.weekly_remaining_sec;
-    if (fhPct != null) {
-      const r = formatSeconds(fhRem);
-      limitsParts.push(r ? `5h:${fhPct}%(${r})` : `5h:${fhPct}%`);
-    }
-    if (wkPct != null) {
-      const r = formatSeconds(wkRem);
-      limitsParts.push(r ? `wk:${wkPct}%(${r})` : `wk:${wkPct}%`);
-    }
+    const a = renderLimit("5h", fh.pct, fh.rem); if (a) limitsParts.push(a);
+    const b = renderLimit("wk", wk.pct, wk.rem); if (b) limitsParts.push(b);
   }
   // cols < 80: limits dropped entirely
 
