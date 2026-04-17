@@ -105,6 +105,30 @@ function ansiColor(text, hex) {
   return `\x1b[38;2;${r};${g};${b}m${text}\x1b[0m`;
 }
 
+// --- Threshold-based ANSI coloring (OMC parity) ---
+// Normal (<70%): green. Warning (70-89%): yellow. Critical (>=90%): red.
+// NO_COLOR env var disables all coloring per the NO_COLOR convention.
+const ANSI_RESET = "\x1b[0m";
+const ANSI_GREEN = "\x1b[32m";
+const ANSI_YELLOW = "\x1b[33m";
+const ANSI_RED = "\x1b[31m";
+
+function colorEnabled() {
+  return !process.env.NO_COLOR;
+}
+
+function thresholdColor(pct) {
+  if (pct == null || !colorEnabled()) return "";
+  if (pct >= 90) return ANSI_RED;
+  if (pct >= 70) return ANSI_YELLOW;
+  return ANSI_GREEN;
+}
+
+function colorPct(pct) {
+  const c = thresholdColor(pct);
+  return c ? `${c}${pct}%${ANSI_RESET}` : `${pct}%`;
+}
+
 // --- Helpers ---
 
 function readStdin() {
@@ -353,7 +377,7 @@ function main() {
     middleParts.push(ansiColor(cb.bar, cb.color));
   }
   if (ctxPct !== null && cols >= 80) {
-    middleParts.push(`ctx:${ctxPct}%`);
+    middleParts.push(`ctx:${colorPct(ctxPct)}`);
   }
 
   // --- Limits group (tiered hiding) ---
@@ -364,7 +388,8 @@ function main() {
   const renderLimit = (label, pct, remSec) => {
     if (pct == null) return null;
     const r = formatSeconds(remSec);
-    return r ? `${label}:${pct}%(${r})` : `${label}:${pct}%`;
+    const v = colorPct(pct);
+    return r ? `${label}:${v}(${r})` : `${label}:${v}`;
   };
   if (cols >= 120) {
     const a = renderLimit("5h", fh.pct, fh.rem); if (a) limitsParts.push(a);
