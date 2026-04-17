@@ -2,7 +2,7 @@
 
 # claude-polyrouter
 
-![Version](https://img.shields.io/badge/version-1.6.1-blue)
+![Version](https://img.shields.io/badge/version-1.6.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tests](https://img.shields.io/badge/tests-613%20passed-brightgreen)
 ![Languages](https://img.shields.io/badge/languages-10-orange)

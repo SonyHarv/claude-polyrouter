@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.6.2] - 2026-04-16
+
+**Hotfix · HUD version string**
+
+### Fixed
+- HUD footer showed `[poly v1.6]` on v1.6.1. Version string now matches published release.
+
+### Changed
+- Bumped `[poly v1.6.1]` → `[poly v1.6.2]` in `hud/polyrouter-hud.mjs` (docstring examples + idle fallback + render).
+
 ## [1.6.1] - 2026-04-16
 
 **Multilingual coverage patch · 98.1% routing accuracy · 100% effort accuracy**

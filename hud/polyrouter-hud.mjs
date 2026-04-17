@@ -8,13 +8,13 @@
  * additionalContext token cost.
  *
  * Format (no subagent):
- *   [poly v1.6] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
+ *   [poly v1.6.2] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
  *
  * Format (with subagent):
- *   [poly v1.6] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ ... │ $9.50↓ es
+ *   [poly v1.6.2] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ ... │ $9.50↓ es
  *
  * Format (high ctx):
- *   [poly v1.6] [^.^]~ haiku·fast ⚠compact │ cache:████░ ctx:78% │ ... │ $0.03↓ es
+ *   [poly v1.6.2] [^.^]~ haiku·fast ⚠compact │ cache:████░ ctx:78% │ ... │ $0.03↓ es
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -258,7 +258,7 @@ function main() {
         console.log(omc);
       } else {
         // Non-OMC users: emit a minimal fallback so the statusline is never blank
-        console.log(`[poly v1.6] [^.^]~ idle`);
+        console.log(`[poly v1.6.2] [^.^]~ idle`);
       }
       return;
     }
@@ -358,7 +358,7 @@ function main() {
   }
 
   // --- Group 1: prefix + mascot + model + exec ---
-  const group1Parts = [`[poly v1.6] ${ansiColor(frame, stateColor)}`];
+  const group1Parts = [`[poly v1.6.2] ${ansiColor(frame, stateColor)}`];
   if (modelSeg) {
     group1Parts.push(modelSeg + execSeg);
   } else if (execSeg) {
