@@ -6,11 +6,18 @@ label — it normalizes to `high` before being emitted as the Claude Code
 `CLAUDE_CODE_EFFORT_LEVEL` env var (upstream only supports low/medium/high).
 `xhigh` additionally flags `requires_advisor=true` for the Advisor Strategy.
 
+v1.6: Architectural complexity detection (_ARCH_RE) is now language-aware.
+Each language JSON may define `arch_patterns`; English patterns serve as
+the universal fallback for unknown languages.
+
 User overrides (via env var or /effort command) always take priority.
 """
 
+import json
 import os
 import re
+from functools import lru_cache
+from pathlib import Path
 
 EFFORT_MAP = {
     "fast": "low",
@@ -25,21 +32,50 @@ VALID_EFFORTS = {"low", "medium", "high"}
 DISPLAY_EFFORTS = {"low", "medium", "high", "xhigh"}
 
 
-# --- Architectural-complexity detection (xhigh gate) ---
+# --- Language-aware architectural-complexity detection (xhigh gate) ---
 
-_ARCH_RE = re.compile(
-    r"\b("
-    # English
-    r"architecture|architect|architectural|system\s+design|redesign\w*|overhaul|"
-    r"major\s+refactor|strategic\s+refactor|design\s+decision|migration\s+strategy|"
-    r"breaking\s+change|re-?architect|"
-    # Spanish
-    r"arquitectura|arquitect[oó]nic[oa]|dise[ñn]o\s+de\s+sistema|redise[ñn]\w*|"
-    r"refactor\s+cr[ií]tico|refactor\s+mayor|decisi[oó]n\s+arquitect[oó]nica|"
-    r"estrategia\s+de\s+migraci[oó]n|cambio\s+incompatible"
-    r")\b",
+# Location of language JSON files (resolved relative to this file)
+_LANG_DIR = Path(__file__).parent.parent.parent / "languages"
+
+# Hardcoded EN fallback patterns (used when language file is unavailable)
+_EN_ARCH_PATTERNS = [
+    r"\b(architecture|architect|architectural|system\s+design)\b",
+    r"\b(redesign\w*|overhaul|re-?architect)\b",
+    r"\b(major\s+refactor|strategic\s+refactor|critical\s+refactor|design\s+decision|migration\s+strategy|extraction\s+plan)\b",
+    r"\b(distributed|multi-?region|zero-?downtime|microservices|monolithic|event-?driven)\b",
+    r"\b(bounded\s+context|modular\s+monolith|monolith\s+to\s+microservices|ADR|architectural\s+decision)\b",
+]
+
+_FALLBACK_ARCH_RE = re.compile(
+    "|".join(_EN_ARCH_PATTERNS),
     re.IGNORECASE,
 )
+
+
+@lru_cache(maxsize=32)
+def _load_arch_re(language: str) -> re.Pattern:
+    """Load and compile arch_patterns for a given language code.
+
+    Falls back to the EN fallback regex for unknown/missing language files.
+    Result is cached per language code.
+    """
+    lang_file = _LANG_DIR / f"{language}.json"
+    try:
+        with open(lang_file, encoding="utf-8") as f:
+            data = json.load(f)
+        patterns = data.get("arch_patterns")
+        if patterns and isinstance(patterns, list) and len(patterns) > 0:
+            return re.compile("|".join(patterns), re.IGNORECASE)
+    except (OSError, json.JSONDecodeError, re.error):
+        pass
+    return _FALLBACK_ARCH_RE
+
+
+# Keep a module-level alias for callers that don't pass language
+# (compute_deep_effort internal use, backward compat)
+def _arch_re(language: str = "en") -> re.Pattern:
+    return _load_arch_re(language)
+
 
 # Mirrors scorer.py — kept local to avoid circular import
 _FILE_EXT_RE = re.compile(
@@ -47,6 +83,52 @@ _FILE_EXT_RE = re.compile(
 )
 
 _CODE_BLOCK_RE = re.compile(r"```")
+
+
+# --- Feature #5: Multi-file refactor promotion ---
+
+_REFACTOR_VERB_RE = re.compile(
+    r"\b(refactor|restructure|rewrite|"
+    r"refactoriza|reestructura|reescrib[ea]|"       # ES
+    r"refactoriser|restructurer|r[eé][eé]crire|"   # FR
+    r"umstrukturieren|refaktorieren|umschreiben|"   # DE
+    r"refatorar|reestruturar|reescrever)\b",         # PT
+    re.IGNORECASE,
+)
+
+_FILE_EXT_MULTIFILE_RE = re.compile(
+    r"\b[\w/\-.]+\.(py|js|ts|tsx|jsx|go|rs|java|kt|cpp|c|h|hpp|cs|rb|php|swift|scala|sh|yaml|yml|json|sql|md|html|css|scss)\b",
+    re.IGNORECASE,
+)
+
+_MULTI_FILE_QUALIFIER_RE = re.compile(
+    r"\b(across|multiple|throughout|all)\s+(\d+\s+)?(files?|modules?|components?|services?)\b|"
+    r"\b(these|those|several|some|\d+)\s+(\w+\s+)?(files?|modules?|components?|services?)\b|"
+    r"\b(a\s+trav[eé]s\s+de|varios|todos\s+los)\s+(\d+\s+)?(archivos?|m[oó]dulos?|componentes?)\b|"
+    r"\b(quer\s+durch|mehrere|alle)\s+(\d+\s+)?(Dateien?|Module|Komponenten)\b|"
+    r"\b(à\s+travers|plusieurs|tous\s+les)\s+(\d+\s+)?(fichiers?|modules?|composants?)\b|"
+    r"\b(em\s+v[aá]rios|diversos|todos\s+os)\s+(\d+\s+)?(arquivos?|m[oó]dulos?|componentes?)\b",
+    re.IGNORECASE,
+)
+
+
+def maybe_promote_multifile_refactor(query: str, tier: str) -> bool:
+    """Return True if prompt has a refactor-family verb and either ≥2 file
+    references or a multi-file qualifier phrase.
+
+    Only promotes standard → deep. Requires ≥6 words to avoid false positives.
+    """
+    if tier != "standard":
+        return False
+    words = query.split()
+    if len(words) < 6:
+        return False
+    if not _REFACTOR_VERB_RE.search(query):
+        return False
+    # Count distinct file references (dedupe on matched text)
+    file_refs = set(m.group(0).lower() for m in _FILE_EXT_MULTIFILE_RE.finditer(query))
+    has_qualifier = bool(_MULTI_FILE_QUALIFIER_RE.search(query))
+    return len(file_refs) >= 2 or has_qualifier
 
 
 def compute_effort(tier: str, user_override: str | None = None) -> str:
@@ -75,6 +157,7 @@ def compute_deep_effort(
     signals: dict[str, int],
     query: str,
     word_count: int,
+    language: str = "en",
 ) -> str:
     """Classify deep-tier complexity into medium / high / xhigh.
 
@@ -91,7 +174,8 @@ def compute_deep_effort(
     tool = int(signals.get("tool_intensive", 0) or 0)
     orch = int(signals.get("orchestration", 0) or 0)
 
-    arch_hit = bool(_ARCH_RE.search(query))
+    arch_re = _arch_re(language)
+    arch_hit = bool(arch_re.search(query))
     files = _FILE_EXT_RE.findall(query)
     blocks = len(_CODE_BLOCK_RE.findall(query)) // 2
 
@@ -137,6 +221,7 @@ def maybe_promote_to_deep_xhigh(
     tier: str,
     signals: dict[str, int] | None,
     query: str,
+    language: str = "en",
 ) -> tuple[str, bool]:
     """Promote non-deep tier → deep when an architectural keyword appears
     alongside at least one standard/tool/orch signal.
@@ -155,7 +240,8 @@ def maybe_promote_to_deep_xhigh(
     if not isinstance(signals, dict):
         return tier, False
 
-    if not _ARCH_RE.search(query):
+    arch_re = _arch_re(language)
+    if not arch_re.search(query):
         return tier, False
 
     combo = (

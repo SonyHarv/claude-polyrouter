@@ -175,6 +175,7 @@ class TestDynamicDeepEffort:
             signals={"deep": 1},
             query="diseña la arquitectura del sistema de pagos",
             word_count=7,
+            language="es",
         ) == "xhigh"
 
     def test_system_design_is_xhigh(self):
@@ -199,6 +200,7 @@ class TestDynamicDeepEffort:
             signals={"deep": 1},
             query="rediseño completo del módulo de auth",
             word_count=6,
+            language="es",
         ) == "xhigh"
 
     def test_migration_strategy_is_xhigh(self):
@@ -308,6 +310,7 @@ class TestArchPromotion:
             "standard",
             {"standard": 1},
             "rediseña el módulo de pagos",
+            language="es",
         )
         assert tier == "deep"
         assert promoted is True
@@ -362,3 +365,226 @@ class TestArchPromotion:
         )
         assert tier == "standard"
         assert promoted is False
+
+
+# ---------------------------------------------------------------------------
+# v1.6 Feature #6: Language-aware arch patterns (DE / FR / PT xhigh)
+# ---------------------------------------------------------------------------
+
+class TestLanguageAwareArchPatterns:
+    """_load_arch_re loads language-specific patterns; unknown falls back to EN."""
+
+    def test_de_kritischer_refactor_xhigh(self):
+        result = compute_deep_effort(
+            score=0.72,
+            signals={"deep": 1},
+            query="kritischer Refactor der Architektur über mehrere Dienste",
+            word_count=8,
+            language="de",
+        )
+        assert result == "xhigh"
+
+    def test_fr_refonte_architecture_distribuee_xhigh(self):
+        result = compute_deep_effort(
+            score=0.72,
+            signals={"deep": 1},
+            query="refonte majeure de l'architecture distribuée",
+            word_count=7,
+            language="fr",
+        )
+        assert result == "xhigh"
+
+    def test_pt_redesenho_arquitetura_xhigh(self):
+        result = compute_deep_effort(
+            score=0.72,
+            signals={"deep": 1},
+            query="redesenho crítico da arquitetura do sistema",
+            word_count=7,
+            language="pt",
+        )
+        assert result == "xhigh"
+
+    def test_de_microservices_orch_xhigh(self):
+        result = compute_deep_effort(
+            score=0.72,
+            signals={"orchestration": 1},
+            query="plane die Migration von Monolith zu Microservices Schritt für Schritt",
+            word_count=10,
+            language="de",
+        )
+        assert result == "xhigh"
+
+    def test_fr_contexte_borne_xhigh(self):
+        result = compute_deep_effort(
+            score=0.72,
+            signals={"deep": 1},
+            query="conception d'un contexte borné pour le service de paiement",
+            word_count=10,
+            language="fr",
+        )
+        assert result == "xhigh"
+
+    def test_pt_microsservicos_xhigh(self):
+        result = compute_deep_effort(
+            score=0.72,
+            signals={"deep": 1},
+            query="estratégia de migração para microsserviços com zero-downtime",
+            word_count=8,
+            language="pt",
+        )
+        assert result == "xhigh"
+
+    def test_unknown_language_falls_back_to_en(self):
+        # "xx" has no language file; EN fallback should still match "architecture"
+        result = compute_deep_effort(
+            score=0.72,
+            signals={"deep": 1},
+            query="design the authentication architecture",
+            word_count=5,
+            language="xx",
+        )
+        assert result == "xhigh"
+
+    def test_de_promote_to_deep_xhigh(self):
+        tier, promoted = maybe_promote_to_deep_xhigh(
+            "standard",
+            {"standard": 1},
+            "kritischer Refactor der Architektur über mehrere Dienste",
+            language="de",
+        )
+        assert tier == "deep"
+        assert promoted is True
+
+    def test_fr_promote_to_deep_xhigh(self):
+        tier, promoted = maybe_promote_to_deep_xhigh(
+            "standard",
+            {"standard": 1},
+            "refonte majeure de l'architecture distribuée",
+            language="fr",
+        )
+        assert tier == "deep"
+        assert promoted is True
+
+    def test_pt_promote_to_deep_xhigh(self):
+        tier, promoted = maybe_promote_to_deep_xhigh(
+            "standard",
+            {"standard": 1},
+            "redesenho crítico da arquitetura do sistema",
+            language="pt",
+        )
+        assert tier == "deep"
+        assert promoted is True
+
+    def test_existing_en_xhigh_still_works(self):
+        result = compute_deep_effort(
+            score=0.70,
+            signals={"deep": 1},
+            query="design the authentication architecture",
+            word_count=5,
+            language="en",
+        )
+        assert result == "xhigh"
+
+    def test_existing_es_xhigh_still_works(self):
+        result = compute_deep_effort(
+            score=0.70,
+            signals={"deep": 1},
+            query="diseña la arquitectura del sistema de pagos",
+            word_count=7,
+            language="es",
+        )
+        assert result == "xhigh"
+
+
+# ---------------------------------------------------------------------------
+# v1.6 Feature #5: Multi-file refactor promotion
+# ---------------------------------------------------------------------------
+
+from lib.effort import maybe_promote_multifile_refactor
+
+
+class TestMaybePromoteMultifileRefactor:
+    """maybe_promote_multifile_refactor: verb + files/qualifier → True."""
+
+    def test_two_files_promotes(self):
+        assert maybe_promote_multifile_refactor(
+            "refactor auth.py and login.py to share the session logic",
+            "standard",
+        ) is True
+
+    def test_qualifier_promotes(self):
+        assert maybe_promote_multifile_refactor(
+            "restructure these three files to use the new interface",
+            "standard",
+        ) is True
+
+    def test_word_count_floor_rewrite_two_files(self):
+        # 3 words → below the 6-word floor
+        assert maybe_promote_multifile_refactor(
+            "rewrite a.py b.py",
+            "standard",
+        ) is False
+
+    def test_single_file_no_qualifier(self):
+        assert maybe_promote_multifile_refactor(
+            "refactor auth.py",
+            "standard",
+        ) is False
+
+    def test_six_words_single_file_no_qualifier(self):
+        assert maybe_promote_multifile_refactor(
+            "refactor the formatDate helper in utils.py",
+            "standard",
+        ) is False
+
+    def test_es_three_files_promotes(self):
+        assert maybe_promote_multifile_refactor(
+            "refactoriza auth.py login.py session.py para compartir lógica",
+            "standard",
+        ) is True
+
+    def test_de_qualifier_promotes(self):
+        assert maybe_promote_multifile_refactor(
+            "Refactor quer durch mehrere Dateien der Zahlungspipeline",
+            "standard",
+        ) is True
+
+    def test_fr_qualifier_promotes(self):
+        assert maybe_promote_multifile_refactor(
+            "Refactoriser à travers plusieurs fichiers du service de paiement",
+            "standard",
+        ) is True
+
+    def test_non_standard_tier_not_promoted(self):
+        # Already deep — should not touch it
+        assert maybe_promote_multifile_refactor(
+            "refactor auth.py and login.py to share the session logic",
+            "deep",
+        ) is False
+
+    def test_fast_tier_not_promoted(self):
+        assert maybe_promote_multifile_refactor(
+            "refactor auth.py and login.py to share the session logic",
+            "fast",
+        ) is False
+
+    def test_no_refactor_verb_not_promoted(self):
+        assert maybe_promote_multifile_refactor(
+            "update auth.py and login.py to share the session logic",
+            "standard",
+        ) is False
+
+    # --- Interaction: arch wins over multifile ---
+    def test_arch_keyword_wins_over_multifile(self):
+        """A prompt matching _ARCH_RE should be handled by arch promotion.
+        maybe_promote_multifile_refactor alone returns True here, but in the
+        pipeline arch check fires first and multifile is gated on not arch_promoted.
+        We just verify multifile function itself returns True; wiring test is
+        in the pipeline (classify-prompt integration).
+        """
+        # "architecture" present + 2 files: multifile func still returns True
+        # but in pipeline arch_promoted fires first
+        assert maybe_promote_multifile_refactor(
+            "refactor auth.py login.py to align with the new architecture design",
+            "standard",
+        ) is True

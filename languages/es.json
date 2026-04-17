@@ -88,6 +88,14 @@
       "\\bmulti.?paso\\b"
     ]
   },
+  "arch_patterns": [
+    "\\b(arquitectura|arquitect[oó]nic[oa]|dise[ñn]o\\s+de\\s+sistema)\\b",
+    "\\b(redise[ñn]\\w*|renovaci[oó]n|re-?arquitectura)\\b",
+    "\\b(refactor\\s+cr[ií]tico|refactor\\s+mayor|refactor\\s+estrat[eé]gico|estrategia\\s+de\\s+migraci[oó]n|plan\\s+de\\s+migraci[oó]n|plan\\s+de\\s+extracci[oó]n)\\b",
+    "\\b(bounded\\s+context|contexto\\s+acotado|ADR|decisi[oó]n\\s+arquitect[oó]nica)\\b",
+    "\\b(overhaul|revisi[oó]n\\s+(integral|completa)\\s+de)\\b",
+    "\\b(architectural\\s+decision\\s+record)\\b"
+  ],
   "follow_up_patterns": [
     "^(y |pero |además |también |ahora )",
     "^(ok|bien|listo|perfecto|dale|va|sí)[,.]? ",

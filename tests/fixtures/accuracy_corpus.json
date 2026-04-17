@@ -518,7 +518,7 @@
       "lang": "en",
       "expected": "deep",
       "query": "plan a strategic migration from our monolith to a modular monolith before going to microservices",
-      "expected_effort": "medium"
+      "expected_effort": "xhigh"
     },
     {
       "lang": "en",
@@ -710,7 +710,7 @@
       "lang": "es",
       "expected": "deep",
       "query": "rearquitectura el consumer group del message queue para sobrevivir failover de brokers sin pérdida",
-      "expected_effort": "medium"
+      "expected_effort": "xhigh"
     },
     {
       "lang": "es",
@@ -794,7 +794,7 @@
       "lang": "es",
       "expected": "deep",
       "query": "propone un refactor estratégico para extraer el subsistema de notificaciones a su propio servicio",
-      "expected_effort": "medium"
+      "expected_effort": "xhigh"
     },
     {
       "lang": "es",
@@ -861,6 +861,42 @@
       "expected": "deep",
       "expected_effort": "medium",
       "query": "evalúa las múltiples alternativas para implementar la cola de tareas en background del sistema"
+    },
+    {
+      "lang": "de",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "kritischer Refactor der Architektur über mehrere Dienste"
+    },
+    {
+      "lang": "fr",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "refonte majeure de l'architecture distribuée"
+    },
+    {
+      "lang": "pt",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "redesenho crítico da arquitetura do sistema"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "refactor auth.py login.py session.py to share the session logic"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "restructure the payment service across multiple files"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "refactoriza auth.py, login.py y session.py para compartir la lógica de sesión"
     }
   ]
 }

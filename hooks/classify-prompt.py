@@ -33,6 +33,7 @@ from lib.effort import (
     normalize_effort_for_env,
     requires_advisor,
     maybe_promote_to_deep_xhigh,
+    maybe_promote_multifile_refactor,
 )
 from lib.compact import CompactAdvisor, load_compact_state, save_compact_state
 from lib.scorer import compute_score, score_to_tier
@@ -462,14 +463,27 @@ def main() -> None:
     # with ≥1 standard/tool/orch signal, promote tier so downstream stages
     # see the escalated routing. Env override still wins later for effort.
     arch_promoted = False
+    multifile_promoted = False
     try:
         level, arch_promoted = maybe_promote_to_deep_xhigh(
             level, pattern_signals.signals, query,
+            language=language or "en",
         )
         if arch_promoted:
             method = f"{method}+arch"
     except Exception:
         pass
+
+    # --- Stage 6c: Multi-file refactor promotion (standard → deep·high) ---
+    # Fires only when arch promotion did NOT fire; xhigh always wins.
+    if not arch_promoted:
+        try:
+            if maybe_promote_multifile_refactor(query, level):
+                level = "deep"
+                multifile_promoted = True
+                method = f"{method}+multifile"
+        except Exception:
+            pass
 
     # --- Stage 7: Context boost ---
     try:
@@ -551,9 +565,13 @@ def main() -> None:
         if arch_promoted:
             # Promotion already identified arch scope → xhigh directly.
             effort = "xhigh"
+        elif multifile_promoted:
+            # Multi-file refactor promotion → high (not xhigh, no arch scope).
+            effort = "high"
         else:
             effort = compute_deep_effort(
                 score, pattern_signals.signals, query, pattern_signals.word_count,
+                language=language or "en",
             )
         advisor_flag = requires_advisor(effort)
         # Persist the display label (supports "xhigh") and advisor flag

@@ -87,6 +87,12 @@
       "\\bmulti.?step\\b"
     ]
   },
+  "arch_patterns": [
+    "\\b(architecture|architect|architectural|system\\s+design)\\b",
+    "\\b(redesign\\w*|overhaul|re-?architect)\\b",
+    "\\b(major\\s+refactor|strategic\\s+refactor|critical\\s+refactor|design\\s+decision|migration\\s+strategy|extraction\\s+plan)\\b",
+    "\\b(bounded\\s+context|modular\\s+monolith|monolith\\s+to\\s+microservices|ADR|architectural\\s+decision)\\b"
+  ],
   "follow_up_patterns": [
     "^(and |but |also |now |then )",
     "^(ok|okay|yes|sure|right|got it|thanks)[,.]? ",

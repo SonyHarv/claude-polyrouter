@@ -34,6 +34,7 @@ from lib.detector import load_languages  # noqa: E402
 from lib.effort import (  # noqa: E402
     compute_deep_effort,
     maybe_promote_to_deep_xhigh,
+    maybe_promote_multifile_refactor,
     requires_advisor,
 )
 from lib.scorer import compute_score, score_to_tier  # noqa: E402
@@ -52,12 +53,25 @@ def classify(query: str, lang: str, languages: dict, compiled: dict, config: dic
     thresholds = config.get("scoring", {}).get("thresholds", None)
     level, _confidence = score_to_tier(score, thresholds)
 
-    level, arch_promoted = maybe_promote_to_deep_xhigh(level, ps.signals, query)
+    level, arch_promoted = maybe_promote_to_deep_xhigh(level, ps.signals, query,
+                                                         language=lang or "en")
+
+    multifile_promoted = False
+    if not arch_promoted:
+        if maybe_promote_multifile_refactor(query, level):
+            level = "deep"
+            multifile_promoted = True
 
     if level == "deep":
-        effort = "xhigh" if arch_promoted else compute_deep_effort(
-            score, ps.signals, query, ps.word_count,
-        )
+        if arch_promoted:
+            effort = "xhigh"
+        elif multifile_promoted:
+            effort = "high"
+        else:
+            effort = compute_deep_effort(
+                score, ps.signals, query, ps.word_count,
+                language=lang or "en",
+            )
     else:
         effort = {"fast": "low", "standard": "medium"}.get(level, "medium")
 
