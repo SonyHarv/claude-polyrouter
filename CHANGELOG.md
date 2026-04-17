@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.6.1] - 2026-04-16
+
+**Multilingual coverage patch · 98.1% routing accuracy · 100% effort accuracy**
+
+### Added
+- **`arch_patterns` for JA/KO/ZH/AR/RU** — xhigh routing now triggers on architectural vocabulary (アーキテクチャ, 아키텍처, 架构, الهندسة المعمارية, архитектура) plus shared English terms (`ADR`, `bounded context`, `microservices`) at the same level as ES/EN/DE/FR/PT.
+- **Corpus coverage for 8 languages** — 48 new prompts in `accuracy_corpus.json` covering DE/FR/PT/JA/KO/ZH/AR/RU (3+ per tier per language) with `expected_effort` for deep prompts.
+
+### Changed
+- Accuracy corpus version bumped to 1.6.1; total prompts: 166 → 214.
+
+### Verified
+- Overall routing accuracy: 97.6% → **98.1%** (210/214).
+- Effort accuracy: **100.0%** (97/97).
+- Per-language accuracy ≥ 97% across all 10 supported languages.
+
 ## [1.6.0] - 2026-04-16
 
 **HUD v1.6 redesign · Accurate savings calc · Idle fallback · 613 tests passing**

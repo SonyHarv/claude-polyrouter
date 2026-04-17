@@ -1,5 +1,5 @@
 {
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Gold-labeled accuracy corpus for polyrouter scorer — 150 prompts (50 per tier, 25 per language).",
   "prompts": [
     {
@@ -897,6 +897,277 @@
       "expected": "deep",
       "expected_effort": "high",
       "query": "refactoriza auth.py, login.py y session.py para compartir la lógica de sesión"
+    },
+    {
+      "lang": "de",
+      "expected": "fast",
+      "query": "Hallo"
+    },
+    {
+      "lang": "de",
+      "expected": "fast",
+      "query": "wie heißt diese Variable"
+    },
+    {
+      "lang": "de",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "implementiere eine Funktion zum Sortieren der Benutzerliste"
+    },
+    {
+      "lang": "de",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "Sicherheitsaudit der Auth-Schicht — finde Schwachstellen und Exploit-Vektoren"
+    },
+    {
+      "lang": "de",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "strategischer Refactor der Architektur mit Migrationsstrategie"
+    },
+    {
+      "lang": "de",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "kritischer Refactor der Architektur mit Migrationsstrategie über mehrere Module"
+    },
+    {
+      "lang": "fr",
+      "expected": "fast",
+      "query": "bonjour"
+    },
+    {
+      "lang": "fr",
+      "expected": "fast",
+      "query": "quel est le nom de cette variable"
+    },
+    {
+      "lang": "fr",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "ajoute une fonction de validation pour les emails"
+    },
+    {
+      "lang": "fr",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "analyse en profondeur les goulots d'étranglement de la base de données"
+    },
+    {
+      "lang": "fr",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "refactoring stratégique de l'architecture avec plan de migration"
+    },
+    {
+      "lang": "fr",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "décision d'architecture pour passer du monolithe aux microservices"
+    },
+    {
+      "lang": "pt",
+      "expected": "fast",
+      "query": "olá"
+    },
+    {
+      "lang": "pt",
+      "expected": "fast",
+      "query": "qual é o nome desta variável"
+    },
+    {
+      "lang": "pt",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "implementa uma função para ordenar a lista de usuários"
+    },
+    {
+      "lang": "pt",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "auditoria de segurança da camada de autenticação para encontrar vulnerabilidades"
+    },
+    {
+      "lang": "pt",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "refatoração estratégica da arquitetura com estratégia de migração"
+    },
+    {
+      "lang": "pt",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "refatoração crítica da arquitetura com estratégia de migração do monólito para microserviços"
+    },
+    {
+      "lang": "ja",
+      "expected": "fast",
+      "query": "こんにちは"
+    },
+    {
+      "lang": "ja",
+      "expected": "fast",
+      "query": "この変数の名前は何ですか"
+    },
+    {
+      "lang": "ja",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "ユーザーリストをソートする関数を実装してください"
+    },
+    {
+      "lang": "ja",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "APIレイヤーのパフォーマンスボトルネックを徹底的に分析してください"
+    },
+    {
+      "lang": "ja",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "マイグレーション戦略を含むアーキテクチャの戦略的リファクタリング"
+    },
+    {
+      "lang": "ja",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "モノリスからマイクロサービスへの移行に関するアーキテクチャ決定とADR"
+    },
+    {
+      "lang": "ko",
+      "expected": "fast",
+      "query": "안녕하세요"
+    },
+    {
+      "lang": "ko",
+      "expected": "fast",
+      "query": "이 변수의 이름은 무엇인가요"
+    },
+    {
+      "lang": "ko",
+      "expected": "fast",
+      "query": "이 함수의 이름을 알려주세요"
+    },
+    {
+      "lang": "ko",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "API 아키텍처의 보안 취약점 감사 — 깊이있게 분석"
+    },
+    {
+      "lang": "ko",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "마이그레이션 전략이 포함된 아키텍처의 전략적 리팩토링"
+    },
+    {
+      "lang": "ko",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "모놀리스에서 마이크로서비스로의 전환을 위한 아키텍처 결정 및 ADR"
+    },
+    {
+      "lang": "zh",
+      "expected": "fast",
+      "query": "你好"
+    },
+    {
+      "lang": "zh",
+      "expected": "fast",
+      "query": "这个变量叫什么名字"
+    },
+    {
+      "lang": "zh",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "实现一个对用户列表排序的函数"
+    },
+    {
+      "lang": "zh",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "深入分析API层的性能瓶颈"
+    },
+    {
+      "lang": "zh",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "包含迁移策略的架构战略性重构"
+    },
+    {
+      "lang": "zh",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "从单体到微服务迁移的架构决策和ADR"
+    },
+    {
+      "lang": "ar",
+      "expected": "fast",
+      "query": "مرحبا"
+    },
+    {
+      "lang": "ar",
+      "expected": "fast",
+      "query": "ما اسم هذا المتغير"
+    },
+    {
+      "lang": "ar",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "نفّذ دالة لفرز قائمة المستخدمين"
+    },
+    {
+      "lang": "ar",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "حلّل بعمق اختناقات الأداء في طبقة قاعدة البيانات"
+    },
+    {
+      "lang": "ar",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "إعادة هيكلة استراتيجية للهندسة المعمارية مع استراتيجية الترحيل"
+    },
+    {
+      "lang": "ar",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "قرار معماري للانتقال من متجانس إلى خدمات مصغرة وADR"
+    },
+    {
+      "lang": "ru",
+      "expected": "fast",
+      "query": "привет"
+    },
+    {
+      "lang": "ru",
+      "expected": "fast",
+      "query": "как называется эта переменная"
+    },
+    {
+      "lang": "ru",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "реализуй функцию сортировки списка пользователей"
+    },
+    {
+      "lang": "ru",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "проанализируй глубоко узкие места производительности в API-слое"
+    },
+    {
+      "lang": "ru",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "стратегический рефакторинг архитектуры со стратегией миграции"
+    },
+    {
+      "lang": "ru",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "архитектура перехода от монолита к микросервисам — стратегический рефакторинг и ADR"
     }
   ]
 }

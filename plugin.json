@@ -1,6 +1,6 @@
 {
   "name": "claude-polyrouter",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Intelligent multilingual model routing for Claude Code — 82% token reduction, 100% accuracy across 10 languages, animated Poly mascot HUD v1.6 with ctx%, limits, idle fallback, accurate per-token savings calc, 613 tests passing",
   "author": { "name": "sonyharv" },
   "homepage": "https://github.com/sonyharv/claude-polyrouter",
