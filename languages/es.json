@@ -62,7 +62,7 @@
       "\\b(cr[ií]tico|importante|crucial)\\b",
       "\\b(varias|m[uú]ltiples|diferentes) (opciones|alternativas|enfoques)\\b",
       "\\b(diagnostica|investiga) .{0,20}(causa ra[ií]z|problema de fondo)\\b",
-      "\\b(reescribe|redise[ñn]a|replantea|reestructura|re.?arquitectura)\\b",
+      "\\b(reescribe|redise[ñn]\\w*|replantea|reestructura|re.?arquitectura)\\b",
       "\\b(a fondo|en profundidad|detalladamente|minuciosamente)\\b",
       "\\b(distribuid[oa]?|multi.?regi[oó]n|multi.?tenant|zero.?downtime|cross.?regi[oó]n|cross.?servicio|event.?driven|event-?driven)\\b",
       "\\b(failover|falla en cascada|fallas en cascada|evoluci[oó]n de schema|bounded contexts?|contextos?\\s+acotados?|flujo de eventos|rate limiter|estrategia de caching|idempotenci)\\b",
