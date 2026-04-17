@@ -15,6 +15,13 @@ DEFAULT_SESSION = {
     "effort_level": "medium",
     "subagent_active": False,
     "requires_advisor": False,
+    # v1.6 additions
+    "subagent_count": 0,
+    "exec_model": None,
+    "exec_effort": None,
+    "exec_advisor": False,
+    "ctx_tokens": 0,
+    "limits": None,
 }
 
 
@@ -72,8 +79,29 @@ class SessionState:
         self._state = state
         self._write(state)
 
+    def mark_subagent_active(
+        self,
+        subagent_name: str | None = None,
+        exec_model: str | None = None,
+        exec_effort: str | None = None,
+        exec_advisor: bool = False,
+    ) -> None:
+        """Set subagent_active, increment counter, snapshot exec params."""
+        state = self.read()
+        state["subagent_active"] = True
+        state["subagent_count"] = state.get("subagent_count", 0) + 1
+        state["exec_model"] = exec_model
+        state["exec_effort"] = exec_effort
+        state["exec_advisor"] = bool(exec_advisor)
+        self._state = state
+        self._write(state)
+
     def mark_subagent_stopped(self) -> None:
-        """Clear the subagent_active flag (called by SubagentStop hook)."""
+        """Clear the subagent_active flag (called by SubagentStop hook).
+
+        Keeps subagent_count and exec_* snapshots — rendering gates on
+        subagent_active so exec segment disappears automatically.
+        """
         state = self.read()
         state["subagent_active"] = False
         state["requires_advisor"] = False
@@ -104,6 +132,20 @@ class SessionState:
         """Persist whether the Advisor (Opus on-demand) should be engaged."""
         state = self.read()
         state["requires_advisor"] = bool(required)
+        self._state = state
+        self._write(state)
+
+    def update_ctx_tokens(self, tokens: int) -> None:
+        """Persist latest context token count (written by classify-prompt)."""
+        state = self.read()
+        state["ctx_tokens"] = max(0, int(tokens))
+        self._state = state
+        self._write(state)
+
+    def update_limits(self, limits: dict | None) -> None:
+        """Persist latest rate-limit snapshot from ccusage."""
+        state = self.read()
+        state["limits"] = limits
         self._state = state
         self._write(state)
 

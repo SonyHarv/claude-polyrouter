@@ -1,11 +1,18 @@
 #!/usr/bin/env node
 /**
- * Poly HUD — Animated ASCII mascot statusLine for Claude Polyrouter.
+ * Poly HUD v1.6 — Animated ASCII mascot statusLine for Claude Polyrouter.
  *
  * Reads session + stats JSON, resolves OMC coexistence, outputs a single
  * statusLine string with zero additionalContext token cost.
  *
- * Format: [polyrouter] [^.^] ~ · sonnet · std · ████░ · $12.34↓ · es
+ * Format (no subagent):
+ *   [poly v1.6] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
+ *
+ * Format (with subagent):
+ *   [poly v1.6] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ ... │ $9.50↓ es
+ *
+ * Format (high ctx):
+ *   [poly v1.6] [^.^]~ haiku·fast ⚠compact │ cache:████░ ctx:78% │ ... │ $0.03↓ es
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -19,7 +26,9 @@ const STATS_PATH = join(home, ".claude", "polyrouter-stats.json");
 const COMPACT_PATH = join(home, ".claude", "polyrouter-compact.json");
 const OMC_HUD = join(home, ".claude", "hud", "omc-hud.mjs");
 
-// --- Poly mascot animation frames ---
+const SEP = " \u2502 "; // ' │ '
+
+// --- Poly mascot animation frames (must stay in sync with hud.py) ---
 
 const MASCOT_STATES = {
   idle: {
@@ -46,6 +55,15 @@ const MASCOT_STATES = {
     frames: ["[^.^]~", "[^.^]~~", "[^.^]~~~", "[^.^]ok"],
     color: "#97c459",
   },
+  // v1.6 new states
+  ctx_high: {
+    frames: ["[>.^]", "[>.^]~", "[>.^]!", "[>.^]~"],
+    color: "#e8853a",
+  },
+  critical: {
+    frames: ["[x.x]", "[x.x]!", "[x.x]!!", "[x.x]"],
+    color: "#e24b4a",
+  },
 };
 
 const TIER_SHORT = { fast: "fast", standard: "std", deep: "deep" };
@@ -53,11 +71,11 @@ const TIER_MODELS = { fast: "haiku", standard: "sonnet", deep: "opus" };
 
 // --- Cache freshness bar ---
 const CACHE_BAR_LEVELS = [
-  { max: 600,  bar: "cache:█████", color: "#97c459" },       // 0-10 min: fresh
-  { max: 1800, bar: "cache:████░", color: "#ef9f27" },       // 10-30 min: warm
-  { max: 3000, bar: "cache:███░░ !", color: "#e8853a" },     // 30-50 min: warning
+  { max: 600,  bar: "cache:\u2588\u2588\u2588\u2588\u2588", color: "#97c459" },   // 0-10 min: fresh
+  { max: 1800, bar: "cache:\u2588\u2588\u2588\u2588\u2591", color: "#ef9f27" },   // 10-30 min: warm
+  { max: 3000, bar: "cache:\u2588\u2588\u2588\u2591\u2591 !", color: "#e8853a" }, // 30-50 min: warning
 ];
-const CACHE_BAR_EXPIRED = { bar: "cache:░░░░░ exp", color: "#e24b4a" }; // 50+ min
+const CACHE_BAR_EXPIRED = { bar: "cache:\u2591\u2591\u2591\u2591\u2591 exp", color: "#e24b4a" };
 
 function cacheBar(elapsedSec) {
   for (const lvl of CACHE_BAR_LEVELS) {
@@ -65,6 +83,7 @@ function cacheBar(elapsedSec) {
   }
   return CACHE_BAR_EXPIRED;
 }
+
 const OMC_NOISE = [
   /omc-setup/i, /not installed/i, /not built/i, /\[OMC HUD\]/i,
   /\[OMC\].*setup/i, /Claude Code has switched/i, /switched to/i,
@@ -100,19 +119,37 @@ function getFrame(state, tick) {
   return s.frames[tick % s.frames.length];
 }
 
+function formatSeconds(sec) {
+  if (sec == null || sec < 0) return null;
+  sec = Math.floor(sec);
+  if (sec < 86400) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    return `${h}h${m}m`;
+  }
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  return `${d}d${h}h`;
+}
+
 function detectState(session, compact) {
   if (!session || !session.last_route) return "idle";
 
-  // Danger: cache about to expire (>50 min idle)
   const elapsed = (Date.now() / 1000) - (session.last_query_time || 0);
-  if (elapsed > 3000) return "danger";       // >50 min
-  if (elapsed > 2400) return "keepalive";     // >40 min, drowsy
+  const ctxPct = session.ctx_tokens || 0;
+  const limits = session.limits || {};
 
-  // Recent query = routing/thinking (priority over compact)
+  // Critical: any limit ≥ 90% or ctx ≥ 90%
+  const anyLimitCritical = ["five_hour_pct", "weekly_pct", "sonnet_weekly_pct"]
+    .some(k => limits[k] != null && limits[k] >= 90);
+  if (ctxPct >= 90 || anyLimitCritical) return "critical";
+
+  if (ctxPct >= 70) return "ctx_high";
+
+  if (elapsed > 3000) return "danger";
+  if (elapsed > 2400) return "keepalive";
   if (elapsed < 3) return "routing";
   if (elapsed < 10) return "thinking";
-
-  // Compact advisory active
   if (compact && compact.advisory_active) return "compact";
 
   return "idle";
@@ -130,6 +167,12 @@ function getOmcOutput(stdin) {
   } catch { return ""; }
 }
 
+// --- Terminal width helpers ---
+
+function terminalCols() {
+  return process.stdout.columns ?? Infinity;
+}
+
 // --- Main ---
 
 function main() {
@@ -142,66 +185,150 @@ function main() {
   if (session && session.last_query_time) {
     const elapsed = (Date.now() / 1000) - session.last_query_time;
     if (elapsed > 1800) {
-      // Still show OMC if present
       const omc = getOmcOutput(stdin);
       if (omc) console.log(omc);
       return;
     }
   }
 
-  // Determine Poly state and frame
   const state = detectState(session, compact);
   const tick = Math.floor(Date.now() / 1000);
   const frame = getFrame(state, tick);
   const stateColor = MASCOT_STATES[state]?.color || MASCOT_STATES.idle.color;
 
-  // Elapsed seconds since last query (for cache bar)
   const elapsed = session && session.last_query_time
     ? (Date.now() / 1000) - session.last_query_time
     : null;
 
-  // Build Poly segment — apply ANSI colors
-  const parts = [ansiColor(frame, stateColor)];
+  const ctxPct = (session && session.ctx_tokens) ? session.ctx_tokens : null;
+  const limits = (session && session.limits) ? session.limits : null;
+  const subagentActive = session && session.subagent_active;
+  const subagentCount = (session && session.subagent_count) || 0;
+  const execModel = session && session.exec_model;
+  const execEffort = session && session.exec_effort;
+  const execAdvisor = session && session.exec_advisor;
+  const effortLevel = session && session.effort_level;
+  const requiresAdvisor = session && session.requires_advisor;
 
+  const cols = terminalCols();
+
+  // --- Model segment ---
+  let modelSeg = "";
   if (session && session.last_route) {
     const tier = session.last_route;
     const model = TIER_MODELS[tier] || tier;
-    const short = TIER_SHORT[tier] || tier;
-    parts.push(model);
-    parts.push(short);
-    // Deep tier sub-effort: show high/xhigh (medium is the default, elided)
-    if (tier === "deep" && (session.effort_level === "high" || session.effort_level === "xhigh")) {
-      parts.push(session.effort_level);
+    const route = TIER_SHORT[tier] || tier;
+
+    let effortSuffix = "";
+    if (tier === "deep" && (effortLevel === "high" || effortLevel === "xhigh")) {
+      effortSuffix = `\u00B7${effortLevel}`;
     }
-    // Advisor (Opus on-demand) engagement signal
-    if (session.requires_advisor) {
-      parts.push("adv");
+
+    if (subagentActive) {
+      modelSeg = `prompt:${model}\u00B7${route}${effortSuffix}`;
+    } else {
+      modelSeg = `${model}\u00B7${route}${effortSuffix}`;
+      if (requiresAdvisor) {
+        modelSeg += `\u00B7adv`;
+      }
     }
-    // Indicate the spawned subagent is currently executing
-    if (session.subagent_active) {
-      parts.push("(subagente)");
+
+    // ⚠compact when ctx ≥ 70%
+    if (ctxPct !== null && ctxPct >= 70) {
+      modelSeg += " \u26A0compact";
     }
   }
 
-  // Cache freshness bar (colored by cache age)
+  // --- Exec segment ---
+  let execSeg = "";
+  if (subagentActive && execModel) {
+    const execParts = [execModel];
+    if (execEffort) execParts.push(execEffort);
+    if (execAdvisor) execParts.push("adv");
+    execSeg = ` \u2699 exec:${execParts.join("\u00B7")}`;
+  }
+
+  // --- Group 1: prefix + mascot + model + exec ---
+  const group1Parts = [`[poly v1.6] ${ansiColor(frame, stateColor)}`];
+  if (modelSeg) {
+    group1Parts.push(modelSeg + execSeg);
+  } else if (execSeg) {
+    group1Parts.push(execSeg.trim());
+  }
+  const group1 = group1Parts.join(" ");
+
+  // --- Middle group: 🤖N cache ctx ---
+  // Priority for dropping: snt > wk > 5h > ctx > 🤖N > cache
+  const middleParts = [];
+  if (subagentCount > 0) {
+    middleParts.push(`\uD83E\uDD16${subagentCount}`);
+  }
   if (elapsed !== null) {
     const cb = cacheBar(elapsed);
-    parts.push(ansiColor(cb.bar, cb.color));
+    middleParts.push(ansiColor(cb.bar, cb.color));
+  }
+  if (ctxPct !== null && cols >= 80) {
+    middleParts.push(`ctx:${ctxPct}%`);
   }
 
-  // Stats: savings
+  // --- Limits group (tiered hiding) ---
+  const limitsParts = [];
+  if (limits && cols >= 120) {
+    const fhPct = limits.five_hour_pct;
+    const fhRem = limits.five_hour_remaining_sec;
+    const wkPct = limits.weekly_pct;
+    const wkRem = limits.weekly_remaining_sec;
+    const sntPct = limits.sonnet_weekly_pct;
+    const sntRem = limits.sonnet_weekly_remaining_sec;
+
+    if (fhPct != null) {
+      const r = formatSeconds(fhRem);
+      limitsParts.push(r ? `5h:${fhPct}%(${r})` : `5h:${fhPct}%`);
+    }
+    if (wkPct != null) {
+      const r = formatSeconds(wkRem);
+      limitsParts.push(r ? `wk:${wkPct}%(${r})` : `wk:${wkPct}%`);
+    }
+    // snt only at full width
+    if (sntPct != null) {
+      const r = formatSeconds(sntRem);
+      limitsParts.push(r ? `snt:${sntPct}%(${r})` : `snt:${sntPct}%`);
+    }
+  } else if (limits && cols >= 80) {
+    // cols 80-119: show 5h + wk, drop snt
+    const fhPct = limits.five_hour_pct;
+    const fhRem = limits.five_hour_remaining_sec;
+    const wkPct = limits.weekly_pct;
+    const wkRem = limits.weekly_remaining_sec;
+    if (fhPct != null) {
+      const r = formatSeconds(fhRem);
+      limitsParts.push(r ? `5h:${fhPct}%(${r})` : `5h:${fhPct}%`);
+    }
+    if (wkPct != null) {
+      const r = formatSeconds(wkRem);
+      limitsParts.push(r ? `wk:${wkPct}%(${r})` : `wk:${wkPct}%`);
+    }
+  }
+  // cols < 80: limits dropped entirely
+
+  // --- Tail: savings + lang ---
+  const tailParts = [];
   if (stats && stats.estimated_savings > 0) {
-    parts.push(`$${stats.estimated_savings.toFixed(2)}\u2193`);
+    tailParts.push(`$${stats.estimated_savings.toFixed(2)}\u2193`);
   }
-
-  // Language
   if (session && session.last_language) {
-    parts.push(session.last_language);
+    tailParts.push(session.last_language);
   }
 
-  const polyLine = `[polyrouter] ${parts.join(" \u00B7 ")}`;
+  // --- Assemble segments with │ separator ---
+  const segments = [group1];
+  if (middleParts.length > 0) segments.push(middleParts.join(" "));
+  if (limitsParts.length > 0) segments.push(limitsParts.join(" "));
+  if (tailParts.length > 0) segments.push(tailParts.join(" "));
 
-  // OMC coexistence: OMC goes first, Poly appends
+  const polyLine = segments.join(SEP);
+
+  // OMC coexistence: OMC goes first
   const omc = getOmcOutput(stdin);
   const output = omc ? `${omc}  ${polyLine}` : polyLine;
 

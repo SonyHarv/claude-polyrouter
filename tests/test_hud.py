@@ -28,7 +28,7 @@ from lib.hud import (
 class TestMascotDefinitions:
     """Verify mascot state table is complete and well-formed."""
 
-    EXPECTED_STATES = {"idle", "routing", "keepalive", "danger", "thinking", "compact"}
+    EXPECTED_STATES = {"idle", "routing", "keepalive", "danger", "thinking", "compact", "ctx_high", "critical"}
 
     def test_all_states_defined(self):
         assert set(MASCOT_STATES.keys()) == self.EXPECTED_STATES
@@ -180,23 +180,24 @@ class TestFormatStatusLine:
 
     def test_minimal_idle(self):
         line = format_status_line("idle", 0)
-        assert line.startswith("[polyrouter]")
+        assert line.startswith("[poly v1.6]")
         assert "[^.^]~" in line
 
     def test_full_format(self):
         line = format_status_line(
             "idle", 0, tier="standard", savings=12.34, language="es", elapsed=300.0
         )
-        assert "[polyrouter]" in line
+        assert "[poly v1.6]" in line
         assert "sonnet" in line
         assert "std" in line
         assert "█████" in line
         assert "$12.34\u2193" in line
         assert "es" in line
 
-    def test_separator_is_middot(self):
-        line = format_status_line("idle", 0, tier="fast", language="en")
-        assert " \u00b7 " in line
+    def test_separator_is_pipe(self):
+        # v1.6 uses │ (U+2502) as group separator
+        line = format_status_line("idle", 0, tier="fast", elapsed=100.0)
+        assert " \u2502 " in line
 
     def test_no_savings_omitted(self):
         line = format_status_line("idle", 0, tier="deep", savings=0.0)
@@ -226,68 +227,74 @@ class TestFormatStatusLine:
         line1 = format_status_line("routing", 1, tier="standard")
         assert line0 != line1
 
-    def test_subagent_tag_shown_when_active(self):
+    def test_subagent_exec_shown_when_active(self):
+        # v1.6: subagent_active → model becomes "prompt:haiku·fast", exec segment shown
         line = format_status_line(
-            "idle", 0, tier="fast", subagent_active=True
+            "idle", 0, tier="fast", subagent_active=True,
+            exec_model="opus", exec_effort="xhigh",
         )
-        assert "(subagente)" in line
-        assert "haiku" in line
-        assert "fast" in line
+        assert "prompt:haiku\u00b7fast" in line
+        assert "exec:opus\u00b7xhigh" in line
 
-    def test_subagent_tag_omitted_when_inactive(self):
+    def test_exec_seg_absent_when_inactive(self):
+        # v1.6: no subagent → plain "haiku·fast", no exec segment
         line = format_status_line(
             "idle", 0, tier="fast", subagent_active=False
         )
-        assert "(subagente)" not in line
+        assert "prompt:" not in line
+        assert "exec:" not in line
 
-    def test_subagent_tag_default_false(self):
+    def test_exec_seg_default_false(self):
         line = format_status_line("idle", 0, tier="standard")
-        assert "(subagente)" not in line
+        assert "exec:" not in line
 
-    def test_subagent_tag_after_tier(self):
+    def test_exec_seg_after_prompt_segment(self):
+        # v1.6: prompt:opus·deep·xhigh ⚙ exec:opus·xhigh comes after model segment
         line = format_status_line(
-            "idle", 0, tier="deep", effort="xhigh", subagent_active=True
+            "idle", 0, tier="deep", effort="xhigh", subagent_active=True,
+            exec_model="opus", exec_effort="xhigh",
         )
-        # Order: frame · model · short · effort · (subagente) · ...
-        deep_idx = line.index("deep")
-        xhigh_idx = line.index("xhigh")
-        sub_idx = line.index("(subagente)")
-        assert deep_idx < xhigh_idx < sub_idx
+        prompt_idx = line.index("prompt:")
+        exec_idx = line.index("exec:")
+        assert prompt_idx < exec_idx
 
-    def test_subagent_tag_not_shown_without_tier(self):
-        line = format_status_line("idle", 0, subagent_active=True)
-        assert "(subagente)" not in line
+    def test_exec_seg_not_shown_without_tier(self):
+        # No tier → no model segment → exec segment also absent
+        line = format_status_line("idle", 0, subagent_active=True, exec_model="opus")
+        assert "exec:" not in line
 
     def test_advisor_tag_shown_when_required(self):
         line = format_status_line(
             "idle", 0, tier="deep", effort="xhigh", requires_advisor=True
         )
-        assert " \u00b7 adv" in line or line.endswith("adv")
+        # v1.6: adv is appended with · (no spaces): opus·deep·xhigh·adv
+        assert "\u00b7adv" in line
 
     def test_advisor_tag_omitted_when_not_required(self):
         line = format_status_line(
             "idle", 0, tier="deep", effort="xhigh", requires_advisor=False
         )
-        assert " \u00b7 adv" not in line
-        assert not line.endswith(" adv")
+        assert "\u00b7adv" not in line
 
-    def test_advisor_tag_position_after_effort_before_subagente(self):
+    def test_advisor_tag_position_after_effort_in_exec(self):
+        # v1.6: exec advisor → exec:opus·xhigh·adv
         line = format_status_line(
             "idle",
             0,
             tier="deep",
             effort="xhigh",
-            requires_advisor=True,
             subagent_active=True,
+            exec_model="opus",
+            exec_effort="xhigh",
+            exec_advisor=True,
         )
-        xhigh_idx = line.index("xhigh")
-        adv_idx = line.index(" \u00b7 adv")
-        sub_idx = line.index("(subagente)")
-        assert xhigh_idx < adv_idx < sub_idx
+        exec_idx = line.index("exec:")
+        adv_idx = line.index("\u00b7adv")
+        assert exec_idx < adv_idx
 
     def test_advisor_tag_not_shown_without_tier(self):
         line = format_status_line("idle", 0, requires_advisor=True)
-        assert " \u00b7 adv" not in line
+        assert "\u00b7adv" not in line
 
 
 # --- cache_bar ---
@@ -364,8 +371,8 @@ class TestFormatStatusLineWithCacheBar:
         line = format_status_line(
             "idle", 0, tier="standard", savings=5.0, elapsed=2100.0, language="en"
         )
-        # Order: frame · model · short · bar · savings · lang
-        parts = line.split(" · ")
+        # v1.6: groups separated by " │ "; cache bar is in middle group, savings in tail
+        parts = line.split(" \u2502 ")
         bar_idx = next(i for i, p in enumerate(parts) if "░" in p or "█" in p)
         savings_idx = next(i for i, p in enumerate(parts) if "$" in p)
         assert bar_idx < savings_idx
@@ -474,9 +481,9 @@ class TestOmcCoexistence:
     """OMC HUD conflict resolution behavior."""
 
     def test_poly_line_always_prefixed(self):
-        """Poly output always starts with [polyrouter]."""
+        """Poly output always starts with [poly v1.6]."""
         line = format_status_line("idle", 0, tier="standard", language="en")
-        assert line.startswith("[polyrouter]")
+        assert line.startswith("[poly v1.6]")
 
     def test_poly_line_is_single_line(self):
         """Status line must be a single line (no newlines)."""
