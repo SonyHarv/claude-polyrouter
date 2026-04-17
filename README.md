@@ -2,9 +2,9 @@
 
 # claude-polyrouter
 
-![Version](https://img.shields.io/badge/version-1.5.0-blue)
+![Version](https://img.shields.io/badge/version-1.6.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-558%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-613%20passed-brightgreen)
 ![Languages](https://img.shields.io/badge/languages-10-orange)
 ![Token Reduction](https://img.shields.io/badge/token%20reduction-82%25-success)
 ![Accuracy](https://img.shields.io/badge/accuracy-100%25-brightgreen)
@@ -25,6 +25,14 @@
 Routing happens automatically on every query via a `UserPromptSubmit` hook. No manual intervention needed.
 
 ---
+
+## v1.6 Highlights
+
+- **HUD v1.6** — New format `[poly v1.6]`, prompt/exec split, `ctx:%`, rate-limit bars (`5h`/`wk`/`snt`), `⚠compact` at ctx≥70%, new mascot states `[>.^]` (ctx high) and `[x.x]` (critical)
+- **Idle fallback** — Stale sessions emit `[poly v1.6] [^.^]~ idle` for non-OMC users instead of a blank statusline
+- **Accurate savings calc** — Per-token formula (1k input + 500 output) with corrected Opus 4.7 pricing ($15/$75 per 1M tokens)
+- **DE/FR/PT deep patterns** — Multi-file refactor queries in German, French, and Portuguese now promote to `deep + xhigh`
+- **613 tests passing**
 
 ## v1.5 Highlights
 
@@ -97,49 +105,83 @@ That's it. On first run, the plugin auto-configures:
 - HUD symlink for the Poly mascot statusLine
 - `current` symlink for version-agnostic paths
 
+### Optional integrations
+
+| Integration | Purpose | Install |
+|-------------|---------|---------|
+| `ccusage` | Shows 5h/weekly/sonnet rate-limit bars in the HUD | `npm install -g ccusage` |
+
 ---
 
 ## HUD — Poly Mascot
 
-Poly lives in your statusLine and shows routing state at zero token cost:
+Poly lives in your statusLine and shows routing state at zero token cost.
 
+**No subagent:**
 ```
-[polyrouter] [^.^]~ · sonnet · std · cache:█████ · $12.34↓ · es
-[polyrouter] [^.^]~ · opus · deep · xhigh · adv · (subagente) · cache:█████ · $12.34↓ · es
+[poly v1.6] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
 ```
 
-### Status Line Tokens (left → right)
+**With subagent:**
+```
+[poly v1.6] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $9.50↓ es
+```
 
-| Token | When | Meaning |
-|-------|------|---------|
-| `haiku` / `sonnet` / `opus` | Always (after a route) | Model family selected |
-| `fast` / `std` / `deep` | Always (after a route) | Routing tier |
-| `high` / `xhigh` | Deep tier only | Dynamic sub-effort — `medium` is elided |
-| `adv` | `requires_advisor=true` | Advisor (Opus on-demand) is engaged |
-| `(subagente)` | While subagent runs | Executor subagent currently processing |
-| `cache:…` | Session active | Freshness bar (see below) |
-| `$x.xx↓` | Savings > 0 | Estimated cost saved vs. always-Opus |
-| language code | Language detected | `en` / `es` / `pt` / ... |
+**High context (compact advisory):**
+```
+[poly v1.6] [^.^]~ haiku·fast ⚠compact │ cache:████░ ctx:78% │ 5h:45%(1h2m) wk:9%(6d19h) │ $0.03↓ es
+```
+
+**Stale session (>30 min, no OMC):**
+```
+[poly v1.6] [^.^]~ idle
+```
+
+### HUD Element Reference
+
+| Element | When shown | Meaning |
+|---------|-----------|---------|
+| `[poly v1.6]` | Always | Plugin prefix + version |
+| `[^.^]~` / `[^-^]` / `[>.^]` / `[x.x]` | Always | Mascot state (see below) |
+| `haiku·fast` / `sonnet·std` / `opus·deep` | After a route | Model + tier, dot-separated |
+| `·high` / `·xhigh` | Deep tier only | Sub-effort — `medium` is elided |
+| `·adv` | `requires_advisor=true` | Advisor (Opus on-demand) engaged |
+| `prompt:…` / `⚙ exec:…` | Subagent active | Prompt model vs executor model split |
+| `🤖N` | Subagent active | Count of active subagents |
+| `cache:…` | Session active | Freshness bar (5-block Unicode) |
+| `ctx:N%` | `transcript_path` available | Context window used (from Claude Code) |
+| `5h:N%(T)` | cols ≥ 80, ccusage present | 5-hour limit usage + time to reset |
+| `wk:N%(T)` | cols ≥ 80, ccusage present | Weekly limit usage + time to reset |
+| `snt:N%(T)` | cols ≥ 120, ccusage present | Sonnet weekly limit (dropped at <120 cols) |
+| `⚠compact` | ctx ≥ 70% | Context approaching limit — run `/compact` |
+| `$x.xx↓` | Savings > $0 | Cumulative estimated cost saved vs. always-Opus |
+| `es` / `en` / `pt` / … | Language detected | ISO language code |
 
 ### Mascot States
 
-| State | Display | Meaning |
+| State | Display | Trigger |
 |-------|---------|---------|
-| Idle | `[^.^]~` | Ready, all good |
-| Routing | `[^o^]>>` | Classifying query |
-| Thinking | `[^.^]...` | Claude processing |
-| Keepalive | `[~_~]zzz` | Cache drowsy (>40 min) |
-| Danger | `[°O°]!!!` | Cache about to expire (>50 min) |
-| Compact | `[^.^]~~~` | Recommending compaction |
+| Idle | `[^.^]~` / `[^-^]` | Default — session active, no pressure |
+| Routing | `[^o^]»` | Within 3 s of a new query |
+| Thinking | `[^.^]...` | 3–10 s after query |
+| Keepalive | `[~_~]zzz` | Cache elapsed > 40 min |
+| Danger | `[°O°]!!!` | Cache elapsed > 50 min |
+| Compact | `[^.^]~~~` | `compact.advisory_active` flag set |
+| Ctx High | `[>.^]` | ctx ≥ 70% |
+| Critical | `[x.x]` | ctx ≥ 90% or any rate-limit ≥ 90% |
 
 ### Cache Freshness Bar
 
-| Time | Display | Color | Meaning |
-|------|---------|-------|---------|
-| 0-10 min | `cache:█████` | Green | Fresh — cache is warm |
-| 10-30 min | `cache:████░` | Yellow | Warm — still healthy |
-| 30-50 min | `cache:███░░ !` | Orange | Warning — consider a query |
-| 50+ min | `cache:░░░░░ exp` | Red | Expired — triggers danger state |
+| Time | Display | Meaning |
+|------|---------|---------|
+| 0–10 min | `cache:█████` | Fresh — cache is warm |
+| 10–30 min | `cache:████░` | Warm — still healthy |
+| 30–50 min | `cache:███░░ !` | Warning — consider a keep-alive query |
+| 50+ min | `cache:░░░░░ exp` | Expired — triggers Danger state |
+
+### Works without OMC
+
+The polyrouter HUD is self-contained. OMC (oh-my-claudecode) is optional — if present, its output is prepended to the poly line; if absent, polyrouter renders on its own.
 
 ---
 
@@ -259,7 +301,15 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 - [x] Auto-hook injection for zero-config setup
 - [x] 82% token reduction in additionalContext
 
-### v1.6 (planned)
+### v1.6 (completed)
+
+- [x] HUD v1.6 redesign: `[poly v1.6]` prefix, prompt/exec split, `ctx:%`, rate-limit bars
+- [x] Idle fallback for non-OMC users (stale session emits `[poly v1.6] [^.^]~ idle`)
+- [x] Accurate per-token savings calc with corrected Opus 4.7 pricing
+- [x] DE/FR/PT multi-file refactor patterns → deep + xhigh
+- [x] Spanish `rediseño` noun form fix
+
+### v1.7 (planned)
 
 - [ ] Retry-escalation arrow in HUD (e.g. `fast → deep`)
 - [ ] Advisor hand-off protocol: standardized way for executors to consult Opus

@@ -186,7 +186,12 @@ function main() {
     const elapsed = (Date.now() / 1000) - session.last_query_time;
     if (elapsed > 1800) {
       const omc = getOmcOutput(stdin);
-      if (omc) console.log(omc);
+      if (omc) {
+        console.log(omc);
+      } else {
+        // Non-OMC users: emit a minimal fallback so the statusline is never blank
+        console.log(`[poly v1.6] [^.^]~ idle`);
+      }
       return;
     }
   }

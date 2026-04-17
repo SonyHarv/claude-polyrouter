@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.6.0] - 2026-04-16
+
+**HUD v1.6 redesign · Accurate savings calc · Idle fallback · 613 tests passing**
+
+### Added
+- **HUD v1.6 redesign** — New format: `[poly v1.6] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es`. Prompt/exec split for subagent display, `🤖N` subagent counter, `ctx:%` from `transcript_path`, rate-limit bar (requires `ccusage`), `⚠compact` advisory at ctx≥70%, new mascot states `ctx_high` and `critical` (`[>.^]` / `[x.x]`).
+- **Idle fallback** — When session is stale (>30 min) and OMC is absent, HUD now emits `[poly v1.6] [^.^]~ idle` instead of going blank.
+- **DE/FR/PT multi-file patterns** — `feat(v1.6)`: deep+xhigh routing for multi-file refactor prompts in German, French, and Portuguese.
+- **Spanish `rediseño` fix** — `fix(v1.6)`: noun form and all inflections now match deep-tier patterns.
+
+### Changed
+- **Accurate savings calc** — Per-token formula using 1 000 input + 500 output tokens per prompt (documented approximation). Old formula used `input + 2×output` with stale Opus pricing.
+- **Opus 4.7 cost constants** — Updated from `$0.005/$0.025` (wrong) to `$0.015/$0.075` per 1k tokens (correct: $15/$75 per 1M as of April 2026).
+- **`limits.py` documented** — Module-level comment clarifies ccusage is optional; gracefully returns `None` when absent.
+
 ## [1.5.0] - 2026-04-16
 
 **Pinned model IDs · Dynamic deep-tier effort · Advisor Strategy · 558 tests passing**

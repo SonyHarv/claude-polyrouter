@@ -111,16 +111,25 @@ def _route_output(
 
 
 def _calculate_savings(level: str, config: dict) -> float:
-    """Calculate estimated savings compared to most expensive model."""
+    """Calculate estimated savings vs routing every query to the most expensive model.
+
+    Uses a conservative per-prompt estimate of 1 000 input tokens + 500 output tokens.
+    This is a known approximation; actual token counts vary per query.
+    """
+    # Approximate tokens per prompt (input + output)
+    _INPUT_TOKENS_K = 1.0   # 1 000 input tokens
+    _OUTPUT_TOKENS_K = 0.5  # 500 output tokens (conservative estimate)
+
     levels = config.get("levels", {})
     if not levels:
         return 0.0
-    max_cost = max(
-        (lv.get("cost_per_1k_input", 0) + 2 * lv.get("cost_per_1k_output", 0))
-        for lv in levels.values()
-    )
-    actual = levels.get(level, {})
-    actual_cost = actual.get("cost_per_1k_input", 0) + 2 * actual.get("cost_per_1k_output", 0)
+
+    def _prompt_cost(lv: dict) -> float:
+        return (lv.get("cost_per_1k_input", 0) * _INPUT_TOKENS_K
+                + lv.get("cost_per_1k_output", 0) * _OUTPUT_TOKENS_K)
+
+    max_cost = max(_prompt_cost(lv) for lv in levels.values())
+    actual_cost = _prompt_cost(levels.get(level, {}))
     return max(0.0, max_cost - actual_cost)
 
 

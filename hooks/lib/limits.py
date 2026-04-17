@@ -1,5 +1,9 @@
 """Rate-limit integration via ccusage CLI.
 
+# Optional dependency: this module gracefully no-ops (returns None) when ccusage is absent.
+# Install ccusage for 5h/weekly/sonnet limit display in the HUD:
+#   npm install -g ccusage   (or: pip install ccusage)
+
 Calls `ccusage --json` (if installed) and returns structured limit data.
 Results are cached for 30 seconds in ~/.claude/polyrouter-limits-cache.json.
 
