@@ -27,6 +27,7 @@ const SESSION_PATH = join(home, ".claude", "polyrouter-session.json");
 const STATS_PATH = join(home, ".claude", "polyrouter-stats.json");
 const COMPACT_PATH = join(home, ".claude", "polyrouter-compact.json");
 const OMC_HUD = join(home, ".claude", "hud", "omc-hud.mjs");
+const OMC_USAGE_CACHE = join(home, ".claude", "plugins", "oh-my-claudecode", ".usage-cache-anthropic.json");
 
 const SEP = " \u2502 "; // ' │ '
 
@@ -118,6 +119,25 @@ function parseStdinJson(stdin) {
 function readJson(path) {
   if (!existsSync(path)) return null;
   try { return JSON.parse(readFileSync(path, "utf-8")); } catch { return null; }
+}
+
+// OMC ships an Anthropic-API-fed rate-limit cache at .usage-cache-anthropic.json
+// when installed. Returns the inner data block or null when OMC is absent or
+// the cache is unparseable. Third-tier fallback for 5h/wk and only non-session
+// source for sonnet weekly.
+function readOmcUsageCache() {
+  const raw = readJson(OMC_USAGE_CACHE);
+  return raw && raw.data ? raw.data : null;
+}
+
+function omcBlock(pct, isoString) {
+  if (typeof pct !== "number") return null;
+  let resetsAt = null;
+  if (typeof isoString === "string") {
+    const ts = Date.parse(isoString);
+    if (!Number.isNaN(ts)) resetsAt = Math.floor(ts / 1000);
+  }
+  return { used_percentage: pct, resets_at: resetsAt };
 }
 
 function getFrame(state, tick) {
@@ -226,19 +246,33 @@ function main() {
   const ctxPct = (typeof liveCtx === "number")
     ? Math.round(liveCtx)
     : ((session && session.ctx_tokens) ? session.ctx_tokens : null);
+  // OMC cache (when installed) provides Anthropic-API-fresh values; used as
+  // the next fallback after stdin and session, and as the only non-session
+  // source for sonnet weekly.
+  const omcUsage = readOmcUsageCache();
+  const omcFh = omcUsage ? omcBlock(omcUsage.fiveHourPercent, omcUsage.fiveHourResetsAt) : null;
+  const omcWk = omcUsage ? omcBlock(omcUsage.weeklyPercent, omcUsage.weeklyResetsAt) : null;
+  const omcSn = omcUsage ? omcBlock(omcUsage.sonnetWeeklyPercent, omcUsage.sonnetWeeklyResetsAt) : null;
+
   const fh = resolveLimit(
-    cc?.rate_limits?.five_hour,
+    cc?.rate_limits?.five_hour ?? omcFh,
     sessionLimits.five_hour_pct,
     sessionLimits.five_hour_remaining_sec,
   );
   const wk = resolveLimit(
-    cc?.rate_limits?.seven_day,
+    cc?.rate_limits?.seven_day ?? omcWk,
     sessionLimits.weekly_pct,
     sessionLimits.weekly_remaining_sec,
   );
-  // snt: not exposed by Claude Code stdin; keep session source only.
-  const sntPct = sessionLimits.sonnet_weekly_pct;
-  const sntRem = sessionLimits.sonnet_weekly_remaining_sec;
+  // snt: Claude Code stdin does not expose Sonnet weekly. Source order:
+  // OMC cache (Anthropic API) -> polyrouter session-state.
+  const snt = resolveLimit(
+    omcSn,
+    sessionLimits.sonnet_weekly_pct,
+    sessionLimits.sonnet_weekly_remaining_sec,
+  );
+  const sntPct = snt.pct;
+  const sntRem = snt.rem;
 
   const state = detectState(session, compact, ctxPct);
   const tick = Math.floor(Date.now() / 1000);
