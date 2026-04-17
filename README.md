@@ -7,9 +7,15 @@
 ![Tests](https://img.shields.io/badge/tests-613%20passed-brightgreen)
 ![Languages](https://img.shields.io/badge/languages-10-orange)
 ![Token Reduction](https://img.shields.io/badge/token%20reduction-82%25-success)
-![Accuracy](https://img.shields.io/badge/accuracy-100%25-brightgreen)
+![Routing Accuracy](https://img.shields.io/badge/routing%20accuracy-98.1%25-brightgreen)
+![Effort Accuracy](https://img.shields.io/badge/effort%20accuracy-100%25-brightgreen)
 
-> Tired of hitting Claude Code token limits? claude-polyrouter silently routes every query to the right model — stop paying Opus prices for simple questions. 82% less token waste, 10 languages, zero setup.
+> Tired of hitting Claude Code token limits? claude-polyrouter silently routes every query to the right model — stop paying Opus prices for simple questions. **82% less token waste, 10 languages at full parity, zero setup.**
+>
+> - **Live HUD** — `ctx:%`, real-time `5h`/`wk`/`snt` rate-limit bars with threshold-based colors, animated Poly mascot, idle fallback
+> - **Dynamic effort per query** — `medium` → `high` → `xhigh` chosen from a multi-signal score (architecture, file count, tool intensity)
+> - **Opus 4.7 sub-effort routing** — deep-tier queries get the right Opus effort level automatically; architectural calls escalate to `xhigh + adv`
+> - **10 languages, full parity** — EN · ES · FR · DE · PT · JA · KO · ZH · AR · RU all share the same deep/arch pattern coverage
 
 ---
 
@@ -28,8 +34,8 @@ Routing happens automatically on every query via a `UserPromptSubmit` hook. No m
 
 ## v1.6 Highlights
 
-- **HUD v1.6** — New format `[poly v1.6]`, prompt/exec split, `ctx:%`, rate-limit bars (`5h`/`wk`/`snt`), `⚠compact` at ctx≥70%, new mascot states `[>.^]` (ctx high) and `[x.x]` (critical)
-- **Idle fallback** — Stale sessions emit `[poly v1.6] [^.^]~ idle` for non-OMC users instead of a blank statusline
+- **HUD v1.6** — New format `[poly v1.6.2]`, prompt/exec split, `ctx:%`, rate-limit bars (`5h`/`wk`/`snt`), `⚠compact` at ctx≥70%, new mascot states `[>.^]` (ctx high) and `[x.x]` (critical)
+- **Idle fallback** — Stale sessions emit `[poly v1.6.2] [^.^]~ idle` for non-OMC users instead of a blank statusline
 - **Accurate savings calc** — Per-token formula (1k input + 500 output) with corrected Opus 4.7 pricing ($15/$75 per 1M tokens)
 - **DE/FR/PT deep patterns** — Multi-file refactor queries in German, French, and Portuguese now promote to `deep + xhigh`
 - **613 tests passing**
@@ -119,29 +125,29 @@ Poly lives in your statusLine and shows routing state at zero token cost.
 
 **No subagent:**
 ```
-[poly v1.6] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
+[poly v1.6.2] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
 ```
 
 **With subagent:**
 ```
-[poly v1.6] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $9.50↓ es
+[poly v1.6.2] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $9.50↓ es
 ```
 
 **High context (compact advisory):**
 ```
-[poly v1.6] [^.^]~ haiku·fast ⚠compact │ cache:████░ ctx:78% │ 5h:45%(1h2m) wk:9%(6d19h) │ $0.03↓ es
+[poly v1.6.2] [^.^]~ haiku·fast ⚠compact │ cache:████░ ctx:78% │ 5h:45%(1h2m) wk:9%(6d19h) │ $0.03↓ es
 ```
 
 **Stale session (>30 min, no OMC):**
 ```
-[poly v1.6] [^.^]~ idle
+[poly v1.6.2] [^.^]~ idle
 ```
 
 ### HUD Element Reference
 
 | Element | When shown | Meaning |
 |---------|-----------|---------|
-| `[poly v1.6]` | Always | Plugin prefix + version |
+| `[poly v1.6.2]` | Always | Plugin prefix + version |
 | `[^.^]~` / `[^-^]` / `[>.^]` / `[x.x]` | Always | Mascot state (see below) |
 | `haiku·fast` / `sonnet·std` / `opus·deep` | After a route | Model + tier, dot-separated |
 | `·high` / `·xhigh` | Deep tier only | Sub-effort — `medium` is elided |
@@ -303,8 +309,8 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 
 ### v1.6 (completed)
 
-- [x] HUD v1.6 redesign: `[poly v1.6]` prefix, prompt/exec split, `ctx:%`, rate-limit bars
-- [x] Idle fallback for non-OMC users (stale session emits `[poly v1.6] [^.^]~ idle`)
+- [x] HUD v1.6 redesign: `[poly v1.6.2]` prefix, prompt/exec split, `ctx:%`, rate-limit bars
+- [x] Idle fallback for non-OMC users (stale session emits `[poly v1.6.2] [^.^]~ idle`)
 - [x] Accurate per-token savings calc with corrected Opus 4.7 pricing
 - [x] DE/FR/PT multi-file refactor patterns → deep + xhigh
 - [x] Spanish `rediseño` noun form fix
