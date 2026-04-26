@@ -1,5 +1,5 @@
 {
-  "version": "1.6.1",
+  "version": "1.7.0",
   "description": "Gold-labeled accuracy corpus for polyrouter scorer — 150 prompts (50 per tier, 25 per language).",
   "prompts": [
     {
@@ -1168,6 +1168,699 @@
       "expected": "deep",
       "expected_effort": "xhigh",
       "query": "архитектура перехода от монолита к микросервисам — стратегический рефакторинг и ADR"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "design an architecture for a globally-distributed feature flag system with edge propagation and consistency guarantees"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "redesign the entire authentication architecture to support passkeys, federated SSO, and multi-tenant scoping simultaneously"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "plan a strategic migration from PostgreSQL row-level security to a dedicated authorization service across 14 microservices"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "architect a multi-region active-active deployment with conflict resolution for the order management system"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "redesign the data ingestion pipeline to support exactly-once semantics across Kafka, S3, and the warehouse"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "design an architectural decision record for migrating from gRPC to GraphQL Federation across all backend services"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "plan a major refactor across orders/, fulfillment/, and shipping/ to introduce a saga orchestrator"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "architect a tenant-isolation strategy for a SaaS platform that meets HIPAA and FedRAMP requirements"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "redesign the build and release pipeline to support hermetic builds, reproducible artifacts, and SBOM generation"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "debug this 600-line stack trace across worker.py, scheduler.py, executor.py, and dispatcher.py to find the deadlock"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "refactor billing.py invoice.py taxes.py and ledger.py to share the currency-conversion logic"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "audit the authorization layer end-to-end including IDOR, BOLA, and privilege-escalation paths"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "trace this connection-pool exhaustion across pool.go, retry.go, transport.go, and breaker.go"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "analyze why the system melts down under 10× load and propose fixes spanning the LB, app, cache, and DB layers"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "compare event sourcing versus CDC for our audit-log requirements and recommend with tradeoff analysis"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "decompose the subscription billing flow into bounded contexts and draw the resulting event topology"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "analyze the cascading failure that took down checkout, payments, and notifications last Tuesday and write the postmortem"
+    },
+    {
+      "lang": "en",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "design a backpressure strategy for the streaming pipeline that survives a 50× burst without dropping events"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "what is HTTP"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "ping"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "are you there"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "what is a UUID"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "is bash POSIX compliant"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "what does grep do"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "what year is it"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "what is a daemon"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "is JSON case sensitive"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "what's TLS"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "define DNS"
+    },
+    {
+      "lang": "en",
+      "expected": "fast",
+      "query": "thx"
+    },
+    {
+      "lang": "en",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "add a search query parameter to the /api/orders endpoint"
+    },
+    {
+      "lang": "en",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "implement a debounce helper for the search-input component"
+    },
+    {
+      "lang": "en",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "fix the bug where the date-range picker shows the wrong end date"
+    },
+    {
+      "lang": "en",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "add a unit test for the slugify helper"
+    },
+    {
+      "lang": "en",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "create a CLI command that exports orders as CSV"
+    },
+    {
+      "lang": "en",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "convert the callback-based file uploader to async/await"
+    },
+    {
+      "lang": "en",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "add a feature flag for the new pricing widget"
+    },
+    {
+      "lang": "en",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "add an index migration on users.email_lower for case-insensitive lookups"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "diseña la arquitectura de un sistema global de feature flags con propagación en edge y garantías de consistencia"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "rediseña por completo la arquitectura de autenticación para soportar passkeys, SSO federado y multi-tenant"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "planea una migración estratégica de row-level security en PostgreSQL a un servicio de autorización dedicado en 14 microservicios"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "arquitectura para un despliegue multi-región activo-activo con resolución de conflictos para el sistema de órdenes"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "rediseño del pipeline de ingestión para soportar semántica exactly-once entre Kafka, S3 y el warehouse"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "decisión arquitectural y ADR para migrar de gRPC a GraphQL Federation en toda la plataforma backend"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "refactor mayor entre órdenes/, fulfillment/ y envíos/ para introducir un orquestador de sagas"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "arquitectura de aislamiento por tenant para una plataforma SaaS que cumpla HIPAA y FedRAMP"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "rediseño del pipeline de build y release para soportar builds herméticos, artefactos reproducibles y generación de SBOM"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "estrategia arquitectural de migración del monolito de pagos a microservicios sin downtime y con compatibilidad hacia atrás"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "debuggea este stack trace de 600 líneas que abarca worker.py, scheduler.py, executor.py y dispatcher.py para encontrar el deadlock"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "refactor de billing.py taxes.py ledger.py y reconciliation.py para compartir la lógica de conversión de divisas como un cambio arquitectural crítico"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "auditoría end-to-end de la capa de autorización incluyendo IDOR, BOLA y escalación de privilegios"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "high",
+      "query": "rastrea este agotamiento del connection pool entre pool.go, retry.go, transport.go y breaker.go"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "analiza por qué la latencia p99 explota bajo 10× de carga y propón un plan estratégico de correcciones que abarca el load balancer, la capa de app, la caché y la base de datos"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "compara event sourcing vs CDC para el requerimiento de audit log y recomienda con análisis de tradeoffs"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "descompón el flujo de suscripciones en bounded contexts y dibuja la topología de eventos resultante"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "analiza el fallo en cascada que tumbó checkout.py, payments.py y notifications.py el martes — escribe el postmortem completo y propón un rediseño arquitectural de la capa de circuit breakers"
+    },
+    {
+      "lang": "es",
+      "expected": "deep",
+      "expected_effort": "medium",
+      "query": "diseña una estrategia de backpressure para el pipeline de streaming que sobreviva una ráfaga de 50× sin perder eventos"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "qué es HTTP"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "ping"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "estás ahí"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "qué es un UUID"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "bash es POSIX"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "qué hace grep"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "qué año es"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "qué es un daemon"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "JSON es case sensitive"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "qué es TLS"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "define DNS"
+    },
+    {
+      "lang": "es",
+      "expected": "fast",
+      "query": "gracias"
+    },
+    {
+      "lang": "es",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "añade un parámetro de búsqueda al endpoint /api/orders"
+    },
+    {
+      "lang": "es",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "implementa un helper de debounce para el componente de búsqueda"
+    },
+    {
+      "lang": "es",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "arregla el bug donde el date picker muestra una fecha de fin incorrecta"
+    },
+    {
+      "lang": "es",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "agrega un test unitario para el helper de slugify"
+    },
+    {
+      "lang": "es",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "crea un comando CLI que exporte las órdenes a CSV"
+    },
+    {
+      "lang": "es",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "convierte el uploader basado en callbacks a async/await"
+    },
+    {
+      "lang": "es",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "añade un feature flag para el nuevo widget de precios"
+    },
+    {
+      "lang": "es",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "añade una migración con índice en users.email_lower para búsquedas case-insensitive"
+    },
+    {
+      "lang": "de",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "Architektur für ein global verteiltes Feature-Flag-System mit Edge-Propagation und Konsistenzgarantien entwerfen"
+    },
+    {
+      "lang": "de",
+      "expected": "fast",
+      "query": "Wie spät ist es in UTC"
+    },
+    {
+      "lang": "de",
+      "expected": "fast",
+      "query": "Was ist HTTP"
+    },
+    {
+      "lang": "de",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "implementiere eine Funktion zur Validierung von E-Mail-Adressen"
+    },
+    {
+      "lang": "de",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "schreibe einen Unit-Test für die Passwort-Hash-Funktion"
+    },
+    {
+      "lang": "fr",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "concevoir l'architecture d'un système global de feature flags avec propagation edge et garanties de cohérence"
+    },
+    {
+      "lang": "fr",
+      "expected": "fast",
+      "query": "quelle heure est-il en UTC"
+    },
+    {
+      "lang": "fr",
+      "expected": "fast",
+      "query": "qu'est-ce que HTTP"
+    },
+    {
+      "lang": "fr",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "implémente une fonction de validation des adresses email"
+    },
+    {
+      "lang": "fr",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "écris un test unitaire pour la fonction de hachage de mot de passe"
+    },
+    {
+      "lang": "pt",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "projete a arquitetura de um sistema global de feature flags com propagação em edge e garantias de consistência"
+    },
+    {
+      "lang": "pt",
+      "expected": "fast",
+      "query": "que horas são em UTC"
+    },
+    {
+      "lang": "pt",
+      "expected": "fast",
+      "query": "o que é HTTP"
+    },
+    {
+      "lang": "pt",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "implementa uma função de validação de endereços de email"
+    },
+    {
+      "lang": "pt",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "escreva um teste unitário para a função de hash de senha"
+    },
+    {
+      "lang": "ja",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "認証アーキテクチャをパスキー、フェデレーテッドSSO、マルチテナントスコープに対応するよう全面的に再設計する"
+    },
+    {
+      "lang": "ja",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "monolitoから分散マイクロサービスアーキテクチャへの戦略的マイグレーションを計画する"
+    },
+    {
+      "lang": "ja",
+      "expected": "fast",
+      "query": "UTCで今何時ですか"
+    },
+    {
+      "lang": "ja",
+      "expected": "fast",
+      "query": "HTTPとは何ですか"
+    },
+    {
+      "lang": "ja",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "メールアドレスを検証する関数を実装してください"
+    },
+    {
+      "lang": "ja",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "パスワードハッシュ関数の入力チェックを追加してください"
+    },
+    {
+      "lang": "ko",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "패스키, 페더레이션 SSO, 멀티테넌트 스코핑을 지원하도록 인증 아키텍처를 전면 재설계"
+    },
+    {
+      "lang": "ko",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "모놀리스에서 분산 마이크로서비스 아키텍처로의 전략적 마이그레이션 계획"
+    },
+    {
+      "lang": "ko",
+      "expected": "fast",
+      "query": "UTC로 지금 몇 시인가요"
+    },
+    {
+      "lang": "ko",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "이메일 주소를 검증하는 함수를 구현해주세요"
+    },
+    {
+      "lang": "ko",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "비밀번호 해시 함수의 입력 확인 로직을 추가해주세요"
+    },
+    {
+      "lang": "ko",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "사용자 인증 로직을 리팩토링해주세요"
+    },
+    {
+      "lang": "zh",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "全面重新设计认证架构以支持 passkey、联合 SSO 和多租户作用域"
+    },
+    {
+      "lang": "zh",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "规划从单体到分布式微服务架构的战略性迁移"
+    },
+    {
+      "lang": "zh",
+      "expected": "fast",
+      "query": "UTC 现在几点"
+    },
+    {
+      "lang": "zh",
+      "expected": "fast",
+      "query": "HTTP 是什么"
+    },
+    {
+      "lang": "zh",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "实现一个验证电子邮件地址的函数"
+    },
+    {
+      "lang": "zh",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "为 slugify 辅助函数编写一个单元测试"
+    },
+    {
+      "lang": "ar",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "إعادة هيكلة استراتيجية لبنية المصادقة لدعم passkeys وSSO الاتحادي ونطاقات متعددة المستأجرين"
+    },
+    {
+      "lang": "ar",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "تخطيط ترحيل استراتيجي من النظام الموحد إلى بنية الخدمات المصغرة الموزعة"
+    },
+    {
+      "lang": "ar",
+      "expected": "fast",
+      "query": "كم الساعة في UTC"
+    },
+    {
+      "lang": "ar",
+      "expected": "fast",
+      "query": "ما هو HTTP"
+    },
+    {
+      "lang": "ar",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "نفّذ دالة للتحقق من صحة عناوين البريد الإلكتروني"
+    },
+    {
+      "lang": "ar",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "اكتب اختبار وحدة لمساعد slugify"
+    },
+    {
+      "lang": "ru",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "полностью перепроектируй архитектуру аутентификации с поддержкой passkeys, федеративного SSO и multi-tenant"
+    },
+    {
+      "lang": "ru",
+      "expected": "deep",
+      "expected_effort": "xhigh",
+      "query": "стратегическая миграция от монолита к распределённой архитектуре микросервисов"
+    },
+    {
+      "lang": "ru",
+      "expected": "fast",
+      "query": "сколько времени в UTC"
+    },
+    {
+      "lang": "ru",
+      "expected": "fast",
+      "query": "что такое HTTP"
+    },
+    {
+      "lang": "ru",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "реализуй функцию для валидации email-адресов"
+    },
+    {
+      "lang": "ru",
+      "expected": "standard",
+      "expected_effort": "medium",
+      "query": "напиши unit-тест для slugify-хелпера"
     }
   ]
 }
