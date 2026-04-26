@@ -315,11 +315,23 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 - [x] DE/FR/PT multi-file refactor patterns → deep + xhigh
 - [x] Spanish `rediseño` noun form fix
 
-### v1.7 (planned)
+### v1.7 (in progress)
 
-- [ ] Retry-escalation arrow in HUD (e.g. `fast → deep`)
-- [ ] Advisor hand-off protocol: standardized way for executors to consult Opus
-- [ ] Effort override via `/polyrouter:effort <level>` slash command
+- [x] Native `xhigh` effort (no longer downgrades to `high` in env)
+- [x] Silent model swap detection (`⚠swap` glyph when CC overrides poly's choice)
+- [x] Retry-escalation arrow in HUD (`fast → deep`, `⚠max` at ceiling)
+- [x] Advisor hand-off protocol: structured `[POLY:ADVISOR]` block + manual `/polyrouter:advisor`
+- [x] Effort override via `/polyrouter:effort <low|medium|high|xhigh>` slash command
+
+#### Design notes
+
+- **No `max` tier above `xhigh`.** A higher tier was evaluated (multi-pass
+  Opus, Opus 1M pinning, opus-vs-opus consensus) and **discarded**. `xhigh`
+  remains the recommended ceiling for Opus 4.7; a `max` tier would risk
+  overthinking without measurable quality gains, while doubling per-prompt
+  cost. The escape hatch for genuinely architectural prompts is
+  `/polyrouter:advisor`, which already locks to `deep/xhigh +
+  opus-orchestrator`.
 
 ### v2 (planned)
 
