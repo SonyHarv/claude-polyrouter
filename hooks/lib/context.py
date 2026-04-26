@@ -51,6 +51,9 @@ DEFAULT_SESSION = {
     "routing_lang_counts": {},             # language code → count
     "routing_savings_total": 0.0,          # cumulative $ savings vs all-opus
     "retry_invocations": 0,                # count of /polyrouter:retry uses
+    # v1.7 CALIDAD #17: CC's session_name (preserved across /clear in
+    # CC v2.1.120+). Empty / unnamed sessions store None.
+    "session_name": None,
 }
 
 
@@ -161,6 +164,20 @@ class SessionState:
         """Persist whether the Advisor (Opus on-demand) should be engaged."""
         state = self.read()
         state["requires_advisor"] = bool(required)
+        self._state = state
+        self._write(state)
+
+    def update_session_name(self, name: str | None) -> None:
+        """Persist CC's session_name (CALIDAD #17, requires CC v2.1.120+).
+
+        No-ops on non-string / empty values so callers can pass stdin
+        fields directly without guarding. Stored full; truncation is
+        a display-time concern.
+        """
+        if not isinstance(name, str) or not name:
+            return
+        state = self.read()
+        state["session_name"] = name
         self._state = state
         self._write(state)
 

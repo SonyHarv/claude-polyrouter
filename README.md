@@ -330,6 +330,7 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 - [x] Stats export via `/polyrouter:export csv|json` for pandas / Excel / jq pipelines
 - [x] Coverage report + badge — 87.6% on `hooks/lib/` ([details](docs/COVERAGE.md), regenerate via `scripts/poly-coverage.sh`)
 - [x] Tier infrastructure is data-driven — adding a new tier (e.g. `ultra`) is a config-only change; see [docs/ADDING-A-TIER.md](docs/ADDING-A-TIER.md) *(CALIDAD #16)*
+- [x] `session_name` passthrough — per-session-name stats bucket survives `/clear` (requires Claude Code **v2.1.120+**); display truncates to 20 chars + `…`; verification runbook in [docs/CLEAR-VERIFICATION.md](docs/CLEAR-VERIFICATION.md) *(CALIDAD #17)*
 
 #### Cancelled / Future Research
 

@@ -353,7 +353,10 @@ def _detect_retry(
 
         savings = _calculate_savings(to_tier, config)
         try:
-            stats.record(to_tier, state.get("last_language") or "en", False, savings)
+            stats.record(
+                to_tier, state.get("last_language") or "en", False, savings,
+                session_name=state.get("session_name"),
+            )
         except Exception:
             pass
         try:
@@ -481,7 +484,10 @@ def _detect_advisor_command(
 
         savings = _calculate_savings(level, config)
         try:
-            stats.record(level, language, False, savings)
+            stats.record(
+                level, language, False, savings,
+                session_name=session.read().get("session_name"),
+            )
         except Exception:
             pass
         try:
@@ -660,6 +666,56 @@ def _format_top_freq(d: dict[str, int], top_n: int = 3) -> str:
     return " · ".join(f"{k} ({(v / total) * 100:.0f}%)" for k, v in items)
 
 
+_SESSION_NAME_DISPLAY_MAX = 20
+
+
+def _truncate_session_name(name: str, limit: int = _SESSION_NAME_DISPLAY_MAX) -> str:
+    """Truncate a session_name for stats display (CALIDAD #17 Q6).
+
+    Names longer than `limit` chars get the trailing chars replaced with
+    a single ellipsis character so the visible string is exactly `limit`.
+    Storage keeps the full name; this is a display-only concern.
+    """
+    if not isinstance(name, str):
+        return ""
+    if len(name) <= limit:
+        return name
+    if limit < 1:
+        return ""
+    return name[: limit - 1] + "…"
+
+
+def _format_by_session_name(by_name: dict, top_n: int = 5) -> list[str]:
+    """Render the per-session-name section for [POLY:STATS] (CALIDAD #17).
+
+    Returns lines (possibly empty list when nothing to show). Sorts by
+    query count desc, truncates names to 20 chars + ellipsis. Cap at
+    `top_n` to keep the block compact.
+    """
+    if not isinstance(by_name, dict) or not by_name:
+        return []
+    items = []
+    for name, entry in by_name.items():
+        if not isinstance(entry, dict):
+            continue
+        items.append((name, entry))
+    items.sort(key=lambda kv: int(kv[1].get("queries") or 0), reverse=True)
+    items = items[:top_n]
+    if not items:
+        return []
+    lines = ["", "By session:"]
+    for name, entry in items:
+        q = int(entry.get("queries") or 0)
+        savings = float(entry.get("savings") or 0.0)
+        display = _truncate_session_name(name)
+        # Pad name column to limit so the columns stay aligned.
+        lines.append(
+            f"  {display:<{_SESSION_NAME_DISPLAY_MAX}}  "
+            f"{q:>4} routes · ${savings:.2f} saved"
+        )
+    return lines
+
+
 def _build_stats_block(session: SessionState, config: dict | None = None) -> str:
     """Render the [POLY:STATS] breakdown for the current session.
 
@@ -708,6 +764,17 @@ def _build_stats_block(session: SessionState, config: dict | None = None) -> str
 
     retries = int(state.get("retry_invocations") or 0)
     lines.append(f"Retries:      {retries} invocation(s) of /polyrouter:retry")
+
+    # CALIDAD #17: per-session-name breakdown read from the global
+    # stats file. Survives /clear because CC v2.1.120+ preserves
+    # session_name across the reset.
+    try:
+        stats_data = Stats(STATS_PATH).read()
+        by_name = stats_data.get("by_session_name") or {}
+    except Exception:
+        by_name = {}
+    lines.extend(_format_by_session_name(by_name))
+
     return "\n".join(lines)
 
 
@@ -929,6 +996,15 @@ def main() -> None:
         print(json.dumps(_skip_output("invalid_query")))
         return
 
+    # CALIDAD #17: capture CC's session_name (preserved across /clear in
+    # CC v2.1.120+). Persisted to session state and forwarded to stats
+    # so per-session-name aggregation survives across /clear cycles.
+    # Silent when absent — older CC versions and unnamed sessions both
+    # land here without warnings.
+    session_name = input_data.get("session_name")
+    if not isinstance(session_name, str) or not session_name:
+        session_name = None
+
     # Load configuration and resources
     try:
         config = load_config()
@@ -959,6 +1035,14 @@ def main() -> None:
     )
 
     stats = Stats(STATS_PATH)
+
+    # CALIDAD #17: persist session_name to state once per turn so retry,
+    # advisor, cache-hit, and main paths all see it via session.read().
+    if session_name is not None:
+        try:
+            session.update_session_name(session_name)
+        except Exception:
+            pass
 
     # --- v1.7: Silent model swap detection (runs even when routing skips) ---
     _detect_silent_swap(input_data, session)
@@ -1020,7 +1104,10 @@ def main() -> None:
                 display_language = "multi"
             savings = _calculate_savings(level, config)
             try:
-                stats.record(level, display_language, False, savings)
+                stats.record(
+                    level, display_language, False, savings,
+                    session_name=session_name,
+                )
             except Exception:
                 pass
             try:
@@ -1060,7 +1147,10 @@ def main() -> None:
 
             savings = _calculate_savings(level, config)
             try:
-                stats.record(level, language, True, savings)
+                stats.record(
+                    level, language, True, savings,
+                    session_name=session_name,
+                )
             except Exception:
                 pass
             try:
@@ -1216,7 +1306,10 @@ def main() -> None:
     # Record stats
     savings = _calculate_savings(level, config)
     try:
-        stats.record(level, display_language, False, savings)
+        stats.record(
+            level, display_language, False, savings,
+            session_name=session_name,
+        )
     except Exception:
         pass
 
