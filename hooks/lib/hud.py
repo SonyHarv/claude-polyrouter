@@ -198,6 +198,12 @@ def format_status_line(
     swap_detected: bool = False,
     swap_expected: str | None = None,
     swap_actual: str | None = None,
+    retry_active: bool = False,
+    retry_from_tier: str | None = None,
+    retry_from_effort: str | None = None,
+    retry_to_tier: str | None = None,
+    retry_to_effort: str | None = None,
+    retry_at_ceiling: bool = False,
 ) -> str:
     """Build the full [poly v1.6] status line string.
 
@@ -217,17 +223,41 @@ def format_status_line(
     # --- Model segment ---
     model_seg = ""
     if tier:
-        model = TIER_MODELS.get(tier, tier)
-        route = TIER_SHORT.get(tier, tier)
-        # Add sub-effort for deep tier when above default
-        effort_suffix = ""
-        if tier == "deep" and effort in ("high", "xhigh"):
-            effort_suffix = f"\u00b7{effort}"
+        # v1.7: retry-escalation arrow replaces the base model·route segment.
+        # When at_ceiling, retry is active but no escalation occurred — we
+        # render the normal segment plus a ⚠max glyph (handled below).
+        if (
+            retry_active
+            and not retry_at_ceiling
+            and retry_from_tier
+            and retry_to_tier
+        ):
+            from_model = TIER_MODELS.get(retry_from_tier, retry_from_tier)
+            from_route = TIER_SHORT.get(retry_from_tier, retry_from_tier)
+            to_model = TIER_MODELS.get(retry_to_tier, retry_to_tier)
+            to_route = TIER_SHORT.get(retry_to_tier, retry_to_tier)
+            from_eff = ""
+            if retry_from_tier == "deep" and retry_from_effort in ("high", "xhigh"):
+                from_eff = f"\u00b7{retry_from_effort}"
+            to_eff = ""
+            if retry_to_tier == "deep" and retry_to_effort in ("high", "xhigh"):
+                to_eff = f"\u00b7{retry_to_effort}"
+            base = (
+                f"{from_model}\u00b7{from_route}{from_eff}"
+                f" \u2192 {to_model}\u00b7{to_route}{to_eff}"
+            )
+        else:
+            model = TIER_MODELS.get(tier, tier)
+            route = TIER_SHORT.get(tier, tier)
+            effort_suffix = ""
+            if tier == "deep" and effort in ("high", "xhigh"):
+                effort_suffix = f"\u00b7{effort}"
+            base = f"{model}\u00b7{route}{effort_suffix}"
 
         if subagent_active:
-            model_seg = f"prompt:{model}\u00b7{route}{effort_suffix}"
+            model_seg = f"prompt:{base}"
         else:
-            model_seg = f"{model}\u00b7{route}{effort_suffix}"
+            model_seg = base
 
         # Advisor tag (non-subagent path, on the main model segment)
         if requires_advisor and not subagent_active:
@@ -240,6 +270,10 @@ def format_status_line(
         # v1.7: silent model swap (CC used a different family than poly routed)
         if swap_detected:
             model_seg += " \u26a0swap"
+
+        # v1.7: retry at ceiling (deep/xhigh) — no escalation possible
+        if retry_active and retry_at_ceiling:
+            model_seg += " \u26a0max"
 
     # --- Exec segment (only when subagent active) ---
     exec_seg = ""

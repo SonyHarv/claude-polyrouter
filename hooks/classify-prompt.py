@@ -67,6 +67,38 @@ _TIER_TO_FAMILY = {
     "deep": "opus",
 }
 
+# v1.7: retry-escalation marker — injected by /polyrouter:retry slash command.
+# HTML comment so it's invisible in any rendered view but easy to grep.
+_RETRY_MARKER = "<!-- POLY:RETRY:v1 -->"
+
+
+def _retry_escalate(
+    from_tier: str | None,
+    from_effort: str | None,
+) -> tuple[str, str, bool]:
+    """Compute escalation target for a /polyrouter:retry invocation.
+
+    Returns (to_tier, to_effort, at_ceiling).
+    at_ceiling=True only when prev was deep/xhigh — same route returned,
+    HUD renders ⚠max instead of an arrow.
+
+    Path (v1.7): fast/* → standard/medium → deep/medium → deep/high
+                 → deep/xhigh → ceiling.
+    """
+    if from_tier == "fast":
+        return ("standard", "medium", False)
+    if from_tier == "standard":
+        return ("deep", "medium", False)
+    if from_tier == "deep":
+        if from_effort == "xhigh":
+            return ("deep", "xhigh", True)
+        if from_effort == "high":
+            return ("deep", "xhigh", False)
+        # deep/medium, deep/low, or unknown deep effort → bump to high
+        return ("deep", "high", False)
+    # No prior tier (first turn, fresh session) — start escalation at standard.
+    return ("standard", "medium", False)
+
 
 # --- Output helpers ---
 
@@ -185,6 +217,87 @@ def _detect_silent_swap(input_data: dict, session: SessionState) -> None:
     except Exception:
         # Detection must never crash the hook.
         pass
+
+
+# --- Retry escalation (v1.7) ---
+
+def _detect_retry(
+    query: str,
+    session: SessionState,
+    config: dict,
+    stats: Stats,
+) -> dict | None:
+    """Detect /polyrouter:retry invocation and force-escalate the tier.
+
+    The retry slash command injects an HTML comment marker (`_RETRY_MARKER`)
+    into the prompt. When present, we read the previous turn's tier/effort
+    from session state, compute the escalation target (see _retry_escalate),
+    persist retry state for the HUD arrow, and emit a forced route output —
+    bypassing the normal scoring pipeline.
+
+    Returns the route output dict on retry, or None when no marker is found.
+    Always calls clear_retry() on the no-marker path so the arrow vanishes
+    on the next normal prompt.
+    """
+    if not isinstance(query, str) or _RETRY_MARKER not in query:
+        try:
+            session.clear_retry()
+        except Exception:
+            pass
+        return None
+
+    try:
+        state = session.read()
+        from_tier = state.get("last_level") if state.get("last_level") in _TIER_TO_FAMILY else None
+        from_effort = state.get("effort_level")
+        to_tier, to_effort, at_ceiling = _retry_escalate(from_tier, from_effort)
+
+        try:
+            session.mark_retry(from_tier, from_effort, to_tier, to_effort, at_ceiling)
+        except Exception:
+            pass
+
+        level_cfg = config.get("levels", {}).get(to_tier, {})
+        model = level_cfg.get("model", to_tier)
+        agent = level_cfg.get("agent", f"{to_tier}-executor")
+
+        # Persist routing decision so subsequent turns escalate from here.
+        try:
+            language = state.get("last_language") or "en"
+            session.update(to_tier, language)
+            session.update_effort(to_effort)
+        except Exception:
+            pass
+
+        savings = _calculate_savings(to_tier, config)
+        try:
+            stats.record(to_tier, state.get("last_language") or "en", False, savings)
+        except Exception:
+            pass
+
+        signals = (
+            f"retry_ceiling(from={from_tier}/{from_effort})"
+            if at_ceiling
+            else f"retry_escalate({from_tier}/{from_effort}→{to_tier}/{to_effort})"
+        )
+        return _route_output(
+            level=to_tier,
+            model=model,
+            agent=agent,
+            confidence=1.0,
+            method="retry_escalation",
+            signals=signals,
+            language=state.get("last_language") or "en",
+            query=query,
+            effort=to_effort,
+        )
+    except Exception:
+        # Retry detection must never crash the hook — fall back to normal pipeline.
+        try:
+            session.clear_retry()
+        except Exception:
+            pass
+        return None
 
 
 # --- Stage functions ---
@@ -398,6 +511,12 @@ def main() -> None:
 
     # --- v1.7: Silent model swap detection (runs even when routing skips) ---
     _detect_silent_swap(input_data, session)
+
+    # --- v1.7: Retry escalation (forces a higher tier; bypasses scoring) ---
+    retry_output = _detect_retry(query, session, config, stats)
+    if retry_output is not None:
+        print(json.dumps(retry_output))
+        return
 
     # --- Stage 1: Exception check ---
     try:

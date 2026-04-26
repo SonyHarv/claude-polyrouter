@@ -26,6 +26,13 @@ DEFAULT_SESSION = {
     "swap_detected": False,
     "swap_expected": None,   # tier family, e.g. "haiku"
     "swap_actual": None,     # full model id from transcript, e.g. "claude-opus-4-7"
+    # v1.7: retry-escalation arrow
+    "retry_active": False,
+    "retry_from_tier": None,    # "fast" | "standard" | "deep"
+    "retry_from_effort": None,  # "low" | "medium" | "high" | "xhigh" | None
+    "retry_to_tier": None,
+    "retry_to_effort": None,
+    "retry_at_ceiling": False,  # True only when prev was deep/xhigh — render ⚠max
 }
 
 
@@ -172,6 +179,43 @@ class SessionState:
         state["swap_detected"] = False
         state["swap_expected"] = None
         state["swap_actual"] = None
+        self._state = state
+        self._write(state)
+
+    def mark_retry(
+        self,
+        from_tier: str,
+        from_effort: str | None,
+        to_tier: str,
+        to_effort: str | None,
+        at_ceiling: bool = False,
+    ) -> None:
+        """Persist a retry-escalation transition (v1.7).
+
+        from_tier/from_effort: where the previous turn routed.
+        to_tier/to_effort:     where this retry escalated to.
+        at_ceiling: True only when prev was deep/xhigh (no actual escalation
+                    happened — HUD renders ⚠max instead of an arrow).
+        """
+        state = self.read()
+        state["retry_active"] = True
+        state["retry_from_tier"] = from_tier if isinstance(from_tier, str) else None
+        state["retry_from_effort"] = from_effort if isinstance(from_effort, str) else None
+        state["retry_to_tier"] = to_tier if isinstance(to_tier, str) else None
+        state["retry_to_effort"] = to_effort if isinstance(to_effort, str) else None
+        state["retry_at_ceiling"] = bool(at_ceiling)
+        self._state = state
+        self._write(state)
+
+    def clear_retry(self) -> None:
+        """Clear any prior retry flag (next normal prompt)."""
+        state = self.read()
+        state["retry_active"] = False
+        state["retry_from_tier"] = None
+        state["retry_from_effort"] = None
+        state["retry_to_tier"] = None
+        state["retry_to_effort"] = None
+        state["retry_at_ceiling"] = False
         self._state = state
         self._write(state)
 

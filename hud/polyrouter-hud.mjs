@@ -317,6 +317,13 @@ function main() {
   const effortLevel = session && session.effort_level;
   const requiresAdvisor = session && session.requires_advisor;
   const swapDetected = session && session.swap_detected === true;
+  // v1.7: retry-escalation state
+  const retryActive = session && session.retry_active === true;
+  const retryFromTier = session && session.retry_from_tier;
+  const retryFromEffort = session && session.retry_from_effort;
+  const retryToTier = session && session.retry_to_tier;
+  const retryToEffort = session && session.retry_to_effort;
+  const retryAtCeiling = session && session.retry_at_ceiling === true;
 
   const cols = terminalCols();
 
@@ -324,18 +331,39 @@ function main() {
   let modelSeg = "";
   if (session && session.last_route) {
     const tier = session.last_route;
-    const model = TIER_MODELS[tier] || tier;
-    const route = TIER_SHORT[tier] || tier;
 
-    let effortSuffix = "";
-    if (tier === "deep" && (effortLevel === "high" || effortLevel === "xhigh")) {
-      effortSuffix = `\u00B7${effortLevel}`;
+    // v1.7: retry-escalation arrow replaces the base model·route segment.
+    // When at_ceiling, retry is active but no escalation happened — render
+    // the normal segment + a ⚠max glyph below.
+    let base;
+    if (retryActive && !retryAtCeiling && retryFromTier && retryToTier) {
+      const fromModel = TIER_MODELS[retryFromTier] || retryFromTier;
+      const fromRoute = TIER_SHORT[retryFromTier] || retryFromTier;
+      const toModel = TIER_MODELS[retryToTier] || retryToTier;
+      const toRoute = TIER_SHORT[retryToTier] || retryToTier;
+      let fromEff = "";
+      if (retryFromTier === "deep" && (retryFromEffort === "high" || retryFromEffort === "xhigh")) {
+        fromEff = `\u00B7${retryFromEffort}`;
+      }
+      let toEff = "";
+      if (retryToTier === "deep" && (retryToEffort === "high" || retryToEffort === "xhigh")) {
+        toEff = `\u00B7${retryToEffort}`;
+      }
+      base = `${fromModel}\u00B7${fromRoute}${fromEff} \u2192 ${toModel}\u00B7${toRoute}${toEff}`;
+    } else {
+      const model = TIER_MODELS[tier] || tier;
+      const route = TIER_SHORT[tier] || tier;
+      let effortSuffix = "";
+      if (tier === "deep" && (effortLevel === "high" || effortLevel === "xhigh")) {
+        effortSuffix = `\u00B7${effortLevel}`;
+      }
+      base = `${model}\u00B7${route}${effortSuffix}`;
     }
 
     if (subagentActive) {
-      modelSeg = `prompt:${model}\u00B7${route}${effortSuffix}`;
+      modelSeg = `prompt:${base}`;
     } else {
-      modelSeg = `${model}\u00B7${route}${effortSuffix}`;
+      modelSeg = base;
       if (requiresAdvisor) {
         modelSeg += `\u00B7adv`;
       }
@@ -351,6 +379,11 @@ function main() {
     // v1.7: silent model swap (CC used a different family than poly routed)
     if (swapDetected) {
       modelSeg += " \u26A0swap";
+    }
+
+    // v1.7: retry at ceiling (deep/xhigh) — no escalation possible
+    if (retryActive && retryAtCeiling) {
+      modelSeg += " \u26A0max";
     }
   }
 

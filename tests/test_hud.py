@@ -341,6 +341,128 @@ class TestFormatStatusLine:
         assert "\u26a0swap" in line
         assert "exec:opus" in line
 
+    # --- v1.7: retry-escalation arrow ---
+
+    def test_retry_arrow_fast_to_standard(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="standard",
+            retry_active=True,
+            retry_from_tier="fast",
+            retry_from_effort="low",
+            retry_to_tier="standard",
+            retry_to_effort="medium",
+        )
+        assert "haiku\u00b7fast \u2192 sonnet\u00b7std" in line
+
+    def test_retry_arrow_standard_to_deep(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="deep",
+            retry_active=True,
+            retry_from_tier="standard",
+            retry_from_effort="medium",
+            retry_to_tier="deep",
+            retry_to_effort="medium",
+        )
+        # deep at default effort \u2192 no effort suffix on the to-side
+        assert "sonnet\u00b7std \u2192 opus\u00b7deep" in line
+        assert "opus\u00b7deep\u00b7medium" not in line
+
+    def test_retry_arrow_deep_high_to_deep_xhigh(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="deep",
+            effort="xhigh",
+            retry_active=True,
+            retry_from_tier="deep",
+            retry_from_effort="high",
+            retry_to_tier="deep",
+            retry_to_effort="xhigh",
+        )
+        assert "opus\u00b7deep\u00b7high \u2192 opus\u00b7deep\u00b7xhigh" in line
+
+    def test_retry_arrow_absent_when_inactive(self):
+        line = format_status_line("idle", 0, tier="fast", retry_active=False)
+        assert "\u2192" not in line
+        assert "\u26a0max" not in line
+        assert "haiku\u00b7fast" in line
+
+    def test_retry_max_glyph_at_ceiling(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="deep",
+            effort="xhigh",
+            retry_active=True,
+            retry_at_ceiling=True,
+            retry_from_tier="deep",
+            retry_from_effort="xhigh",
+            retry_to_tier="deep",
+            retry_to_effort="xhigh",
+        )
+        # At ceiling: NO arrow, normal segment + \u26a0max
+        assert "\u2192" not in line
+        assert "opus\u00b7deep\u00b7xhigh" in line
+        assert "\u26a0max" in line
+
+    def test_retry_arrow_with_subagent_active(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="standard",
+            subagent_active=True,
+            exec_model="sonnet",
+            retry_active=True,
+            retry_from_tier="fast",
+            retry_from_effort="low",
+            retry_to_tier="standard",
+            retry_to_effort="medium",
+        )
+        # Subagent path prefixes with "prompt:" \u2014 arrow lives inside that prefix
+        assert "prompt:haiku\u00b7fast \u2192 sonnet\u00b7std" in line
+        assert "exec:sonnet" in line
+
+    def test_retry_arrow_coexists_with_compact_and_swap(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="deep",
+            ctx_pct=80,
+            retry_active=True,
+            retry_from_tier="standard",
+            retry_from_effort="medium",
+            retry_to_tier="deep",
+            retry_to_effort="medium",
+            swap_detected=True,
+        )
+        assert "\u2192" in line
+        assert "\u26a0compact" in line
+        assert "\u26a0swap" in line
+        # Order: arrow first (in base), then \u26a0compact, then \u26a0swap
+        assert line.index("\u2192") < line.index("\u26a0compact") < line.index("\u26a0swap")
+
+    def test_retry_max_after_other_glyphs_at_ceiling(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="deep",
+            effort="xhigh",
+            ctx_pct=80,
+            retry_active=True,
+            retry_at_ceiling=True,
+            retry_from_tier="deep",
+            retry_from_effort="xhigh",
+            retry_to_tier="deep",
+            retry_to_effort="xhigh",
+            swap_detected=True,
+        )
+        # Order: \u26a0compact, \u26a0swap, \u26a0max
+        assert line.index("\u26a0compact") < line.index("\u26a0swap") < line.index("\u26a0max")
+
 
 # --- cache_bar ---
 
