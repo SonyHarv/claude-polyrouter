@@ -325,6 +325,8 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 - [x] Per-session routing breakdown via `/polyrouter:stats` (tier·effort, methods, languages, savings, retries)
 - [x] Corpus expansion to 336 prompts with EN/ES balance (98.8% benchmark accuracy)
 - [x] Tokenizer calibration (`tokenizer_factor` ×1.35 for Claude 4.x family — recalibrates `Savings` figure)
+- [x] Deep-pattern parity sweep — 26 patterns per language across all 10 supported langs (advanced architectural clusters)
+- [x] Stats export via `/polyrouter:export csv|json` for pandas / Excel / jq pipelines
 
 #### Design notes
 
