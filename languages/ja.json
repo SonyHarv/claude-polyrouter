@@ -61,7 +61,12 @@
       "(複数|いくつかの|異なる)(オプション|代替案|アプローチ)",
       "(診断|調査).{0,15}(根本原因|原因|根本的な問題)",
       "(書き直し|再設計|再考|全面改修)",
-      "(深く|詳細に|徹底的に|綿密に)(分析|調査|レビュー)"
+      "(深く|詳細に|徹底的に|綿密に)(分析|調査|レビュー)",
+      "(分散|分散システム|マルチリージョン|マルチテナント|ゼロダウンタイム|イベント駆動|event-?driven|cross-?service|cross-?region)",
+      "(フェイルオーバー|failover|障害連鎖|カスケード障害|cascading failures?|境界づけられたコンテキスト|bounded contexts?|レートリミッター|rate limiter|冪等性|idempotenc[yi]|スキーマ進化|イベントフロー)",
+      "(メモリリーク|memory leak|p99|p99 ?レイテンシ|レイテンシスパイク|レースコンディション|race condition|一貫性モデル|consistency model)",
+      "(設計|アーキテクト|分解|構築).{0,30}(戦略|レイヤー|パイプライン|システム|アーキテクチャ|ライフサイクル|サブシステム|境界|bounded contexts?|プラットフォーム|consumer group|モノリス)",
+      "(ADR|architectural decision record|アーキテクチャ決定記録|モジュラーモノリス|modular monolith|モノリスから(マイクロサービス|microservices)|monolith to microservices|message queue consumer)"
     ],
     "tool_intensive": [
       "(検索|探す|見つける|grep).{0,15}(で|から|の中)",

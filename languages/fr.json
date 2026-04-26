@@ -114,7 +114,12 @@
       "\\b(plusieurs|multiples|différentes) (options?|alternatives?|approches?)\\b",
       "\\b(diagnostique|investigue) .{0,20}(cause racine|problème sous-jacent)\\b",
       "\\b(réécris|reconçois|repense|restructure)\\b",
-      "\\b(en profondeur|en détail|minutieusement)\\b"
+      "\\b(en profondeur|en détail|minutieusement)\\b",
+      "\\b(distribu[eé]|système distribu[eé]|multi-?région|multi-?tenant|zero-?downtime|event-?driven|orienté événement|cross-?service|cross-?région)\\b",
+      "\\b(failover|bascule|d[eé]faillances? en cascade|cascading failures?|bounded contexts?|contextes? born[eé]s?|rate limiter|limitation de d[eé]bit|idempotenc[ey]|évolution de schéma|flux d[' ]?événements|stratégie de cache)\\b",
+      "\\b(memory leak|fuite mémoire|p99|latence p99|pic de latence|race condition|condition de course|modèle de cohérence|consistency model)\\b",
+      "\\b(conçois|architecte|décompose|propose|élabore) .{0,60}(stratégie|couche|pipeline|système|architecture|cycle de vie|sous-?système|frontière|bounded contexts?|plateforme|consumer group|monolithe)\\b",
+      "\\b(ADR|architectural decision record|enregistrement de décision d[' ]?architecture|monolithe modulaire|modular monolith|monolithe (vers|à) microservices|monolith to microservices|message queue consumer)\\b"
     ],
     "tool_intensive": [
       "\\b(chercher|rechercher|trouver|grep) .{0,20}(dans|parmi|entre)\\b",

@@ -116,7 +116,12 @@
       "\\b(várias|múltiplas|diferentes) (opções|alternativas|abordagens)\\b",
       "\\b(diagnostique|investigue) .{0,20}(causa raiz|problema subjacente)\\b",
       "\\b(reescreva|redesenhe|repense|reestruture)\\b",
-      "\\b(a fundo|em profundidade|detalhadamente|minuciosamente)\\b"
+      "\\b(a fundo|em profundidade|detalhadamente|minuciosamente)\\b",
+      "\\b(distribu[ií]d[oa]|sistema distribu[ií]do|multi-?regi[aã]o|multi-?tenant|zero-?downtime|event-?driven|orientado a eventos|cross-?service|cross-?regi[aã]o)\\b",
+      "\\b(failover|falha em cascata|falhas em cascata|cascading failures?|bounded contexts?|contextos? delimitados?|rate limiter|idempot[eê]nci|evolu[cç][aã]o de schema|fluxo de eventos|estrat[eé]gia de cache)\\b",
+      "\\b(memory leak|vazamento de mem[oó]ria|p99|latência p99|pico de latência|race condition|condi[cç][aã]o de corrida|modelo de consistência|consistency model)\\b",
+      "\\b(projete|arquitete|decomponha|proponha|elabore) .{0,60}(estrat[eé]gia|camada|pipeline|sistema|arquitetura|ciclo de vida|subsistema|fronteira|bounded contexts?|plataforma|consumer group|mon[oó]lito)\\b",
+      "\\b(ADR|architectural decision record|registro de decis[aã]o de arquitetura|mon[oó]lito modular|modular monolith|mon[oó]lito (para|a) microservi[cç]os|monolith to microservices|message queue consumer)\\b"
     ],
     "tool_intensive": [
       "\\b(buscar|procurar|encontrar) .{0,20}(em|nos|dentro|entre)\\b",

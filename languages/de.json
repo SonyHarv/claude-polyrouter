@@ -117,7 +117,12 @@
       "\\b(mehrere|verschiedene) (Optionen|Alternativen|Ansätze)\\b",
       "\\b(diagnostiziere|untersuche) .{0,20}(Ursache|Grundproblem)\\b",
       "\\b(neuschreiben|umgestalten|überdenken|umstrukturieren)\\b",
-      "\\b(gründlich|eingehend|detailliert|tiefgehend)\\b"
+      "\\b(gründlich|eingehend|detailliert|tiefgehend)\\b",
+      "\\b(verteilt|verteiltes? System|Multi-?Region|Multi-?Tenant|Zero-?Downtime|event-?driven|ereignisgesteuert|cross-?service|cross-?region)\\b",
+      "\\b(Failover|Kaskadenfehler|cascading failures?|Bounded Contexts?|Rate Limiter|Idempotenz|idempotenc[yi]|Schema-Evolution|Event-?Flow|Caching-Strategie)\\b",
+      "\\b(Memory Leak|Speicherleck|p99|p99-?Latenz|Latenzspitze|Race Condition|Wettlaufbedingung|Konsistenzmodell|consistency model)\\b",
+      "\\b(entwirf|gestalte|architektiere|zerlege) .{0,60}(Strategie|Schicht|Pipeline|System|Architektur|Lifecycle|Lebenszyklus|Subsystem|Boundary|Bounded Contexts?|Plattform|Consumer Group|Monolith)\\b",
+      "\\b(ADR|architectural decision record|Architekturentscheidungsdokument|modularer Monolith|modular monolith|Monolith zu Microservices|monolith to microservices|message queue consumer)\\b"
     ],
     "tool_intensive": [
       "\\b(suchen|finden|grep|nachschlagen) .{0,20}(in|unter|zwischen)\\b",

@@ -58,7 +58,12 @@
       "(多个|几种|不同)(选项|方案|替代方案)",
       "(诊断|调查).{0,15}(根本原因|根源|底层问题)",
       "(重写|重新设计|重新思考|重构整个)",
-      "(深入|详细|全面|彻底)(分析|研究|审查)"
+      "(深入|详细|全面|彻底)(分析|研究|审查)",
+      "(分布式|分布式系统|多区域|多租户|零停机|事件驱动|event-?driven|cross-?service|cross-?region)",
+      "(故障转移|failover|级联故障|cascading failures?|限界上下文|bounded contexts?|限流器|rate limiter|幂等性|idempotenc[yi]|模式演进|事件流)",
+      "(内存泄漏|memory leak|p99|p99 ?延迟|延迟尖峰|竞态条件|race condition|一致性模型|consistency model)",
+      "(设计|架构|分解|构建).{0,30}(策略|分层|管道|系统|架构|生命周期|子系统|边界|bounded contexts?|平台|consumer group|单体)",
+      "(ADR|architectural decision record|架构决策记录|模块化单体|modular monolith|单体到微服务|monolith to microservices|message queue consumer)"
     ],
     "tool_intensive": [
       "(搜索|查找|寻找|grep).{0,15}(在|从|里面|中)",

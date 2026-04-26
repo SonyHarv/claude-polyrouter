@@ -59,7 +59,12 @@
       "(여러|다양한|다른)(옵션|대안|접근법)",
       "(진단|조사).{0,15}(근본 원인|원인|근본적인 문제)",
       "(다시 작성|재설계|재고|전면 개편)",
-      "(깊이|상세하게|철저하게|면밀하게)(분석|조사|검토)"
+      "(깊이|상세하게|철저하게|면밀하게)(분석|조사|검토)",
+      "(분산|분산 시스템|멀티 ?리전|멀티 ?테넌트|제로 ?다운타임|이벤트 드리븐|이벤트 ?기반|event-?driven|cross-?service|cross-?region)",
+      "(페일오버|failover|연쇄 장애|캐스케이딩 장애|cascading failures?|바운디드 컨텍스트|bounded contexts?|레이트 리미터|rate limiter|멱등성|idempotenc[yi]|스키마 진화|이벤트 플로우)",
+      "(메모리 ?누수|memory leak|p99|p99 ?레이턴시|레이턴시 ?스파이크|레이스 ?컨디션|race condition|일관성 모델|consistency model)",
+      "(설계|아키텍팅|분해|구축).{0,30}(전략|레이어|파이프라인|시스템|아키텍처|라이프사이클|서브시스템|경계|bounded contexts?|플랫폼|consumer group|모놀리스)",
+      "(ADR|architectural decision record|아키텍처 결정 기록|모듈러 모놀리스|modular monolith|모놀리스에서 마이크로서비스|monolith to microservices|message queue consumer)"
     ],
     "tool_intensive": [
       "(검색|찾기|찾아|grep).{0,15}(에서|안에|중에서)",

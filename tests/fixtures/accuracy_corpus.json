@@ -1,6 +1,6 @@
 {
-  "version": "1.7.0",
-  "description": "Gold-labeled accuracy corpus for polyrouter scorer — 150 prompts (50 per tier, 25 per language).",
+  "version": "1.7.1",
+  "description": "Gold-labeled accuracy corpus for polyrouter scorer — 360 prompts (EN/ES baseline + 5 deep / 4 fast / 3 standard per other lang, plus 3 advanced-cluster deep prompts per non-EN/ES lang from CALIDAD #12).",
   "prompts": [
     {
       "lang": "en",
@@ -1861,6 +1861,126 @@
       "expected": "standard",
       "expected_effort": "medium",
       "query": "напиши unit-тест для slugify-хелпера"
+    },
+    {
+      "query": "Wir müssen ein verteiltes Multi-Region System mit event-driven Messaging entwerfen, das Zero-Downtime Deployments unterstützt.",
+      "lang": "de",
+      "expected": "deep"
+    },
+    {
+      "query": "Es gibt Memory Leaks und p99-Latenzspitzen in unserem Service — diagnostiziere die Ursache, Race Conditions sind verdächtig.",
+      "lang": "de",
+      "expected": "deep"
+    },
+    {
+      "query": "Erstelle einen ADR für die Migration vom modularen Monolith zu Microservices mit korrekten bounded contexts.",
+      "lang": "de",
+      "expected": "deep"
+    },
+    {
+      "query": "Conçois un système distribué multi-région avec messaging event-driven qui supporte les déploiements zero-downtime.",
+      "lang": "fr",
+      "expected": "deep"
+    },
+    {
+      "query": "Il y a une fuite mémoire et des pics de latence p99 dans notre service — investigue la cause racine, les race conditions sont suspectes.",
+      "lang": "fr",
+      "expected": "deep"
+    },
+    {
+      "query": "Rédige un ADR pour la migration du monolithe modulaire vers microservices avec des bounded contexts clairs.",
+      "lang": "fr",
+      "expected": "deep"
+    },
+    {
+      "query": "Projete um sistema distribuído multi-região com mensageria event-driven que suporte deploys zero-downtime.",
+      "lang": "pt",
+      "expected": "deep"
+    },
+    {
+      "query": "Há vazamento de memória e picos de latência p99 no serviço — investigue a causa raiz, race conditions são suspeitas.",
+      "lang": "pt",
+      "expected": "deep"
+    },
+    {
+      "query": "Elabore um ADR para a migração do monólito modular para microserviços com bounded contexts bem definidos.",
+      "lang": "pt",
+      "expected": "deep"
+    },
+    {
+      "query": "ゼロダウンタイム展開をサポートする、イベント駆動メッセージングを備えた分散マルチリージョンシステムを設計してください。",
+      "lang": "ja",
+      "expected": "deep"
+    },
+    {
+      "query": "サービスでメモリリークとp99レイテンシスパイクが発生しています — レースコンディションが疑われるため、根本原因を調査してください。",
+      "lang": "ja",
+      "expected": "deep"
+    },
+    {
+      "query": "モジュラーモノリスからマイクロサービスへの移行に関するADRをbounded contextsを考慮して作成してください。",
+      "lang": "ja",
+      "expected": "deep"
+    },
+    {
+      "query": "제로 다운타임 배포를 지원하는 이벤트 드리븐 메시징 기반의 분산 멀티 리전 시스템을 설계해주세요.",
+      "lang": "ko",
+      "expected": "deep"
+    },
+    {
+      "query": "서비스에서 메모리 누수와 p99 레이턴시 스파이크가 발생하고 있습니다 — 레이스 컨디션이 의심되니 근본 원인을 조사해주세요.",
+      "lang": "ko",
+      "expected": "deep"
+    },
+    {
+      "query": "모듈러 모놀리스에서 마이크로서비스로 전환하기 위한 ADR을 bounded contexts 관점에서 작성해주세요.",
+      "lang": "ko",
+      "expected": "deep"
+    },
+    {
+      "query": "请设计一个支持零停机部署、采用事件驱动消息传递的分布式多区域系统。",
+      "lang": "zh",
+      "expected": "deep"
+    },
+    {
+      "query": "服务中出现内存泄漏和p99延迟尖峰 — 怀疑是竞态条件，请深入分析根本原因。",
+      "lang": "zh",
+      "expected": "deep"
+    },
+    {
+      "query": "为模块化单体到微服务的迁移编写一份架构决策记录ADR，明确各bounded contexts。",
+      "lang": "zh",
+      "expected": "deep"
+    },
+    {
+      "query": "Спроектируй распределённую мульти-регион систему с event-driven messaging, поддерживающую нулевой простой при деплое.",
+      "lang": "ru",
+      "expected": "deep"
+    },
+    {
+      "query": "В сервисе утечка памяти и всплески p99 латентности — расследуй корень проблемы, состояние гонки под подозрением.",
+      "lang": "ru",
+      "expected": "deep"
+    },
+    {
+      "query": "Составь ADR для миграции от модульного монолита к микросервисам с чёткими bounded contexts.",
+      "lang": "ru",
+      "expected": "deep"
+    },
+    {
+      "query": "صمم نظاماً موزعاً متعدد المناطق مع رسائل event-driven يدعم النشر بدون توقف.",
+      "lang": "ar",
+      "expected": "deep"
+    },
+    {
+      "query": "هناك تسرب ذاكرة وتأخر p99 في الخدمة — حقق في السبب الجذري، نشتبه في حدوث race condition.",
+      "lang": "ar",
+      "expected": "deep"
+    },
+    {
+      "query": "اكتب ADR للانتقال من المونوليث المعياري إلى الخدمات المصغرة مع bounded contexts واضحة.",
+      "lang": "ar",
+      "expected": "deep"
     }
   ]
 }
