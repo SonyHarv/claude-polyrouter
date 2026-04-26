@@ -35,8 +35,16 @@ Tier · effort:
 Top methods:  scoring (89%) · cache (8%) · intent_override (3%)
 Languages:    en (72%) · es (28%)
 Savings:      $0.83 vs all-Opus
+Tokenizer:    4.x (×1.35 calibrated)
 Retries:      3 invocations of /polyrouter:retry
 ```
+
+The `Tokenizer:` line surfaces the `tokenizer_factor` from config. The
+Claude 4.x family tokenizes ~1.35× denser than the pre-4.x tokenizer
+used to derive the per-prompt token estimates in `_calculate_savings`,
+so the factor scales the displayed `Savings` figure linearly. Override
+`tokenizer_factor` in `~/.claude/polyrouter/config.json` to recalibrate
+when a future model family ships a new tokenizer.
 
 ## Reset behaviour
 

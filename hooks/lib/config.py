@@ -34,6 +34,13 @@ DEFAULT_CONFIG = {
     },
     "default_level": "fast",
     "confidence_threshold": 0.7,
+    # Tokenizer calibration: Claude 4.x family produces ~1.35× the tokens
+    # of the pre-4.x tokenizer used to derive the per-prompt token estimates
+    # in _calculate_savings. Applied uniformly across all tiers because
+    # haiku-4-5 / sonnet-4-6 / opus-4-7 share the same tokenizer family.
+    # Set to 1.0 to recover pre-calibration behavior; bump if a future model
+    # family changes the ratio again.
+    "tokenizer_factor": 1.35,
     "session_timeout_minutes": 30,
     "cache": {"memory_size": 50, "file_size": 100, "ttl_days": 30},
     "learning": {"enabled": False, "informed_routing": False, "max_boost": 0.1},

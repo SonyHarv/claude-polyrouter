@@ -322,6 +322,9 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 - [x] Retry-escalation arrow in HUD (`fast → deep`, `⚠max` at ceiling)
 - [x] Advisor hand-off protocol: structured `[POLY:ADVISOR]` block + manual `/polyrouter:advisor`
 - [x] Effort override via `/polyrouter:effort <low|medium|high|xhigh>` slash command
+- [x] Per-session routing breakdown via `/polyrouter:stats` (tier·effort, methods, languages, savings, retries)
+- [x] Corpus expansion to 336 prompts with EN/ES balance (98.8% benchmark accuracy)
+- [x] Tokenizer calibration (`tokenizer_factor` ×1.35 for Claude 4.x family — recalibrates `Savings` figure)
 
 #### Design notes
 

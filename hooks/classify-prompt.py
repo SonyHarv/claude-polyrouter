@@ -213,6 +213,11 @@ def _calculate_savings(level: str, config: dict) -> float:
 
     Uses a conservative per-prompt estimate of 1 000 input tokens + 500 output tokens.
     This is a known approximation; actual token counts vary per query.
+
+    The estimate is scaled by `tokenizer_factor` (default 1.0 if absent), which
+    accounts for tokenizer drift between Claude families. The Claude 4.x family
+    (haiku-4-5 / sonnet-4-6 / opus-4-7) tokenizes ~1.35× denser than the
+    pre-4.x tokenizer used to derive these constants — see DEFAULT_CONFIG.
     """
     # Approximate tokens per prompt (input + output)
     _INPUT_TOKENS_K = 1.0   # 1 000 input tokens
@@ -222,9 +227,17 @@ def _calculate_savings(level: str, config: dict) -> float:
     if not levels:
         return 0.0
 
+    try:
+        factor = float(config.get("tokenizer_factor", 1.0))
+    except (TypeError, ValueError):
+        factor = 1.0
+    # `not factor > 0` rejects NaN, zero, and negative values in one check.
+    if not factor > 0:
+        factor = 1.0
+
     def _prompt_cost(lv: dict) -> float:
-        return (lv.get("cost_per_1k_input", 0) * _INPUT_TOKENS_K
-                + lv.get("cost_per_1k_output", 0) * _OUTPUT_TOKENS_K)
+        return (lv.get("cost_per_1k_input", 0) * _INPUT_TOKENS_K * factor
+                + lv.get("cost_per_1k_output", 0) * _OUTPUT_TOKENS_K * factor)
 
     max_cost = max(_prompt_cost(lv) for lv in levels.values())
     actual_cost = _prompt_cost(levels.get(level, {}))
@@ -639,8 +652,13 @@ def _format_top_freq(d: dict[str, int], top_n: int = 3) -> str:
     return " · ".join(f"{k} ({(v / total) * 100:.0f}%)" for k, v in items)
 
 
-def _build_stats_block(session: SessionState) -> str:
-    """Render the [POLY:STATS] breakdown for the current session."""
+def _build_stats_block(session: SessionState, config: dict | None = None) -> str:
+    """Render the [POLY:STATS] breakdown for the current session.
+
+    `config` is optional for backward compat with tests that call this
+    function directly. When provided, the rendered block surfaces the
+    `tokenizer_factor` calibration applied to the savings figure.
+    """
     state = session.read()
     counts = state.get("routing_counts") or {}
     total = sum(int(counts.get(k, 0)) for k, _ in _TIER_DISPLAY_ORDER)
@@ -671,6 +689,15 @@ def _build_stats_block(session: SessionState) -> str:
     savings = float(state.get("routing_savings_total") or 0.0)
     lines.append(f"Savings:      ${savings:.2f} vs all-Opus")
 
+    if config is not None:
+        try:
+            factor = float(config.get("tokenizer_factor", 1.0))
+        except (TypeError, ValueError):
+            factor = 1.0
+        if not factor > 0:
+            factor = 1.0
+        lines.append(f"Tokenizer:    4.x (×{factor:g} calibrated)")
+
     retries = int(state.get("retry_invocations") or 0)
     lines.append(f"Retries:      {retries} invocation(s) of /polyrouter:retry")
     return "\n".join(lines)
@@ -690,12 +717,15 @@ def _stats_meta_output(body: str) -> dict:
     }
 
 
-def _detect_stats_command(query: str, session: SessionState) -> dict | None:
+def _detect_stats_command(
+    query: str, session: SessionState, config: dict | None = None
+) -> dict | None:
     """Detect /polyrouter:stats and emit the breakdown (or reset).
 
     Recognises an optional `reset` argument anywhere in the prompt body
     after the marker. Returns the route output dict on invocation, or
-    None when the marker is absent.
+    None when the marker is absent. `config` is forwarded to
+    _build_stats_block to surface the tokenizer calibration line.
     """
     if not isinstance(query, str) or _STATS_MARKER not in query:
         return None
@@ -709,7 +739,7 @@ def _detect_stats_command(query: str, session: SessionState) -> dict | None:
             "[POLY:STATS]\nReset complete. Routing counters, method/language "
             "frequencies, savings total, and retry invocations are now zero."
         )
-    return _stats_meta_output(_build_stats_block(session))
+    return _stats_meta_output(_build_stats_block(session, config))
 
 
 # --- Stage functions ---
@@ -947,7 +977,7 @@ def main() -> None:
         return
 
     # --- v1.7: Routing stats breakdown (/polyrouter:stats [reset]) ---
-    stats_output = _detect_stats_command(query, session)
+    stats_output = _detect_stats_command(query, session, config)
     if stats_output is not None:
         print(json.dumps(stats_output))
         return

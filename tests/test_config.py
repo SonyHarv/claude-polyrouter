@@ -35,6 +35,11 @@ class TestDefaultConfig:
     def test_confidence_threshold(self):
         assert DEFAULT_CONFIG["confidence_threshold"] == 0.7
 
+    def test_tokenizer_factor_default(self):
+        # Claude 4.x family tokenizes ~1.35× denser than the pre-4.x tokenizer
+        # used to derive the per-prompt token estimates in _calculate_savings.
+        assert DEFAULT_CONFIG["tokenizer_factor"] == 1.35
+
 
 class TestLoadConfig:
     def test_returns_defaults_when_no_files_exist(self):
