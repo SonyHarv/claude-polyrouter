@@ -235,9 +235,17 @@ def _calculate_savings(level: str, config: dict) -> float:
     if not factor > 0:
         factor = 1.0
 
+    def _coerce(v) -> float:
+        # v1.7 (CALIDAD #16): pricing may be null when a new tier is wired
+        # up before its public price is finalized — treat as zero-cost.
+        try:
+            return float(v) if v is not None else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
     def _prompt_cost(lv: dict) -> float:
-        return (lv.get("cost_per_1k_input", 0) * _INPUT_TOKENS_K * factor
-                + lv.get("cost_per_1k_output", 0) * _OUTPUT_TOKENS_K * factor)
+        return (_coerce(lv.get("cost_per_1k_input")) * _INPUT_TOKENS_K * factor
+                + _coerce(lv.get("cost_per_1k_output")) * _OUTPUT_TOKENS_K * factor)
 
     max_cost = max(_prompt_cost(lv) for lv in levels.values())
     actual_cost = _prompt_cost(levels.get(level, {}))
@@ -842,7 +850,8 @@ def _stage_scoring(
         query, pattern_signals.signals, pattern_signals.word_count, context,
     )
     thresholds = config.get("scoring", {}).get("thresholds", None)
-    level, confidence = score_to_tier(score, thresholds)
+    tier_order = config.get("tier_order")
+    level, confidence = score_to_tier(score, thresholds, tier_order)
 
     # Preserve backward-compatible confidence for length fast-track
     if method == "length":

@@ -329,6 +329,7 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 - [x] Deep-pattern parity sweep — 26 patterns per language across all 10 supported langs (advanced architectural clusters)
 - [x] Stats export via `/polyrouter:export csv|json` for pandas / Excel / jq pipelines
 - [x] Coverage report + badge — 87.6% on `hooks/lib/` ([details](docs/COVERAGE.md), regenerate via `scripts/poly-coverage.sh`)
+- [x] Tier infrastructure is data-driven — adding a new tier (e.g. `ultra`) is a config-only change; see [docs/ADDING-A-TIER.md](docs/ADDING-A-TIER.md) *(CALIDAD #16)*
 
 #### Cancelled / Future Research
 

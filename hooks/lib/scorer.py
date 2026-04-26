@@ -14,10 +14,14 @@ Tier thresholds (default):
   fast:     score < 0.35
   standard: 0.35 <= score < 0.65
   deep:     score >= 0.65
+
+v1.7 (CALIDAD #16): score_to_tier walks `tier_order` so adding a tier
+(e.g. "ultra") only requires updating config.json — no scorer edits.
 """
 
 import re
 
+DEFAULT_TIER_ORDER = ["fast", "standard", "deep"]
 DEFAULT_THRESHOLDS = {
     "fast_max": 0.35,
     "standard_max": 0.65,
@@ -194,29 +198,47 @@ def compute_score(
 def score_to_tier(
     score: float,
     thresholds: dict | None = None,
+    tier_order: list[str] | None = None,
 ) -> tuple[str, float]:
     """Map complexity score to (tier, confidence).
 
+    Walks `tier_order` and routes to the first tier whose `<tier>_max`
+    boundary is greater than the score. The last tier is the unbounded
+    catch-all and gets a higher confidence floor (reaching the top tier
+    is itself a strong signal).
+
     Confidence is higher when the score is far from tier boundaries.
     """
+    order = tier_order or DEFAULT_TIER_ORDER
     t = thresholds or DEFAULT_THRESHOLDS
-    fast_max = t.get("fast_max", 0.35)
-    standard_max = t.get("standard_max", 0.65)
 
-    if score < fast_max:
-        distance = fast_max - score
-        confidence = min(0.95, 0.65 + distance * 3.0)
-        return ("fast", round(confidence, 2))
+    if not order:
+        return ("fast", 0.5)
 
-    if score < standard_max:
-        dist_low = score - fast_max
-        dist_high = standard_max - score
-        distance = min(dist_low, dist_high)
-        confidence = min(0.95, 0.65 + distance * 3.0)
-        return ("standard", round(confidence, 2))
+    # Walk all tiers except the last (catch-all). Each non-terminal tier
+    # has a `<tier>_max` boundary; missing values fall back to legacy
+    # defaults so partial configs degrade gracefully.
+    prev_boundary = 0.0
+    for i, tier in enumerate(order[:-1]):
+        key = f"{tier}_max"
+        try:
+            boundary = float(t.get(key, DEFAULT_THRESHOLDS.get(key, 1.0)))
+        except (TypeError, ValueError):
+            boundary = float(DEFAULT_THRESHOLDS.get(key, 1.0))
 
-    # Deep tier: higher base confidence — reaching deep is already a
-    # strong signal, so even scores near the boundary deserve >= 0.80.
-    distance = score - standard_max
+        if score < boundary:
+            if i == 0:
+                # First tier: distance to upper boundary only
+                distance = boundary - score
+            else:
+                # Middle tier: distance to nearest boundary
+                distance = min(score - prev_boundary, boundary - score)
+            confidence = min(0.95, 0.65 + distance * 3.0)
+            return (tier, round(confidence, 2))
+        prev_boundary = boundary
+
+    # Catch-all (last) tier: higher base confidence (0.80 floor)
+    last_tier = order[-1]
+    distance = max(0.0, score - prev_boundary)
     confidence = min(0.95, 0.80 + distance * 1.5)
-    return ("deep", round(confidence, 2))
+    return (last_tier, round(confidence, 2))

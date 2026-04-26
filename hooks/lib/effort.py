@@ -36,6 +36,23 @@ VALID_EFFORTS = {"low", "medium", "high", "xhigh"}
 DISPLAY_EFFORTS = {"low", "medium", "high", "xhigh"}
 
 
+def effort_for_tier(tier: str, config: dict | None = None) -> str:
+    """Return the default effort label for a tier.
+
+    v1.7 (CALIDAD #16): Prefers `config.levels[tier].default_effort` when
+    available so adding a new tier (e.g. "ultra") needs no edit here.
+    Falls back to the hardcoded EFFORT_MAP, then "medium".
+    """
+    if config:
+        try:
+            eff = (config.get("levels") or {}).get(tier, {}).get("default_effort")
+            if eff in VALID_EFFORTS:
+                return eff
+        except AttributeError:
+            pass
+    return EFFORT_MAP.get(tier, "medium")
+
+
 # --- Language-aware architectural-complexity detection (xhigh gate) ---
 
 # Location of language JSON files (resolved relative to this file)
