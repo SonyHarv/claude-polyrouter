@@ -1,0 +1,22 @@
+# Development dependencies — not required at runtime.
+#
+# Install via uv (recommended):
+#   uv venv .venv-dev
+#   VIRTUAL_ENV=.venv-dev uv pip install -r requirements-dev.txt
+#
+# Or via pip in any virtualenv:
+#   pip install -r requirements-dev.txt
+#
+# scripts/poly-coverage.sh expects coverage and coverage-badge to be on
+# PATH (or inside .venv-dev/bin/) and will fall back gracefully if not.
+
+# Test runner — pinned to a major to avoid breaking pytest-discovered changes.
+pytest>=8,<10
+
+# Coverage measurement + SVG badge generator (CALIDAD #15).
+coverage>=7.4
+coverage-badge>=1.1
+
+# coverage-badge imports pkg_resources, removed from setuptools 81+. Pin
+# until upstream coverage-badge migrates to importlib.metadata.
+setuptools<81

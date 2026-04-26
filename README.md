@@ -9,6 +9,7 @@
 ![Token Reduction](https://img.shields.io/badge/token%20reduction-82%25-success)
 ![Routing Accuracy](https://img.shields.io/badge/routing%20accuracy-98.1%25-brightgreen)
 ![Effort Accuracy](https://img.shields.io/badge/effort%20accuracy-100%25-brightgreen)
+![Coverage](assets/coverage.svg)
 
 > Tired of hitting Claude Code token limits? claude-polyrouter silently routes every query to the right model — stop paying Opus prices for simple questions. **82% less token waste, 10 languages at full parity, zero setup.**
 >
@@ -327,6 +328,7 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 - [x] Tokenizer calibration (`tokenizer_factor` ×1.35 for Claude 4.x family — recalibrates `Savings` figure)
 - [x] Deep-pattern parity sweep — 26 patterns per language across all 10 supported langs (advanced architectural clusters)
 - [x] Stats export via `/polyrouter:export csv|json` for pandas / Excel / jq pipelines
+- [x] Coverage report + badge — 87.6% on `hooks/lib/` ([details](docs/COVERAGE.md), regenerate via `scripts/poly-coverage.sh`)
 
 #### Cancelled / Future Research
 

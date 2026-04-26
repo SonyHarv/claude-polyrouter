@@ -18,6 +18,12 @@ __pycache__/
 *.pyo
 .pytest_cache/
 
+# Coverage / dev venv (CALIDAD #15 — recreate via scripts/poly-coverage.sh)
+.venv*/
+.coverage
+.coverage.*
+htmlcov/
+
 # OS
 .DS_Store
 Thumbs.db

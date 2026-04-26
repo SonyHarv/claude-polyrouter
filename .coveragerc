@@ -1,0 +1,21 @@
+; Coverage configuration for the polyrouter test suite (CALIDAD #15).
+;
+; Scope (set on the CLI by scripts/poly-coverage.sh):
+;   --include='hooks/lib/*.py,hooks/classify-prompt.py'
+;
+; Exclusions below cover the conventional un-testable seams: the
+; ``if __name__ == "__main__":`` driver, defensive guards that should
+; never run, and ``raise NotImplementedError`` placeholders.
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    return NotImplemented
+    if TYPE_CHECKING:
+    \.\.\.
+
+precision = 1
+show_missing = True
+skip_covered = False
