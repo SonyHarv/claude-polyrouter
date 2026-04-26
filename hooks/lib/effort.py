@@ -1,14 +1,16 @@
 """Dynamic effort mapping: tier + score → effort level.
 
 v1.5: Deep tier supports sub-effort (medium/high/xhigh) derived from
-multi-signal complexity analysis. `xhigh` is a polyrouter-only display
-label — it normalizes to `high` before being emitted as the Claude Code
-`CLAUDE_CODE_EFFORT_LEVEL` env var (upstream only supports low/medium/high).
-`xhigh` additionally flags `requires_advisor=true` for the Advisor Strategy.
+multi-signal complexity analysis. `xhigh` additionally flags
+`requires_advisor=true` for the Advisor Strategy.
 
 v1.6: Architectural complexity detection (_ARCH_RE) is now language-aware.
 Each language JSON may define `arch_patterns`; English patterns serve as
 the universal fallback for unknown languages.
+
+v1.7: `xhigh` is a first-class effort level — emitted directly to
+`CLAUDE_CODE_EFFORT_LEVEL` (Claude Code v2.1.111+ accepts it natively).
+No more downgrade to `high` before reaching the env var.
 
 User overrides (via env var or /effort command) always take priority.
 """
@@ -25,10 +27,12 @@ EFFORT_MAP = {
     "deep": "high",
 }
 
-# Env-var-valid efforts (what Claude Code understands)
-VALID_EFFORTS = {"low", "medium", "high"}
+# Env-var-valid efforts (what Claude Code understands).
+# v1.7: xhigh is first-class — CC v2.1.111+ accepts it natively.
+VALID_EFFORTS = {"low", "medium", "high", "xhigh"}
 
-# Display-valid efforts (what HUD / session / logs can show)
+# Display-valid efforts (what HUD / session / logs can show).
+# Same set as VALID_EFFORTS as of v1.7; kept distinct for forward-compat.
 DISPLAY_EFFORTS = {"low", "medium", "high", "xhigh"}
 
 
@@ -161,8 +165,10 @@ def compute_deep_effort(
 ) -> str:
     """Classify deep-tier complexity into medium / high / xhigh.
 
-    Only call when the routing tier is 'deep'. Returns a display label —
-    use normalize_effort_for_env() before setting CLAUDE_CODE_EFFORT_LEVEL.
+    Only call when the routing tier is 'deep'. The returned label is
+    valid for both display and CLAUDE_CODE_EFFORT_LEVEL (v1.7+).
+    normalize_effort_for_env() is still safe to call defensively against
+    arbitrary inputs.
     """
     if not isinstance(query, str):
         query = ""
@@ -205,10 +211,9 @@ def compute_deep_effort(
 def normalize_effort_for_env(effort: str) -> str:
     """Map display effort label to a Claude-Code-valid env value.
 
-    xhigh → high (upstream has no xhigh); unknown → medium.
+    v1.7: xhigh is now a first-class effort level (CC v2.1.111+) and
+    passes through unchanged. Unknown values fall back to 'medium'.
     """
-    if effort == "xhigh":
-        return "high"
     return effort if effort in VALID_EFFORTS else "medium"
 
 

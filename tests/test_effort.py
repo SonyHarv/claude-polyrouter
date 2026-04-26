@@ -103,7 +103,8 @@ class TestConstants:
             assert effort in VALID_EFFORTS
 
     def test_valid_efforts_complete(self):
-        assert VALID_EFFORTS == {"low", "medium", "high"}
+        # v1.7: xhigh is first-class (CC v2.1.111+ supports it natively).
+        assert VALID_EFFORTS == {"low", "medium", "high", "xhigh"}
 
     def test_display_efforts_include_xhigh(self):
         assert DISPLAY_EFFORTS == {"low", "medium", "high", "xhigh"}
@@ -250,8 +251,9 @@ class TestDynamicDeepEffort:
 class TestNormalizeForEnv:
     """normalize_effort_for_env maps display labels to CC-valid values."""
 
-    def test_xhigh_normalizes_to_high(self):
-        assert normalize_effort_for_env("xhigh") == "high"
+    def test_xhigh_stays_xhigh(self):
+        # v1.7: xhigh is first-class (CC v2.1.111+); no longer downgraded.
+        assert normalize_effort_for_env("xhigh") == "xhigh"
 
     def test_high_stays_high(self):
         assert normalize_effort_for_env("high") == "high"
