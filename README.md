@@ -328,22 +328,34 @@ To add a language: create `languages/<code>.json` with stopwords and patterns. A
 - [x] Deep-pattern parity sweep — 26 patterns per language across all 10 supported langs (advanced architectural clusters)
 - [x] Stats export via `/polyrouter:export csv|json` for pandas / Excel / jq pipelines
 
-#### Design notes
+#### Cancelled / Future Research
 
-- **No `max` tier above `xhigh`.** A higher tier was evaluated (multi-pass
-  Opus, Opus 1M pinning, opus-vs-opus consensus) and **discarded**. `xhigh`
-  remains the recommended ceiling for Opus 4.7; a `max` tier would risk
-  overthinking without measurable quality gains, while doubling per-prompt
-  cost. The escape hatch for genuinely architectural prompts is
+Items evaluated and **deliberately discarded** to keep polyrouter
+deterministic, debuggable, and cheap. Listed here so the rationale
+survives in repo memory and we don't re-litigate the same designs.
+
+- **`max` tier above `xhigh`.** Multi-pass Opus, Opus 1M pinning, and
+  opus-vs-opus consensus were evaluated. Discarded — `xhigh` remains the
+  recommended ceiling for Opus 4.7; a `max` tier would risk overthinking
+  without measurable quality gains, while doubling per-prompt cost. The
+  escape hatch for genuinely architectural prompts is
   `/polyrouter:advisor`, which already locks to `deep/xhigh +
   opus-orchestrator`.
+- **Adaptive scoring thresholds (`/polyrouter:learn-on`)** *(CALIDAD #14)*.
+  A learner that would tune `fast_max` / `standard_max` from routing
+  history was evaluated. Discarded — runs against poly's deterministic
+  philosophy ("same prompt → same tier, today and tomorrow") and
+  carries a real risk of silent routing degradation: a single noisy
+  retry burst could nudge thresholds into a regime where common prompts
+  start mis-routing, and the symptom ("why did this go to deep today?")
+  is exactly the kind of bug that's painful to triage. If routing
+  quality drifts in practice, the right fix is to add a deterministic
+  pattern or update the gold corpus, not to drift the boundaries.
 
 ### v2 (planned)
 
 - [ ] Multi-agent support: Codex CLI, Gemini CLI
 - [ ] Ultra tier for next-gen models
-- [ ] Adaptive confidence thresholds from routing history
-- [ ] Analytics export (CSV/JSON) for team reporting
 - [ ] Weighted ensemble classification (rules + embeddings)
 - [ ] Auto-escalation on repeated low-confidence routes
 
