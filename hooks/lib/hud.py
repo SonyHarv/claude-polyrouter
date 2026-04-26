@@ -195,6 +195,9 @@ def format_status_line(
     exec_advisor: bool = False,
     ctx_pct: int | None = None,
     limits: dict | None = None,
+    swap_detected: bool = False,
+    swap_expected: str | None = None,
+    swap_actual: str | None = None,
 ) -> str:
     """Build the full [poly v1.6] status line string.
 
@@ -233,6 +236,10 @@ def format_status_line(
         # ctx ≥ 70%: append ⚠compact
         if ctx_pct is not None and ctx_pct >= 70:
             model_seg += " \u26a0compact"
+
+        # v1.7: silent model swap (CC used a different family than poly routed)
+        if swap_detected:
+            model_seg += " \u26a0swap"
 
     # --- Exec segment (only when subagent active) ---
     exec_seg = ""

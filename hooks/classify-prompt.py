@@ -36,6 +36,7 @@ from lib.effort import (
     maybe_promote_multifile_refactor,
 )
 from lib.compact import CompactAdvisor, load_compact_state, save_compact_state
+from lib.ctx_usage import get_last_assistant_model
 from lib.scorer import compute_score, score_to_tier
 from lib.stats import Stats
 
@@ -57,6 +58,14 @@ CONTINUATION_TOKENS = {
 }
 
 META_KEYWORDS = {"polyrouter", "routing", "router"}
+
+# v1.7: tier → expected model family substring (case-insensitive match
+# against the actual model id read from the transcript or stdin).
+_TIER_TO_FAMILY = {
+    "fast": "haiku",
+    "standard": "sonnet",
+    "deep": "opus",
+}
 
 
 # --- Output helpers ---
@@ -131,6 +140,51 @@ def _calculate_savings(level: str, config: dict) -> float:
     max_cost = max(_prompt_cost(lv) for lv in levels.values())
     actual_cost = _prompt_cost(levels.get(level, {}))
     return max(0.0, max_cost - actual_cost)
+
+
+# --- Silent model swap detection (v1.7) ---
+
+def _detect_silent_swap(input_data: dict, session: SessionState) -> None:
+    """Compare previous turn's tier expectation against the model CC actually used.
+
+    Runs at the start of every UserPromptSubmit hook. Reads the previous
+    turn's `last_level` from session state, derives the expected family
+    (haiku / sonnet / opus), and looks up the actual model used:
+      1. `effective_model` field in the hook stdin (forward-compat with
+         future Claude Code versions that may expose this directly).
+      2. Last assistant `message.model` from the JSONL transcript.
+
+    If the family does not appear (case-insensitive substring) in the
+    actual model id, marks a swap; otherwise clears any prior flag. Never
+    raises — silent best-effort detection that must not block routing.
+    First-turn (no `last_level` yet) → clear and return.
+    """
+    try:
+        state = session.read()
+        last_level = state.get("last_level")
+        if not last_level or last_level not in _TIER_TO_FAMILY:
+            session.clear_swap()
+            return
+
+        expected_family = _TIER_TO_FAMILY[last_level]
+
+        # 1. Try stdin first (forward-compat).
+        actual = input_data.get("effective_model") or input_data.get("model")
+        # 2. Fall back to transcript.
+        if not isinstance(actual, str) or not actual:
+            actual = get_last_assistant_model(input_data.get("transcript_path"))
+
+        if not isinstance(actual, str) or not actual:
+            # No signal available — leave any prior flag untouched.
+            return
+
+        if expected_family in actual.lower():
+            session.clear_swap()
+        else:
+            session.mark_swap(expected_family, actual)
+    except Exception:
+        # Detection must never crash the hook.
+        pass
 
 
 # --- Stage functions ---
@@ -341,6 +395,9 @@ def main() -> None:
     )
 
     stats = Stats(STATS_PATH)
+
+    # --- v1.7: Silent model swap detection (runs even when routing skips) ---
+    _detect_silent_swap(input_data, session)
 
     # --- Stage 1: Exception check ---
     try:

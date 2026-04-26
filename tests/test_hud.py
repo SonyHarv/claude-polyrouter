@@ -296,6 +296,51 @@ class TestFormatStatusLine:
         line = format_status_line("idle", 0, requires_advisor=True)
         assert "\u00b7adv" not in line
 
+    # --- v1.7: silent model swap glyph ---
+
+    def test_swap_glyph_appears_on_model_seg(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="fast",
+            swap_detected=True,
+            swap_expected="haiku",
+            swap_actual="claude-opus-4-7",
+        )
+        assert "\u26a0swap" in line
+
+    def test_swap_glyph_absent_when_not_detected(self):
+        line = format_status_line("idle", 0, tier="fast", swap_detected=False)
+        assert "\u26a0swap" not in line
+
+    def test_swap_glyph_coexists_with_compact(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="deep",
+            effort="xhigh",
+            ctx_pct=80,
+            swap_detected=True,
+        )
+        assert "\u26a0compact" in line
+        assert "\u26a0swap" in line
+        assert line.index("\u26a0compact") < line.index("\u26a0swap")
+
+    def test_swap_glyph_with_subagent_active(self):
+        line = format_status_line(
+            "idle",
+            0,
+            tier="fast",
+            subagent_active=True,
+            exec_model="opus",
+            exec_effort="xhigh",
+            swap_detected=True,
+            swap_expected="haiku",
+            swap_actual="claude-opus-4-7",
+        )
+        assert "\u26a0swap" in line
+        assert "exec:opus" in line
+
 
 # --- cache_bar ---
 

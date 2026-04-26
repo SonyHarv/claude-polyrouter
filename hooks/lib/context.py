@@ -22,6 +22,10 @@ DEFAULT_SESSION = {
     "exec_advisor": False,
     "ctx_tokens": 0,
     "limits": None,
+    # v1.7: silent model swap detection
+    "swap_detected": False,
+    "swap_expected": None,   # tier family, e.g. "haiku"
+    "swap_actual": None,     # full model id from transcript, e.g. "claude-opus-4-7"
 }
 
 
@@ -146,6 +150,28 @@ class SessionState:
         """Persist latest rate-limit snapshot from ccusage."""
         state = self.read()
         state["limits"] = limits
+        self._state = state
+        self._write(state)
+
+    def mark_swap(self, expected: str, actual: str) -> None:
+        """Persist a silent model swap detection (v1.7).
+
+        expected: tier family poly routed for (e.g. "haiku").
+        actual:   model id Claude Code actually used (e.g. "claude-opus-4-7").
+        """
+        state = self.read()
+        state["swap_detected"] = True
+        state["swap_expected"] = expected if isinstance(expected, str) else None
+        state["swap_actual"] = actual if isinstance(actual, str) else None
+        self._state = state
+        self._write(state)
+
+    def clear_swap(self) -> None:
+        """Clear any prior swap flag (no divergence detected this turn)."""
+        state = self.read()
+        state["swap_detected"] = False
+        state["swap_expected"] = None
+        state["swap_actual"] = None
         self._state = state
         self._write(state)
 

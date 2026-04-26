@@ -98,3 +98,40 @@ def get_context_percent(transcript_path: str | None) -> int | None:
 
     except Exception:
         return None
+
+
+def get_last_assistant_model(transcript_path: str | None) -> str | None:
+    """Return the `model` field from the most recent assistant message.
+
+    Used by silent-swap detection (v1.7) to compare what model Claude Code
+    actually used in the previous turn against the tier polyrouter routed
+    for. Returns None if the transcript is missing, empty, or has no
+    assistant turn yet.
+    """
+    if not transcript_path:
+        return None
+    try:
+        p = Path(transcript_path)
+        if not p.exists():
+            return None
+        last_model: str | None = None
+        with p.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                msg = obj.get("message", obj) if isinstance(obj, dict) else None
+                if not isinstance(msg, dict):
+                    continue
+                if msg.get("role") != "assistant":
+                    continue
+                model = msg.get("model")
+                if isinstance(model, str) and model:
+                    last_model = model
+        return last_model
+    except Exception:
+        return None

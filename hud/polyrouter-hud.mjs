@@ -316,6 +316,7 @@ function main() {
   const execAdvisor = session && session.exec_advisor;
   const effortLevel = session && session.effort_level;
   const requiresAdvisor = session && session.requires_advisor;
+  const swapDetected = session && session.swap_detected === true;
 
   const cols = terminalCols();
 
@@ -345,6 +346,11 @@ function main() {
       || (cc && cc.exceeds_200k_tokens === true);
     if (ctxCompact) {
       modelSeg += " \u26A0compact";
+    }
+
+    // v1.7: silent model swap (CC used a different family than poly routed)
+    if (swapDetected) {
+      modelSeg += " \u26A0swap";
     }
   }
 
