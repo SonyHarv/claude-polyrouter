@@ -1,5 +1,6 @@
 """Multi-turn session state management."""
 
+import copy
 import json
 import re
 import time
@@ -37,6 +38,19 @@ DEFAULT_SESSION = {
     "effort_override_active": False,
     "effort_override_level": None,         # "low" | "medium" | "high" | "xhigh"
     "effort_override_promote_deep": False, # True iff level=="xhigh" — auto-promote tier
+    # v1.7 ADICIONAL #9: per-session routing breakdown (full audit)
+    "routing_started_at": None,            # epoch seconds — set on first record
+    "routing_counts": {
+        "fast": 0,
+        "standard": 0,
+        "deep_medium": 0,
+        "deep_high": 0,
+        "deep_xhigh": 0,
+    },
+    "routing_method_counts": {},           # method-name → count
+    "routing_lang_counts": {},             # language code → count
+    "routing_savings_total": 0.0,          # cumulative $ savings vs all-opus
+    "retry_invocations": 0,                # count of /polyrouter:retry uses
 }
 
 
@@ -50,21 +64,21 @@ class SessionState:
         if self._state is not None:
             return self._state
         if not self._path.exists():
-            self._state = {**DEFAULT_SESSION}
+            self._state = copy.deepcopy(DEFAULT_SESSION)
             return self._state
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
             if not isinstance(data, dict):
-                self._state = {**DEFAULT_SESSION}
+                self._state = copy.deepcopy(DEFAULT_SESSION)
                 return self._state
             last_time = data.get("last_query_time")
             if last_time and isinstance(last_time, (int, float)) and (time.time() - last_time) > self._timeout_seconds:
-                self._state = {**DEFAULT_SESSION}
+                self._state = copy.deepcopy(DEFAULT_SESSION)
                 return self._state
             self._state = data
             return self._state
         except Exception:
-            self._state = {**DEFAULT_SESSION}
+            self._state = copy.deepcopy(DEFAULT_SESSION)
             return self._state
 
     def get_scorer_context(self) -> dict:
@@ -268,6 +282,81 @@ class SessionState:
         state["effort_override_active"] = False
         state["effort_override_level"] = None
         state["effort_override_promote_deep"] = False
+        self._state = state
+        self._write(state)
+
+    def record_route(
+        self,
+        level: str,
+        effort: str | None,
+        method: str | None,
+        language: str | None,
+        savings: float = 0.0,
+    ) -> None:
+        """Increment per-session routing counters (v1.7 ADICIONAL #9).
+
+        Tracks tier+effort granularity for deep (deep_medium / deep_high /
+        deep_xhigh); fast and standard are counted by tier only. Method
+        and language are accumulated as flat dicts. Total savings runs
+        as a float sum.
+        """
+        state = self.read()
+        if state.get("routing_started_at") is None:
+            state["routing_started_at"] = time.time()
+
+        counts = state.get("routing_counts") or {}
+        # Normalise the dict in case the field arrived without all keys.
+        for k in ("fast", "standard", "deep_medium", "deep_high", "deep_xhigh"):
+            counts.setdefault(k, 0)
+
+        if level == "deep":
+            eff = effort if effort in ("medium", "high", "xhigh") else "medium"
+            counts[f"deep_{eff}"] = counts.get(f"deep_{eff}", 0) + 1
+        elif level in ("fast", "standard"):
+            counts[level] = counts.get(level, 0) + 1
+        # Unknown levels are silently dropped — never crash on routing record.
+        state["routing_counts"] = counts
+
+        if isinstance(method, str) and method:
+            mc = state.get("routing_method_counts") or {}
+            mc[method] = mc.get(method, 0) + 1
+            state["routing_method_counts"] = mc
+
+        if isinstance(language, str) and language:
+            lc = state.get("routing_lang_counts") or {}
+            lc[language] = lc.get(language, 0) + 1
+            state["routing_lang_counts"] = lc
+
+        try:
+            state["routing_savings_total"] = round(
+                float(state.get("routing_savings_total") or 0.0) + max(0.0, float(savings)),
+                4,
+            )
+        except Exception:
+            pass
+
+        self._state = state
+        self._write(state)
+
+    def reset_routing_stats(self) -> None:
+        """Reset session-scoped routing counters (manual /polyrouter:stats reset)."""
+        state = self.read()
+        state["routing_started_at"] = None
+        state["routing_counts"] = {
+            "fast": 0, "standard": 0,
+            "deep_medium": 0, "deep_high": 0, "deep_xhigh": 0,
+        }
+        state["routing_method_counts"] = {}
+        state["routing_lang_counts"] = {}
+        state["routing_savings_total"] = 0.0
+        state["retry_invocations"] = 0
+        self._state = state
+        self._write(state)
+
+    def inc_retry_invocations(self) -> None:
+        """Increment the retry-invocation counter (called by _detect_retry)."""
+        state = self.read()
+        state["retry_invocations"] = int(state.get("retry_invocations") or 0) + 1
         self._state = state
         self._write(state)
 

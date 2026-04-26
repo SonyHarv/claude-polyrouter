@@ -15,6 +15,7 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
 
 # Add hooks dir to path so lib package is importable
@@ -312,6 +313,10 @@ def _detect_retry(
             session.mark_retry(from_tier, from_effort, to_tier, to_effort, at_ceiling)
         except Exception:
             pass
+        try:
+            session.inc_retry_invocations()
+        except Exception:
+            pass
 
         level_cfg = config.get("levels", {}).get(to_tier, {})
         model = level_cfg.get("model", to_tier)
@@ -328,6 +333,13 @@ def _detect_retry(
         savings = _calculate_savings(to_tier, config)
         try:
             stats.record(to_tier, state.get("last_language") or "en", False, savings)
+        except Exception:
+            pass
+        try:
+            session.record_route(
+                to_tier, to_effort, "retry_escalation",
+                state.get("last_language") or "en", savings,
+            )
         except Exception:
             pass
 
@@ -451,6 +463,10 @@ def _detect_advisor_command(
             stats.record(level, language, False, savings)
         except Exception:
             pass
+        try:
+            session.record_route(level, effort, "advisor_manual", language, savings)
+        except Exception:
+            pass
 
         return _route_output(
             level=level,
@@ -564,6 +580,136 @@ def _detect_effort_command(query: str, session: SessionState) -> dict | None:
         return _effort_error_output("internal error storing override")
 
     return _effort_ack_output(level, promote_deep)
+
+
+# --- Routing breakdown (v1.7 ADICIONAL #9) ---
+
+_STATS_MARKER = "<!-- POLY:STATS:v1 -->"
+_BAR_WIDTH = 20
+_BAR_FILL = "█"   # full block
+_BAR_EMPTY = "░"  # light shade
+
+_TIER_DISPLAY_ORDER = (
+    ("fast",        "fast       "),
+    ("standard",    "standard   "),
+    ("deep_medium", "deep·medium"),
+    ("deep_high",   "deep·high  "),
+    ("deep_xhigh",  "deep·xhigh "),
+)
+
+
+def _format_duration(seconds: float) -> str:
+    """Render a relative duration as `Xh Ym` / `Xm Ys` / `<1m`."""
+    if seconds < 60:
+        return "<1m"
+    minutes = int(seconds // 60)
+    if minutes < 60:
+        secs = int(seconds - minutes * 60)
+        return f"{minutes}m {secs}s" if secs else f"{minutes}m"
+    hours = minutes // 60
+    rem = minutes - hours * 60
+    return f"{hours}h {rem}m" if rem else f"{hours}h"
+
+
+def _format_clock(epoch_seconds: float | None) -> str:
+    """Render an epoch timestamp as HH:MM in local time, or '-' if missing."""
+    if not epoch_seconds:
+        return "-"
+    try:
+        from datetime import datetime
+        return datetime.fromtimestamp(float(epoch_seconds)).strftime("%H:%M")
+    except Exception:
+        return "-"
+
+
+def _ascii_bar(fraction: float, width: int = _BAR_WIDTH) -> str:
+    """Render a 0..1 fraction as a fixed-width filled/empty bar."""
+    if not (0.0 <= fraction <= 1.0):
+        fraction = 0.0
+    filled = int(round(fraction * width))
+    return _BAR_FILL * filled + _BAR_EMPTY * (width - filled)
+
+
+def _format_top_freq(d: dict[str, int], top_n: int = 3) -> str:
+    """Render the top-N entries of a count dict as `key (XX%) · key (YY%)`."""
+    if not d:
+        return "(none)"
+    total = sum(d.values()) or 1
+    items = sorted(d.items(), key=lambda kv: (-kv[1], kv[0]))[:top_n]
+    return " · ".join(f"{k} ({(v / total) * 100:.0f}%)" for k, v in items)
+
+
+def _build_stats_block(session: SessionState) -> str:
+    """Render the [POLY:STATS] breakdown for the current session."""
+    state = session.read()
+    counts = state.get("routing_counts") or {}
+    total = sum(int(counts.get(k, 0)) for k, _ in _TIER_DISPLAY_ORDER)
+    started_at = state.get("routing_started_at")
+    age = (time.time() - float(started_at)) if started_at else 0.0
+    when = _format_clock(started_at)
+
+    lines = ["[POLY:STATS]"]
+    if total == 0:
+        lines.append("Session: no routes recorded yet (counters reset on /polyrouter:stats reset or 30m idle).")
+        return "\n".join(lines)
+
+    lines.append(f"Session: {total} routes since {when} ({_format_duration(age)} ago)")
+    lines.append("")
+    lines.append("Tier · effort:")
+    for key, label in _TIER_DISPLAY_ORDER:
+        n = int(counts.get(key, 0))
+        frac = n / total if total else 0.0
+        bar = _ascii_bar(frac)
+        lines.append(f"  {label} {bar} {frac * 100:5.1f}% ({n})")
+    lines.append("")
+
+    methods = state.get("routing_method_counts") or {}
+    langs = state.get("routing_lang_counts") or {}
+    lines.append(f"Top methods:  {_format_top_freq(methods)}")
+    lines.append(f"Languages:    {_format_top_freq(langs)}")
+
+    savings = float(state.get("routing_savings_total") or 0.0)
+    lines.append(f"Savings:      ${savings:.2f} vs all-Opus")
+
+    retries = int(state.get("retry_invocations") or 0)
+    lines.append(f"Retries:      {retries} invocation(s) of /polyrouter:retry")
+    return "\n".join(lines)
+
+
+def _stats_meta_output(body: str) -> dict:
+    """Wrap a stats block as a no-route additionalContext output.
+
+    Like /polyrouter:effort, the slash-command turn is consumed by the
+    explanation — it does NOT emit a Spawn directive.
+    """
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": body,
+        }
+    }
+
+
+def _detect_stats_command(query: str, session: SessionState) -> dict | None:
+    """Detect /polyrouter:stats and emit the breakdown (or reset).
+
+    Recognises an optional `reset` argument anywhere in the prompt body
+    after the marker. Returns the route output dict on invocation, or
+    None when the marker is absent.
+    """
+    if not isinstance(query, str) or _STATS_MARKER not in query:
+        return None
+    body = query.replace(_STATS_MARKER, " ").lower()
+    if re.search(r"\breset\b", body):
+        try:
+            session.reset_routing_stats()
+        except Exception:
+            pass
+        return _stats_meta_output(
+            "[POLY:STATS]\nReset complete. Routing counters, method/language "
+            "frequencies, savings total, and retry invocations are now zero."
+        )
+    return _stats_meta_output(_build_stats_block(session))
 
 
 # --- Stage functions ---
@@ -800,6 +946,12 @@ def main() -> None:
         print(json.dumps(effort_output))
         return
 
+    # --- v1.7: Routing stats breakdown (/polyrouter:stats [reset]) ---
+    stats_output = _detect_stats_command(query, session)
+    if stats_output is not None:
+        print(json.dumps(stats_output))
+        return
+
     # --- Stage 1: Exception check ---
     try:
         skip_result = _stage_exception_check(query, session)
@@ -840,6 +992,10 @@ def main() -> None:
             level, model, agent, effort = _apply_effort_override(
                 level, model, agent, effort, session, config,
             )
+            try:
+                session.record_route(level, effort, method, display_language, savings)
+            except Exception:
+                pass
             output = _route_output(
                 level, model, agent, confidence, method,
                 f"override={override.reason}", display_language, query,
@@ -888,6 +1044,10 @@ def main() -> None:
             level, model, agent, effort = _apply_effort_override(
                 level, model, agent, effort, session, config,
             )
+            try:
+                session.record_route(level, effort, method, language, savings)
+            except Exception:
+                pass
             output = _route_output(
                 level, model, agent, confidence, method,
                 str(signals), language, query,
@@ -1077,6 +1237,12 @@ def main() -> None:
             session.set_advisor(advisor_flag)
         except Exception:
             pass
+
+    # v1.7 ADICIONAL #9: per-session routing breakdown.
+    try:
+        session.record_route(level, effort, method, display_language, savings)
+    except Exception:
+        pass
 
     output = _route_output(
         level, model, agent, confidence, method,
