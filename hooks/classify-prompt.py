@@ -36,7 +36,8 @@ from lib.effort import (
     maybe_promote_multifile_refactor,
 )
 from lib.compact import CompactAdvisor, load_compact_state, save_compact_state
-from lib.ctx_usage import get_last_assistant_model
+from lib.advisor import detect_advisor_category, format_advisor_block
+from lib.ctx_usage import get_last_assistant_model, get_last_turn
 from lib.scorer import compute_score, score_to_tier
 from lib.stats import Stats
 
@@ -127,6 +128,7 @@ def _route_output(
     query: str,
     effort: str = "medium",
     advisor: bool = False,
+    advisor_block_override: str | None = None,
 ) -> dict:
     """Build minimal routing directive output (~50 tokens).
 
@@ -140,13 +142,31 @@ def _route_output(
         header += f" | Effort: {effort}"
     if advisor:
         header += " | Advisor: required"
+
+    body_parts = [
+        header,
+        f'CRITICAL: Spawn "polyrouter:{agent}" subagent.',
+    ]
+
+    # v1.7 SCOPE FIRME #4: Advisor hand-off block.
+    # When advisor=True, include a structured [POLY:ADVISOR] block with a
+    # category-specific checklist. The advisor_block_override path is used
+    # by the /polyrouter:advisor manual command to inject [POLY:ADVISOR-MANUAL].
+    if advisor_block_override is not None:
+        body_parts.append("")
+        body_parts.append(advisor_block_override)
+    elif advisor:
+        try:
+            category = detect_advisor_category(query)
+            body_parts.append("")
+            body_parts.append(format_advisor_block(category))
+        except Exception:
+            pass  # Best-effort — never block routing on advisor block failure.
+
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
-            "additionalContext": (
-                f"{header}\n"
-                f'CRITICAL: Spawn "polyrouter:{agent}" subagent.'
-            ),
+            "additionalContext": "\n".join(body_parts),
         }
     }
 
@@ -297,6 +317,119 @@ def _detect_retry(
             session.clear_retry()
         except Exception:
             pass
+        return None
+
+
+# --- Advisor manual hand-off (v1.7 SCOPE FIRME #4) ---
+
+_ADVISOR_MARKER = "<!-- POLY:ADVISOR-MANUAL:v1 -->"
+
+
+def _build_manual_advisor_block(query: str, transcript_path: str | None) -> str:
+    """Build the [POLY:ADVISOR-MANUAL] pre-loaded context block.
+
+    Includes: question, project (cwd basename), git branch (best-effort),
+    and the last user prompt + assistant response from the transcript
+    (truncated to keep the block compact).
+    """
+    parts = ["[POLY:ADVISOR-MANUAL]"]
+
+    question = query.replace(_ADVISOR_MARKER, "").strip()
+    if question:
+        q_head = question[:1000].strip()
+        parts.append(f"Question: {q_head}")
+
+    try:
+        cwd = Path.cwd()
+        parts.append(f"Project: {cwd.name}")
+    except Exception:
+        pass
+
+    try:
+        head = Path.cwd() / ".git" / "HEAD"
+        if head.exists():
+            ref = head.read_text(encoding="utf-8").strip()
+            if ref.startswith("ref: refs/heads/"):
+                branch = ref.split("refs/heads/", 1)[1]
+                parts.append(f"Branch: {branch}")
+    except Exception:
+        pass
+
+    try:
+        turn = get_last_turn(transcript_path)
+        if turn:
+            user_p = (turn.get("user_prompt") or "")[:200].replace("\n", " ").strip()
+            asst_r = (turn.get("assistant_response") or "")[:300].replace("\n", " ").strip()
+            if user_p or asst_r:
+                parts.append("Last turn:")
+                if user_p:
+                    parts.append(f"  user: {user_p}")
+                if asst_r:
+                    parts.append(f"  assistant: {asst_r}")
+    except Exception:
+        pass
+
+    return "\n".join(parts)
+
+
+def _detect_advisor_command(
+    query: str,
+    config: dict,
+    stats: Stats,
+    session: SessionState,
+    transcript_path: str | None,
+) -> dict | None:
+    """Detect /polyrouter:advisor and force-route to opus-orchestrator.
+
+    Locked target (v1.7): tier=deep, effort=xhigh, agent=opus-orchestrator,
+    advisor=True. Skips the normal pipeline entirely. Pre-loads project
+    context (cwd basename, git branch, last turn) into the
+    [POLY:ADVISOR-MANUAL] block on additionalContext.
+
+    Returns the route output dict on advisor invocation, or None when no
+    marker is found (caller continues normal pipeline).
+    """
+    if not isinstance(query, str) or _ADVISOR_MARKER not in query:
+        return None
+
+    try:
+        block = _build_manual_advisor_block(query, transcript_path)
+
+        level = "deep"
+        effort = "xhigh"
+        level_cfg = config.get("levels", {}).get(level, {})
+        model = level_cfg.get("model", "opus")
+        # Locked agent — opus-orchestrator, not the default deep-executor.
+        agent = "opus-orchestrator"
+
+        try:
+            language = session.read().get("last_language") or "en"
+            session.update(level, language, requires_advisor=True)
+            session.update_effort(effort)
+            session.set_advisor(True)
+        except Exception:
+            language = "en"
+
+        savings = _calculate_savings(level, config)
+        try:
+            stats.record(level, language, False, savings)
+        except Exception:
+            pass
+
+        return _route_output(
+            level=level,
+            model=model,
+            agent=agent,
+            confidence=1.0,
+            method="advisor_manual",
+            signals="advisor_manual_command",
+            language=language,
+            query=query,
+            effort=effort,
+            advisor=True,
+            advisor_block_override=block,
+        )
+    except Exception:
         return None
 
 
@@ -516,6 +649,14 @@ def main() -> None:
     retry_output = _detect_retry(query, session, config, stats)
     if retry_output is not None:
         print(json.dumps(retry_output))
+        return
+
+    # --- v1.7: Manual advisor hand-off (forces deep/xhigh + opus-orchestrator) ---
+    advisor_output = _detect_advisor_command(
+        query, config, stats, session, input_data.get("transcript_path"),
+    )
+    if advisor_output is not None:
+        print(json.dumps(advisor_output))
         return
 
     # --- Stage 1: Exception check ---

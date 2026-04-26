@@ -135,3 +135,60 @@ def get_last_assistant_model(transcript_path: str | None) -> str | None:
         return last_model
     except Exception:
         return None
+
+
+
+def get_last_turn(transcript_path: str | None) -> dict | None:
+    """Return the most recent (user_prompt, assistant_response) pair.
+
+    Used by the /polyrouter:advisor manual hand-off (v1.7) to pre-load
+    a small slice of context into the [POLY:ADVISOR-MANUAL] block. Both
+    fields may be None if the transcript is fresh or the parse fails.
+
+    Returns dict with keys:
+        - user_prompt: str | None
+        - assistant_response: str | None
+    or None if the transcript is unavailable.
+    """
+    if not transcript_path:
+        return None
+    try:
+        path = Path(transcript_path)
+        if not path.exists():
+            return None
+        last_user: str | None = None
+        last_assistant: str | None = None
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                msg = obj.get("message", obj) if isinstance(obj, dict) else None
+                if not isinstance(msg, dict):
+                    continue
+                role = msg.get("role")
+                if role not in ("user", "assistant"):
+                    continue
+                content = msg.get("content")
+                text: str | None = None
+                if isinstance(content, str):
+                    text = content
+                elif isinstance(content, list):
+                    parts = []
+                    for item in content:
+                        if isinstance(item, dict) and isinstance(item.get("text"), str):
+                            parts.append(item["text"])
+                    text = "\n".join(parts) if parts else None
+                if not isinstance(text, str) or not text.strip():
+                    continue
+                if role == "user":
+                    last_user = text
+                else:
+                    last_assistant = text
+        return {"user_prompt": last_user, "assistant_response": last_assistant}
+    except Exception:
+        return None
