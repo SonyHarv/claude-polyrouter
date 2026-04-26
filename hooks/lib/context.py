@@ -33,6 +33,10 @@ DEFAULT_SESSION = {
     "retry_to_tier": None,
     "retry_to_effort": None,
     "retry_at_ceiling": False,  # True only when prev was deep/xhigh — render ⚠max
+    # v1.7 SCOPE FIRME #5: one-shot effort override from /polyrouter:effort
+    "effort_override_active": False,
+    "effort_override_level": None,         # "low" | "medium" | "high" | "xhigh"
+    "effort_override_promote_deep": False, # True iff level=="xhigh" — auto-promote tier
 }
 
 
@@ -216,6 +220,54 @@ class SessionState:
         state["retry_to_tier"] = None
         state["retry_to_effort"] = None
         state["retry_at_ceiling"] = False
+        self._state = state
+        self._write(state)
+
+    def set_effort_override(self, level: str, promote_deep: bool = False) -> None:
+        """Persist a one-shot effort override from /polyrouter:effort (v1.7).
+
+        Consumed by the next normal-prompt routing pass via
+        consume_effort_override(); single-fire — never persists across
+        more than one turn.
+        """
+        if level not in ("low", "medium", "high", "xhigh"):
+            return
+        state = self.read()
+        state["effort_override_active"] = True
+        state["effort_override_level"] = level
+        state["effort_override_promote_deep"] = bool(promote_deep)
+        self._state = state
+        self._write(state)
+
+    def consume_effort_override(self) -> dict | None:
+        """Pop the one-shot effort override (returns + clears).
+
+        Returns {"level": str, "promote_deep": bool} when active,
+        otherwise None. Clears the flag in either path so the override
+        cannot leak into subsequent turns.
+        """
+        state = self.read()
+        if not state.get("effort_override_active"):
+            return None
+        result = {
+            "level": state.get("effort_override_level"),
+            "promote_deep": bool(state.get("effort_override_promote_deep")),
+        }
+        state["effort_override_active"] = False
+        state["effort_override_level"] = None
+        state["effort_override_promote_deep"] = False
+        self._state = state
+        self._write(state)
+        if result["level"] not in ("low", "medium", "high", "xhigh"):
+            return None
+        return result
+
+    def clear_effort_override(self) -> None:
+        """Drop any pending effort override (without consuming)."""
+        state = self.read()
+        state["effort_override_active"] = False
+        state["effort_override_level"] = None
+        state["effort_override_promote_deep"] = False
         self._state = state
         self._write(state)
 

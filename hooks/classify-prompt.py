@@ -171,6 +171,42 @@ def _route_output(
     }
 
 
+def _apply_effort_override(
+    level: str,
+    model: str,
+    agent: str,
+    effort: str,
+    session: SessionState,
+    config: dict,
+) -> tuple[str, str, str, str]:
+    """Consume a pending one-shot effort override and apply it to the route.
+
+    Returns possibly-modified (level, model, agent, effort). The override
+    is *consumed* (cleared from session) regardless of whether modification
+    occurs — single-fire semantics. When the override level is "xhigh" and
+    promote_deep is set, the tier is auto-promoted to "deep" so the effort
+    budget is meaningful.
+
+    No-op (returns inputs unchanged) when no override is pending or on
+    any error reading session state.
+    """
+    try:
+        override = session.consume_effort_override()
+    except Exception:
+        return level, model, agent, effort
+    if not override:
+        return level, model, agent, effort
+
+    new_effort = override.get("level") or effort
+    if override.get("promote_deep") and level != "deep":
+        deep_cfg = (config.get("levels") or {}).get("deep", {})
+        new_level = "deep"
+        new_model = deep_cfg.get("model", "opus")
+        new_agent = deep_cfg.get("agent", "deep-executor")
+        return new_level, new_model, new_agent, new_effort
+    return level, model, agent, new_effort
+
+
 def _calculate_savings(level: str, config: dict) -> float:
     """Calculate estimated savings vs routing every query to the most expensive model.
 
@@ -433,6 +469,103 @@ def _detect_advisor_command(
         return None
 
 
+# --- Effort one-shot override (v1.7 SCOPE FIRME #5) ---
+
+_EFFORT_MARKER = "<!-- POLY:EFFORT:v1 -->"
+_VALID_EFFORTS = ("low", "medium", "high", "xhigh")
+_EFFORT_TOKEN_RE = re.compile(r"\b(low|medium|high|xhigh)\b", re.IGNORECASE)
+
+
+def _extract_effort_arg(query: str) -> str | None:
+    """Extract a valid effort token from the prompt body.
+
+    Strips the marker first, then scans for the first whitelisted token.
+    Returns the lowercase level when found, or None if no valid token
+    appears in the visible body.
+    """
+    if not isinstance(query, str):
+        return None
+    body = query.replace(_EFFORT_MARKER, " ")
+    m = _EFFORT_TOKEN_RE.search(body)
+    return m.group(1).lower() if m else None
+
+
+def _effort_error_output(reason: str) -> dict:
+    """Build the [POLY:EFFORT-ERROR] no-op output.
+
+    Used when the user invokes /polyrouter:effort with an invalid or
+    missing argument — emits an explanation block but no Spawn directive,
+    so Claude Code handles the turn as a normal text reply.
+    """
+    body = "\n".join((
+        "[POLY:EFFORT-ERROR]",
+        f"Reason: {reason}",
+        "Valid levels: " + ", ".join(_VALID_EFFORTS),
+        'Usage: /polyrouter:effort <low|medium|high|xhigh>',
+        "No override was stored — your next prompt will route normally.",
+    ))
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": body,
+        }
+    }
+
+
+def _effort_ack_output(level: str, promote_deep: bool) -> dict:
+    """Build the [POLY:EFFORT] acknowledgment output.
+
+    Confirms the override is armed for the next prompt. No Spawn directive
+    — the slash-command turn itself is handled by Claude Code's main
+    model (the override is a sticky note for the *next* turn).
+    """
+    lines = [
+        "[POLY:EFFORT]",
+        f"Override armed: {level} (one-shot, applies to next prompt)",
+    ]
+    if promote_deep:
+        lines.append("Auto-promote: tier will be raised to deep for the next prompt.")
+    body = "\n".join(lines)
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": body,
+        }
+    }
+
+
+def _detect_effort_command(query: str, session: SessionState) -> dict | None:
+    """Detect /polyrouter:effort and store a one-shot override.
+
+    On valid invocation:
+        - Persists effort_override_* in session (consumed next turn).
+        - Emits a [POLY:EFFORT] acknowledgment block.
+        - Returns the output dict (caller short-circuits the pipeline).
+
+    On invalid arg:
+        - Emits a [POLY:EFFORT-ERROR] block, does NOT store.
+        - Still returns an output so the pipeline short-circuits — the
+          slash-command turn is consumed by the explanation, not by
+          normal scoring.
+
+    No marker → returns None (caller continues normally).
+    """
+    if not isinstance(query, str) or _EFFORT_MARKER not in query:
+        return None
+
+    level = _extract_effort_arg(query)
+    if level is None:
+        return _effort_error_output("missing or unrecognised effort level")
+
+    promote_deep = (level == "xhigh")
+    try:
+        session.set_effort_override(level, promote_deep=promote_deep)
+    except Exception:
+        return _effort_error_output("internal error storing override")
+
+    return _effort_ack_output(level, promote_deep)
+
+
 # --- Stage functions ---
 
 def _stage_exception_check(query: str, session: SessionState) -> dict | None:
@@ -659,6 +792,14 @@ def main() -> None:
         print(json.dumps(advisor_output))
         return
 
+    # --- v1.7: Effort one-shot override (/polyrouter:effort) ---
+    # The slash-command turn arms a sticky note for the *next* prompt;
+    # the override itself is consumed inside _route_output below.
+    effort_output = _detect_effort_command(query, session)
+    if effort_output is not None:
+        print(json.dumps(effort_output))
+        return
+
     # --- Stage 1: Exception check ---
     try:
         skip_result = _stage_exception_check(query, session)
@@ -696,6 +837,9 @@ def main() -> None:
             except Exception:
                 pass
             effort = compute_effort(level)
+            level, model, agent, effort = _apply_effort_override(
+                level, model, agent, effort, session, config,
+            )
             output = _route_output(
                 level, model, agent, confidence, method,
                 f"override={override.reason}", display_language, query,
@@ -741,6 +885,9 @@ def main() -> None:
             except Exception:
                 pass
 
+            level, model, agent, effort = _apply_effort_override(
+                level, model, agent, effort, session, config,
+            )
             output = _route_output(
                 level, model, agent, confidence, method,
                 str(signals), language, query,
@@ -901,6 +1048,27 @@ def main() -> None:
             )
         advisor_flag = requires_advisor(effort)
         # Persist the display label (supports "xhigh") and advisor flag
+        try:
+            session.update_effort(effort)
+        except Exception:
+            pass
+        try:
+            session.set_advisor(advisor_flag)
+        except Exception:
+            pass
+
+    # --- v1.7 SCOPE FIRME #5: apply one-shot effort override last ---
+    # User intent (from /polyrouter:effort) wins over the classifier's
+    # computed effort. xhigh auto-promotes the tier to deep so the
+    # effort budget is meaningful.
+    pre_override = (level, model, agent, effort)
+    level, model, agent, effort = _apply_effort_override(
+        level, model, agent, effort, session, config,
+    )
+    if (level, model, agent, effort) != pre_override:
+        # Re-evaluate advisor flag against the post-override effort and
+        # persist so the HUD reflects the user's chosen effort.
+        advisor_flag = requires_advisor(effort)
         try:
             session.update_effort(effort)
         except Exception:
