@@ -19,10 +19,18 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
 
 const home = homedir();
+const POLY_LABEL = (() => {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const pkg = JSON.parse(readFileSync(join(here, "..", ".claude-plugin", "plugin.json"), "utf-8"));
+    return pkg && pkg.version ? `poly v${pkg.version}` : "poly";
+  } catch { return "poly"; }
+})();
 const SESSION_PATH = join(home, ".claude", "polyrouter-session.json");
 const STATS_PATH = join(home, ".claude", "polyrouter-stats.json");
 const COMPACT_PATH = join(home, ".claude", "polyrouter-compact.json");
@@ -258,7 +266,7 @@ function main() {
         console.log(omc);
       } else {
         // Non-OMC users: emit a minimal fallback so the statusline is never blank
-        console.log(`[poly v1.6.2] [^.^]~ idle`);
+        console.log(`[${POLY_LABEL}] [^.^]~ idle`);
       }
       return;
     }
@@ -397,7 +405,7 @@ function main() {
   }
 
   // --- Group 1: prefix + mascot + model + exec ---
-  const group1Parts = [`[poly v1.6.2] ${ansiColor(frame, stateColor)}`];
+  const group1Parts = [`[${POLY_LABEL}] ${ansiColor(frame, stateColor)}`];
   if (modelSeg) {
     group1Parts.push(modelSeg + execSeg);
   } else if (execSeg) {
