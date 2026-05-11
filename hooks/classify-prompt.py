@@ -278,9 +278,22 @@ def _detect_silent_swap(input_data: dict, session: SessionState) -> None:
 
         expected_family = _TIER_TO_FAMILY[last_level]
 
-        # 1. Try stdin first (forward-compat).
+        # v1.8.2 gate: stdin.model / stdin.effective_model / transcript all
+        # reflect the HOST Claude Code session model, NOT the routed
+        # polyrouter subagent. For fast (haiku) and standard (sonnet), the
+        # host model will not match the expected family, producing a
+        # guaranteed false positive. Skip detection entirely for non-deep
+        # tiers — the gate must run BEFORE reading any of those signals,
+        # because CC always populates stdin.model (so the previous "only
+        # gate when stdin is empty" condition never fired in practice).
+        if last_level != "deep":
+            session.clear_swap()
+            return
+
+        # For deep tier, host model and routed deep tier usually align on
+        # the opus family, so comparison is meaningful when the user's
+        # host CC is opus.
         actual = input_data.get("effective_model") or input_data.get("model")
-        # 2. Fall back to transcript.
         if not isinstance(actual, str) or not actual:
             actual = get_last_assistant_model(input_data.get("transcript_path"))
 

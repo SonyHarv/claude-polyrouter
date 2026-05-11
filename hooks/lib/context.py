@@ -107,7 +107,10 @@ class SessionState:
         state["last_level"] = level
         state["conversation_depth"] = state.get("conversation_depth", 0) + 1
         state["last_query_time"] = time.time()
-        state["subagent_active"] = True
+        # v1.8.1: subagent_active is now owned exclusively by mark_subagent_active
+        # (PreToolUse:Task hook) and mark_subagent_stopped (SubagentStop hook).
+        # update() no longer touches it — the routing decision and the actual
+        # subagent dispatch are separate lifecycle events.
         state["requires_advisor"] = bool(requires_advisor)
         if language and isinstance(language, str):
             state["last_language"] = language

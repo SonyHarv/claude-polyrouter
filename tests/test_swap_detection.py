@@ -108,16 +108,42 @@ class TestDetectSilentSwap:
         )
         assert session.read()["swap_detected"] is False
 
-    def test_mismatch_haiku_to_opus(self, session, transcript):
+    def test_fast_tier_transcript_signal_is_gated_v1_8_1(self, session, transcript):
+        """v1.8.1: transcript-only signal is ignored for non-deep tiers.
+
+        The transcript's last assistant model is the HOST CC model (always
+        opus in current installs), not the routed subagent. Comparing it
+        against fast/standard tier expectations is a structural false
+        positive, so the gate clears the flag without firing mark_swap.
+        """
         session.update("fast", "en")
         path = transcript(["claude-opus-4-7"])
         classify_prompt._detect_silent_swap(
             {"transcript_path": str(path)}, session
         )
         state = session.read()
-        assert state["swap_detected"] is True
-        assert state["swap_expected"] == "haiku"
-        assert state["swap_actual"] == "claude-opus-4-7"
+        assert state["swap_detected"] is False
+        assert state["swap_expected"] is None
+        assert state["swap_actual"] is None
+
+    def test_standard_tier_transcript_signal_is_gated_v1_8_1(self, session, transcript):
+        """v1.8.1: same gate applies to `standard` tier."""
+        session.update("standard", "en")
+        path = transcript(["claude-opus-4-7"])
+        classify_prompt._detect_silent_swap(
+            {"transcript_path": str(path)}, session
+        )
+        assert session.read()["swap_detected"] is False
+
+    def test_fast_tier_clears_prior_swap_flag_v1_8_1(self, session, transcript):
+        """Gate must clear any stale swap flag from a prior turn."""
+        session.mark_swap("haiku", "claude-opus-4-7")
+        session.update("fast", "en")
+        path = transcript(["claude-opus-4-7"])
+        classify_prompt._detect_silent_swap(
+            {"transcript_path": str(path)}, session
+        )
+        assert session.read()["swap_detected"] is False
 
     def test_mismatch_deep_to_haiku(self, session, transcript):
         """Opus→haiku — CC downgraded silently."""
@@ -131,18 +157,51 @@ class TestDetectSilentSwap:
         assert state["swap_expected"] == "opus"
         assert state["swap_actual"] == "claude-haiku-4-5"
 
-    def test_effective_model_in_stdin_wins(self, session, transcript):
-        """Forward-compat: future CC may put effective_model in stdin JSON."""
-        session.update("fast", "en")
-        # Transcript says haiku — but stdin says opus → swap is detected.
-        path = transcript(["claude-haiku-4-5"])
+    def test_effective_model_in_stdin_wins_for_deep(self, session, transcript):
+        """For deep tier, stdin's effective_model takes precedence over transcript.
+
+        Updated in v1.8.2: non-deep tiers are gated before reading stdin,
+        so this stdin-wins behavior only applies to deep routes now.
+        """
+        session.update("deep", "en")
+        # Transcript says opus (would match expected) — stdin says haiku
+        # (mismatches) → swap is detected on stdin signal.
+        path = transcript(["claude-opus-4-7"])
         classify_prompt._detect_silent_swap(
-            {"transcript_path": str(path), "effective_model": "claude-opus-4-7"},
+            {"transcript_path": str(path), "effective_model": "claude-haiku-4-5"},
             session,
         )
         state = session.read()
         assert state["swap_detected"] is True
-        assert state["swap_actual"] == "claude-opus-4-7"
+        assert state["swap_actual"] == "claude-haiku-4-5"
+
+    def test_standard_tier_stdin_model_is_gated_v1_8_2(self, session):
+        """v1.8.2: standard tier must gate even when stdin.model is present.
+
+        Reproduces the production bug: CC always populates stdin.model with
+        the HOST session model. The v1.8.1 gate only fired when stdin was
+        empty, so standard prompts always reached the comparison branch and
+        produced a false `▲swap` indicator. The v1.8.2 fix moves the gate
+        BEFORE the stdin read.
+        """
+        session.update("standard", "en")
+        classify_prompt._detect_silent_swap(
+            {"effective_model": "claude-opus-4-7", "model": "claude-opus-4-7"},
+            session,
+        )
+        state = session.read()
+        assert state["swap_detected"] is False
+        assert state["swap_expected"] is None
+        assert state["swap_actual"] is None
+
+    def test_fast_tier_stdin_model_is_gated_v1_8_2(self, session):
+        """v1.8.2: same gate must apply to fast tier when stdin.model present."""
+        session.update("fast", "en")
+        classify_prompt._detect_silent_swap(
+            {"model": "claude-opus-4-7"},
+            session,
+        )
+        assert session.read()["swap_detected"] is False
 
     def test_missing_transcript_does_not_crash(self, session):
         session.update("fast", "en")
@@ -151,9 +210,11 @@ class TestDetectSilentSwap:
         assert session.read()["swap_detected"] is False
 
     def test_substring_match_is_case_insensitive(self, session, transcript):
-        session.update("fast", "en")
+        """v1.8.2: case-insensitivity is only reachable for deep tier
+        (the only tier whose comparison branch still executes)."""
+        session.update("deep", "en")
         # Hypothetical capitalized model id; family substring still matches.
-        path = transcript(["Claude-Haiku-Future"])
+        path = transcript(["Claude-Opus-Future"])
         classify_prompt._detect_silent_swap(
             {"transcript_path": str(path)}, session
         )

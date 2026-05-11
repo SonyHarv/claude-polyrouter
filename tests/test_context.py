@@ -88,17 +88,29 @@ class TestSessionState:
             state = session.read()
             assert state["conversation_depth"] == 0
 
-    def test_update_sets_subagent_active(self):
+    def test_update_does_not_touch_subagent_active(self):
+        """v1.8.1 contract: routing decision is decoupled from subagent dispatch.
+
+        session.update() persists last_level/effort/advisor, but subagent_active
+        is owned exclusively by mark_subagent_active (PreToolUse:Task) and
+        mark_subagent_stopped (SubagentStop). This decoupling lets the HUD
+        render `·adv` on the main segment before the Task fires.
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
             session = self._make_session(tmpdir)
             assert session.read().get("subagent_active", False) is False
             session.update(level="fast", language="en")
-            assert session.read()["subagent_active"] is True
+            assert session.read()["subagent_active"] is False
 
-    def test_mark_subagent_stopped_clears_flag(self):
+    def test_mark_subagent_active_then_stopped_lifecycle(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             session = self._make_session(tmpdir)
             session.update(level="deep", language="en")
+            session.mark_subagent_active(
+                subagent_name="polyrouter:deep-executor",
+                exec_model="opus",
+                exec_effort="xhigh",
+            )
             assert session.read()["subagent_active"] is True
             session.mark_subagent_stopped()
             assert session.read()["subagent_active"] is False
@@ -108,6 +120,10 @@ class TestSessionState:
             path = Path(tmpdir) / "session.json"
             session = SessionState(path, timeout_minutes=30)
             session.update(level="standard", language="es")
+            session.mark_subagent_active(
+                subagent_name="polyrouter:standard-executor",
+                exec_model="sonnet",
+            )
             session.mark_subagent_stopped()
             on_disk = json.loads(path.read_text())
             assert on_disk["subagent_active"] is False
