@@ -161,3 +161,51 @@ class TestSessionState:
             session.update(level="deep", language="en", requires_advisor=True)
             session.mark_subagent_stopped()
             assert session.read()["requires_advisor"] is True
+
+    def test_update_clears_stale_exec_snapshot(self):
+        """v1.8.2: update() resets exec_model/exec_effort/exec_advisor."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.mark_subagent_active(
+                subagent_name="polyrouter:deep-executor",
+                exec_model="opus",
+                exec_effort="xhigh",
+                exec_advisor=True,
+            )
+            assert session.read()["exec_model"] == "opus"
+            session.update(level="fast", language="en")
+            state = session.read()
+            assert state["exec_model"] is None
+            assert state["exec_effort"] is None
+            assert state["exec_advisor"] is False
+
+    def test_mark_subagent_stopped_decrements_count(self):
+        """v1.8.2: subagent_count is ACTIVE-count, decrements on stop."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.mark_subagent_active(exec_model="haiku")
+            session.mark_subagent_active(exec_model="haiku")
+            session.mark_subagent_active(exec_model="haiku")
+            assert session.read()["subagent_count"] == 3
+            session.mark_subagent_stopped()
+            state = session.read()
+            assert state["subagent_count"] == 2
+            assert state["subagent_active"] is False
+
+    def test_mark_subagent_stopped_floors_at_zero(self):
+        """v1.8.2: subagent_count cannot go negative."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.mark_subagent_stopped()
+            assert session.read()["subagent_count"] == 0
+            session.mark_subagent_stopped()
+            assert session.read()["subagent_count"] == 0
+
+    def test_mark_subagent_stopped_clears_exec_advisor(self):
+        """v1.8.2: exec_advisor clears on stop (defense in depth)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.mark_subagent_active(exec_model="opus", exec_advisor=True)
+            assert session.read()["exec_advisor"] is True
+            session.mark_subagent_stopped()
+            assert session.read()["exec_advisor"] is False

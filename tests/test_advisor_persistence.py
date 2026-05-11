@@ -23,7 +23,10 @@ def test_requires_advisor_persists_after_subagent_stop(tmp_path):
     assert state["subagent_active"] is False
     assert state["requires_advisor"] is True, "v1.8 bug B fix: should not be wiped"
     assert state["effort_level"] == "xhigh"
-    assert state["exec_advisor"] is True
+    # v1.8.2: exec_advisor now clears on stop (defense in depth). HUD gates
+    # exec rendering on subagent_active so this is a state-hygiene change;
+    # the prompt-segment ·adv still derives from requires_advisor above.
+    assert state["exec_advisor"] is False
 
 
 def test_requires_advisor_clears_on_next_update(tmp_path):

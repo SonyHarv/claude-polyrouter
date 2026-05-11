@@ -251,6 +251,7 @@ function terminalCols() {
 // --- Main ---
 
 function main() {
+ try {
   const stdin = readStdin();
   const cc = parseStdinJson(stdin); // Claude Code statusLine input (may be null)
   const session = readJson(SESSION_PATH);
@@ -418,11 +419,12 @@ function main() {
 
   // --- Middle group: 🤖N cache ctx ---
   // Priority for dropping: snt > wk > 5h > ctx > 🤖N > cache
+  // v1.8.2 tiered hiding: < 60 drops \uD83E\uDD16N + cache, 60-79 drops ctx, 80+ keeps all
   const middleParts = [];
-  if (subagentCount > 0) {
+  if (subagentCount > 0 && cols >= 60) {
     middleParts.push(`\uD83E\uDD16${subagentCount}`);
   }
-  if (elapsed !== null) {
+  if (elapsed !== null && cols >= 60) {
     const cb = cacheBar(elapsed);
     middleParts.push(ansiColor(cb.bar, cb.color));
   }
@@ -441,23 +443,29 @@ function main() {
     const v = colorPct(pct);
     return r ? `${label}:${v}(${r})` : `${label}:${v}`;
   };
+  // v1.8.2 tiered hiding for limits group
   if (cols >= 120) {
+    // cols 120+: show 5h + wk + snt
     const a = renderLimit("5h", fh.pct, fh.rem); if (a) limitsParts.push(a);
     const b = renderLimit("wk", wk.pct, wk.rem); if (b) limitsParts.push(b);
     const c = renderLimit("snt", sntPct, sntRem); if (c) limitsParts.push(c);
-  } else if (cols >= 80) {
-    // cols 80-119: show 5h + wk, drop snt
+  } else if (cols >= 100) {
+    // cols 100-119: show 5h + wk, drop snt
     const a = renderLimit("5h", fh.pct, fh.rem); if (a) limitsParts.push(a);
     const b = renderLimit("wk", wk.pct, wk.rem); if (b) limitsParts.push(b);
+  } else if (cols >= 80) {
+    // cols 80-99: show only 5h, drop wk + snt
+    const a = renderLimit("5h", fh.pct, fh.rem); if (a) limitsParts.push(a);
   }
   // cols < 80: limits dropped entirely
 
   // --- Tail: savings + lang ---
+  // v1.8.2 tiered hiding: savings >= 100, lang >= 120
   const tailParts = [];
-  if (stats && stats.estimated_savings > 0) {
+  if (stats && stats.estimated_savings > 0 && cols >= 100) {
     tailParts.push(`$${stats.estimated_savings.toFixed(2)}\u2193`);
   }
-  if (session && session.last_language) {
+  if (session && session.last_language && cols >= 120) {
     tailParts.push(session.last_language);
   }
 
@@ -474,6 +482,10 @@ function main() {
   const output = omc ? `${omc}  ${polyLine}` : polyLine;
 
   console.log(output);
+ } catch (_e) {
+  // v1.8.2: never let the HUD vanish — emit minimal fallback on any throw.
+  try { console.log(`[${POLY_LABEL}] [^.^]~`); } catch (_e2) { /* silent */ }
+ }
 }
 
 main();

@@ -112,6 +112,12 @@ class SessionState:
         # update() no longer touches it — the routing decision and the actual
         # subagent dispatch are separate lifecycle events.
         state["requires_advisor"] = bool(requires_advisor)
+        # v1.8.2: clear stale exec snapshot from previous turn so HUD
+        # doesn't render ·adv based on previous turn's exec_advisor when
+        # a new prompt routes fast/standard with no subagent dispatch.
+        state["exec_model"] = None
+        state["exec_effort"] = None
+        state["exec_advisor"] = False
         if language and isinstance(language, str):
             state["last_language"] = language
         self._state = state
@@ -135,14 +141,16 @@ class SessionState:
         self._write(state)
 
     def mark_subagent_stopped(self) -> None:
-        """Clear the subagent_active flag (called by SubagentStop hook).
+        """Clear subagent_active flag + decrement counter (v1.8.2).
 
-        Keeps subagent_count, exec_* snapshots, and requires_advisor —
-        rendering gates on subagent_active so exec segment disappears
-        automatically. requires_advisor is reset by the next session.update().
+        subagent_count is now ACTIVE-count (parity with OMC): incremented
+        in mark_subagent_active, decremented here. When it reaches 0 the
+        HUD hides the 🤖N glyph (gated on `subagentCount > 0`).
         """
         state = self.read()
         state["subagent_active"] = False
+        state["subagent_count"] = max(0, state.get("subagent_count", 0) - 1)
+        state["exec_advisor"] = False
         self._state = state
         self._write(state)
 

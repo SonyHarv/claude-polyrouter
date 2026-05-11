@@ -46,7 +46,7 @@ def _process(data: dict, session: SessionState) -> None:
 
     # Only act on poly's own Task invocations. Substring match tolerates
     # both "polyrouter:fast-executor" and "claude-polyrouter:fast-executor".
-    if tool_name != "Task" or "polyrouter" not in subagent_type:
+    if tool_name not in ("Task", "Agent") or "polyrouter" not in subagent_type:
         return
 
     state = session.read()
