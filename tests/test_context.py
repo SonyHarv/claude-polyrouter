@@ -133,9 +133,15 @@ class TestSessionState:
             session.set_advisor(False)
             assert session.read()["requires_advisor"] is False
 
-    def test_mark_subagent_stopped_clears_advisor(self):
+    def test_mark_subagent_stopped_preserves_advisor(self):
+        """v1.8 fix B: requires_advisor must survive mark_subagent_stopped.
+
+        It was previously wiped here, causing the HUD to lose the ·adv badge
+        immediately after SubagentStop. The reset now happens at the next
+        session.update() call (normal turn boundary).
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
             session = self._make_session(tmpdir)
             session.update(level="deep", language="en", requires_advisor=True)
             session.mark_subagent_stopped()
-            assert session.read()["requires_advisor"] is False
+            assert session.read()["requires_advisor"] is True

@@ -370,6 +370,9 @@ function main() {
 
     if (subagentActive) {
       modelSeg = `prompt:${base}`;
+      if (execAdvisor) {
+        modelSeg += `\u00B7adv`;
+      }
     } else {
       modelSeg = base;
       if (requiresAdvisor) {

@@ -54,6 +54,9 @@ DEFAULT_SESSION = {
     # v1.7 CALIDAD #17: CC's session_name (preserved across /clear in
     # CC v2.1.120+). Empty / unnamed sessions store None.
     "session_name": None,
+    # v1.8: CC v2.1.122+ effort passthrough + skew detection
+    "cc_effort_level": None,       # effort CC actually executed (low/medium/high/xhigh)
+    "effort_skew_detected": False, # True when poly's decision != CC's execution
 }
 
 
@@ -131,12 +134,12 @@ class SessionState:
     def mark_subagent_stopped(self) -> None:
         """Clear the subagent_active flag (called by SubagentStop hook).
 
-        Keeps subagent_count and exec_* snapshots — rendering gates on
-        subagent_active so exec segment disappears automatically.
+        Keeps subagent_count, exec_* snapshots, and requires_advisor —
+        rendering gates on subagent_active so exec segment disappears
+        automatically. requires_advisor is reset by the next session.update().
         """
         state = self.read()
         state["subagent_active"] = False
-        state["requires_advisor"] = False
         self._state = state
         self._write(state)
 
@@ -180,6 +183,27 @@ class SessionState:
         state["session_name"] = name
         self._state = state
         self._write(state)
+
+    def update_cc_effort(self, cc_effort: str | None) -> None:
+        """Persist the effort level CC actually executed (v1.8+).
+
+        Read from input_data['effort']['level'] (CC v2.1.122+ hook JSON) or
+        $CLAUDE_EFFORT env var. Compared against session.effort_level (poly's
+        decision) to flag divergence via effort_skew_detected.
+        """
+        if cc_effort is None or cc_effort in ("low", "medium", "high", "xhigh", "max"):
+            state = self.read()
+            # Normalize "max" → "high" to match CC's effort_level enum
+            normalized = "high" if cc_effort == "max" else cc_effort
+            state["cc_effort_level"] = normalized
+            # Skew = poly routed X but CC executed Y (only flag when both known)
+            poly_effort = state.get("effort_level")
+            if normalized is not None and poly_effort is not None:
+                state["effort_skew_detected"] = (normalized != poly_effort)
+            else:
+                state["effort_skew_detected"] = False
+            self._state = state
+            self._write(state)
 
     def update_ctx_tokens(self, tokens: int) -> None:
         """Persist latest context token count (written by classify-prompt)."""

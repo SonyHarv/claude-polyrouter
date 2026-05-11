@@ -906,9 +906,13 @@ def _stage_scoring(
     """
     context = session.get_scorer_context()
 
-    # Pick up effort from env if not already tracked in session
-    env_effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "")
-    if env_effort in ("low", "medium", "high"):
+    # v1.8: prefer CLAUDE_EFFORT (CC v2.1.122+) over legacy CLAUDE_CODE_EFFORT_LEVEL
+    env_effort = (
+        os.environ.get("CLAUDE_EFFORT")
+        or os.environ.get("CLAUDE_CODE_EFFORT_LEVEL")
+        or ""
+    )
+    if env_effort in ("low", "medium", "high", "xhigh"):
         context["effort_level"] = env_effort
     elif env_effort == "max":
         context["effort_level"] = "high"
@@ -1005,6 +1009,23 @@ def main() -> None:
     if not isinstance(session_name, str) or not session_name:
         session_name = None
 
+    # v1.8: CC v2.1.122+ passes effort via JSON payload effort.level + $CLAUDE_EFFORT env.
+    # Fall back to legacy CLAUDE_CODE_EFFORT_LEVEL for CC <v2.1.122.
+    cc_effort = None
+    effort_payload = input_data.get("effort")
+    if isinstance(effort_payload, dict):
+        candidate = effort_payload.get("level")
+        if isinstance(candidate, str) and candidate in ("low", "medium", "high", "xhigh", "max"):
+            cc_effort = candidate
+    if cc_effort is None:
+        env_new = os.environ.get("CLAUDE_EFFORT", "")
+        if env_new in ("low", "medium", "high", "xhigh", "max"):
+            cc_effort = env_new
+    if cc_effort is None:
+        env_old = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "")
+        if env_old in ("low", "medium", "high", "xhigh", "max"):
+            cc_effort = env_old
+
     # Load configuration and resources
     try:
         config = load_config()
@@ -1043,6 +1064,12 @@ def main() -> None:
             session.update_session_name(session_name)
         except Exception:
             pass
+
+    # v1.8: persist CC's actual effort + compute skew vs poly's decision
+    try:
+        session.update_cc_effort(cc_effort)
+    except Exception:
+        pass
 
     # --- v1.7: Silent model swap detection (runs even when routing skips) ---
     _detect_silent_swap(input_data, session)
