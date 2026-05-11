@@ -209,3 +209,44 @@ class TestSessionState:
             assert session.read()["exec_advisor"] is True
             session.mark_subagent_stopped()
             assert session.read()["exec_advisor"] is False
+
+    def test_reset_subagent_state_clears_all_fields(self):
+        """v1.8.3: reset_subagent_state zeros out subagent + exec fields."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.mark_subagent_active(exec_model="opus", exec_effort="high", exec_advisor=True)
+            session.mark_subagent_active(exec_model="sonnet")
+            state = session.read()
+            assert state["subagent_count"] == 2
+            assert state["subagent_active"] is True
+            session.reset_subagent_state()
+            state = session.read()
+            assert state["subagent_active"] is False
+            assert state["subagent_count"] == 0
+            assert state["exec_model"] is None
+            assert state["exec_effort"] is None
+            assert state["exec_advisor"] is False
+
+    def test_reset_subagent_state_preserves_routing_stats(self):
+        """v1.8.3: reset only touches subagent/exec fields, not routing history."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.update(level="deep", language="es")
+            session.update(level="fast", language="en")
+            session.mark_subagent_active(exec_model="haiku")
+            session.reset_subagent_state()
+            state = session.read()
+            assert state["subagent_count"] == 0
+            assert state["last_route"] == "fast"
+            assert state["last_language"] == "en"
+            assert state["conversation_depth"] == 2
+
+    def test_reset_subagent_state_idempotent_on_clean_session(self):
+        """v1.8.3: reset on a fresh session is a no-op (no errors, defaults stay)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = self._make_session(tmpdir)
+            session.reset_subagent_state()
+            state = session.read()
+            assert state["subagent_count"] == 0
+            assert state["subagent_active"] is False
+            assert state["exec_model"] is None

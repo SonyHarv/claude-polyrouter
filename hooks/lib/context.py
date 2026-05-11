@@ -154,6 +154,22 @@ class SessionState:
         self._state = state
         self._write(state)
 
+    def reset_subagent_state(self) -> None:
+        """Force-clear subagent tracking fields (v1.8.3, SessionStart safety net).
+
+        Prevents 🤖N counter accumulation across CC sessions when the prior
+        session crashed or exited before SubagentStop hooks fired. Called
+        from session-start.py on every new session.
+        """
+        state = self.read()
+        state["subagent_active"] = False
+        state["subagent_count"] = 0
+        state["exec_model"] = None
+        state["exec_effort"] = None
+        state["exec_advisor"] = False
+        self._state = state
+        self._write(state)
+
     def update_tool_result_len(self, length: int) -> None:
         """Track the length of the last tool result (set by PostToolUse hook)."""
         state = self.read()
