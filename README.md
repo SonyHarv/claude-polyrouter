@@ -2,12 +2,12 @@
 
 # claude-polyrouter
 
-![Version](https://img.shields.io/badge/version-1.6.2-blue)
+![Version](https://img.shields.io/badge/version-1.8.3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-613%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-895%20passed-brightgreen)
 ![Languages](https://img.shields.io/badge/languages-10-orange)
 ![Token Reduction](https://img.shields.io/badge/token%20reduction-82%25-success)
-![Routing Accuracy](https://img.shields.io/badge/routing%20accuracy-98.1%25-brightgreen)
+![Routing Accuracy](https://img.shields.io/badge/routing%20accuracy-98.9%25-brightgreen)
 ![Effort Accuracy](https://img.shields.io/badge/effort%20accuracy-100%25-brightgreen)
 ![Coverage](assets/coverage.svg)
 
@@ -32,6 +32,14 @@
 Routing happens automatically on every query via a `UserPromptSubmit` hook. No manual intervention needed.
 
 ---
+
+## v1.8 Highlights
+
+- **exec segment in HUD** — `⚙ exec:opus·xhigh·adv` now appears as a separate segment after `prompt:`, making the executor model visible at a glance
+- **🤖N subagent counter** — Active subagent count shown in HUD (`🤖1`, `🤖2`, …) whenever a subagent is running
+- **Swap detection expanded** — `⚠swap` glyph now covers both fast and standard tiers via `PreToolUse:Task` hook (not just deep)
+- **SessionStart reset** — `subagent_count` and `active` state reset on every new session to prevent stale carry-over between sessions
+- **895 tests passing · 98.9% routing accuracy**
 
 ## v1.6 Highlights
 
@@ -126,29 +134,29 @@ Poly lives in your statusLine and shows routing state at zero token cost.
 
 **No subagent:**
 ```
-[poly v1.6.2] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
+[poly v1.8.3] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
 ```
 
 **With subagent:**
 ```
-[poly v1.6.2] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $9.50↓ es
+[poly v1.8.3] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $9.50↓ es
 ```
 
 **High context (compact advisory):**
 ```
-[poly v1.6.2] [^.^]~ haiku·fast ⚠compact │ cache:████░ ctx:78% │ 5h:45%(1h2m) wk:9%(6d19h) │ $0.03↓ es
+[poly v1.8.3] [^.^]~ haiku·fast ⚠compact │ cache:████░ ctx:78% │ 5h:45%(1h2m) wk:9%(6d19h) │ $0.03↓ es
 ```
 
 **Stale session (>30 min, no OMC):**
 ```
-[poly v1.6.2] [^.^]~ idle
+[poly v1.8.3] [^.^]~ idle
 ```
 
 ### HUD Element Reference
 
 | Element | When shown | Meaning |
 |---------|-----------|---------|
-| `[poly v1.6.2]` | Always | Plugin prefix + version |
+| `[poly v1.8.3]` | Always | Plugin prefix + version |
 | `[^.^]~` / `[^-^]` / `[>.^]` / `[x.x]` | Always | Mascot state (see below) |
 | `haiku·fast` / `sonnet·std` / `opus·deep` | After a route | Model + tier, dot-separated |
 | `·high` / `·xhigh` | Deep tier only | Sub-effort — `medium` is elided |
