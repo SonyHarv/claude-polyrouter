@@ -33,6 +33,17 @@ Routing happens automatically on every query via a `UserPromptSubmit` hook. No m
 
 ---
 
+## v1.9 Highlights
+
+- **Verifiability routing (Karpathy)** — Tasks with verifiable outcomes route to Opus; heuristic-only tasks stay on Sonnet. `✓`/`~` indicator in the HUD model segment
+- **Native OAuth usage polling** — `5h` / `wk` / `snt` / `extra` bars without ccusage dependency, stale-while-revalidate cache
+- **🧠 thinking indicator** — appears on the exec model when the active subagent runs opus / deep / xhigh
+- **📁 CWD in HUD** — current directory basename visible on every prompt
+- **HUD fully independent** — runs standalone with no OMC or external plugin dependency
+- **HUD always complete** — no width-based truncation; all segments render
+- **OAuth field mapping bugfixes** — v1.9.2 (nested response), v1.9.3 (`used_credits/100` + `is_enabled` gate)
+- **909 tests passing** (14 new verifiability unit tests)
+
 ## v1.8 Highlights
 
 - **exec segment in HUD** — `⚙ exec:opus·xhigh·adv` now appears as a separate segment after `prompt:`, making the executor model visible at a glance
@@ -174,40 +185,44 @@ Poly lives in your statusLine and shows routing state at zero token cost.
 
 **No subagent:**
 ```
-[poly v1.8.3] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
+[poly v1.9.3] [^.^]~ haiku·fast✓ │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) extra:1%($2.09/$150.00) │ 📁mi-proyecto $0.03↓ es
 ```
 
-**With subagent:**
+**With subagent (thinking model):**
 ```
-[poly v1.8.3] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $9.50↓ es
+[poly v1.9.3] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv🧠 │ 🤖1 cache:████░ ctx:15% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) extra:1%($2.09/$150.00) │ 📁mi-proyecto $9.50↓ es
 ```
 
 **High context (compact advisory):**
 ```
-[poly v1.8.3] [^.^]~ haiku·fast ⚠compact │ cache:████░ ctx:78% │ 5h:45%(1h2m) wk:9%(6d19h) │ $0.03↓ es
+[poly v1.9.3] [^.^]~ haiku·fast✓ ⚠compact │ cache:████░ ctx:78% │ 5h:45%(1h2m) wk:9%(6d19h) │ 📁mi-proyecto $0.03↓ es
 ```
 
 **Stale session (>30 min, no OMC):**
 ```
-[poly v1.8.3] [^.^]~ idle
+[poly v1.9.3] [^.^]~ idle
 ```
 
 ### HUD Element Reference
 
 | Element | When shown | Meaning |
 |---------|-----------|---------|
-| `[poly v1.8.3]` | Always | Plugin prefix + version |
+| `[poly v1.9.3]` | Always | Plugin prefix + version |
 | `[^.^]~` / `[^-^]` / `[>.^]` / `[x.x]` | Always | Mascot state (see below) |
 | `haiku·fast` / `sonnet·std` / `opus·deep` | After a route | Model + tier, dot-separated |
+| `✓` / `~` | After a route | Verifiability — `✓` task is verifiable, `~` heuristic only |
 | `·high` / `·xhigh` | Deep tier only | Sub-effort — `medium` is elided |
 | `·adv` | `requires_advisor=true` | Advisor (Opus on-demand) engaged |
-| `prompt:…` / `⚙ exec:…` | Subagent active | Prompt model vs executor model split |
+| `prompt:…` / `⚙ exec:…[🧠]` | Subagent active | Prompt model vs executor model split |
+| `🧠` | Subagent uses opus/deep/xhigh | "Thinking" indicator on exec model |
 | `🤖N` | Subagent active | Count of active subagents |
 | `cache:…` | Session active | Freshness bar (5-block Unicode) |
 | `ctx:N%` | `transcript_path` available | Context window used (from Claude Code) |
-| `5h:N%(T)` | cols ≥ 80, ccusage present | 5-hour limit usage + time to reset |
-| `wk:N%(T)` | cols ≥ 80, ccusage present | Weekly limit usage + time to reset |
-| `snt:N%(T)` | cols ≥ 120, ccusage present | Sonnet weekly limit (dropped at <120 cols) |
+| `5h:N%(T)` | OAuth usage available | 5-hour limit usage + time to reset |
+| `wk:N%(T)` | OAuth usage available | Weekly limit usage + time to reset |
+| `snt:N%(T)` | OAuth usage available | Sonnet weekly limit usage + time to reset |
+| `extra:N%($U/$L)` | Max plan, extra credits enabled | Extra credit usage (dollars used / monthly limit) |
+| `📁<name>` | Always | Current working directory (basename) |
 | `⚠compact` | ctx ≥ 70% | Context approaching limit — run `/compact` |
 | `$x.xx↓` | Savings > $0 | Cumulative estimated cost saved vs. always-Opus |
 | `es` / `en` / `pt` / … | Language detected | ISO language code |
@@ -404,6 +419,25 @@ survives in repo memory and we don't re-litigate the same designs.
   quality drifts in practice, the right fix is to add a deterministic
   pattern or update the gold corpus, not to drift the boundaries.
 
+### v1.8 (completed)
+
+- [x] `exec` segment in HUD (`⚙ exec:opus·xhigh·adv`)
+- [x] `🤖N` subagent counter
+- [x] Swap detection expanded to fast/standard tiers via `PreToolUse:Task`
+- [x] SessionStart reset for `subagent_count` and `active` state
+- [x] 895 tests passing
+
+### v1.9 (completed)
+
+- [x] Verifiability routing (Karpathy) — `✓`/`~` indicator on model segment
+- [x] Native OAuth usage polling (5h/wk/snt/extra) — no ccusage dependency
+- [x] 🧠 thinking indicator when exec uses opus/deep/xhigh
+- [x] 📁 CWD basename in HUD tail
+- [x] HUD fully independent (no OMC or external plugin dep)
+- [x] HUD always complete (no width-based truncation)
+- [x] OAuth field mapping bugfixes (v1.9.2 nested response, v1.9.3 cents division + `is_enabled` gate)
+- [x] 909 tests passing (14 new verifiability tests)
+
 ### v2 (planned)
 
 - [ ] Multi-agent support: Codex CLI, Gemini CLI
@@ -419,7 +453,7 @@ survives in repo memory and we don't re-litigate the same designs.
 2. Create a branch: `git checkout -b feat/my-feature`
 3. Add tests in `tests/`
 4. Run the test suite: `python -m pytest tests/ -v`
-5. Ensure all 558+ tests pass before submitting
+5. Ensure all 909+ tests pass before submitting
 6. Commit using conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
 7. Open a pull request with a clear description of the change
 
