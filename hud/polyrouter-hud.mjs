@@ -205,16 +205,21 @@ function normalizeUsage(raw) {
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
   };
+  const five = raw.five_hour || {};
+  const seven = raw.seven_day || {};
+  const sevenSonnet = raw.seven_day_sonnet || {};
+  const extra = raw.extra_usage || {};
   return {
-    five_hour_pct: toPct(raw.fiveHourPercent),
-    five_hour_resets_at: toEpoch(raw.fiveHourResetsAt),
-    weekly_pct: toPct(raw.weeklyPercent),
-    weekly_resets_at: toEpoch(raw.weeklyResetsAt),
-    sonnet_weekly_pct: toPct(raw.sonnetWeeklyPercent),
-    sonnet_weekly_resets_at: toEpoch(raw.sonnetWeeklyResetsAt),
-    extra_pct: toPct(raw.extraUsagePercent),
-    extra_dollars: toPct(raw.extraUsageDollars),
-    extra_limit: toPct(raw.extraUsageLimit),
+    five_hour_pct: toPct(five.utilization),
+    five_hour_resets_at: toEpoch(five.resets_at),
+    weekly_pct: toPct(seven.utilization),
+    weekly_resets_at: toEpoch(seven.resets_at),
+    sonnet_weekly_pct: toPct(sevenSonnet.utilization),
+    sonnet_weekly_resets_at: toEpoch(sevenSonnet.resets_at),
+    extra_pct: toPct(extra.utilization),
+    extra_dollars: toPct(extra.current_usage),
+    extra_limit: toPct(extra.monthly_limit),
+    extra_enabled: extra.is_enabled === true,
     cached_at: Date.now() / 1000,
   };
 }
@@ -231,7 +236,7 @@ function refreshUsageCache() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
-        "User-Agent": "claude-polyrouter/1.9.1",
+        "User-Agent": "claude-polyrouter/1.9.2",
       },
     }, (res) => {
       if (res.statusCode !== 200) { res.resume(); resolve(false); return; }

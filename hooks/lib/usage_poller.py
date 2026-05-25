@@ -92,7 +92,7 @@ def _fetch_usage(token: str) -> dict | None:
             headers={
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
-                "User-Agent": "claude-polyrouter/1.9.1",
+                "User-Agent": "claude-polyrouter/1.9.2",
             },
         )
         with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SEC) as resp:
@@ -130,16 +130,21 @@ def _to_epoch(value) -> int | None:
 
 
 def _normalize(raw: dict) -> dict:
+    five = raw.get("five_hour") or {}
+    seven = raw.get("seven_day") or {}
+    seven_sonnet = raw.get("seven_day_sonnet") or {}
+    extra = raw.get("extra_usage") or {}
     return {
-        "five_hour_pct": _to_pct(raw.get("fiveHourPercent")),
-        "five_hour_resets_at": _to_epoch(raw.get("fiveHourResetsAt")),
-        "weekly_pct": _to_pct(raw.get("weeklyPercent")),
-        "weekly_resets_at": _to_epoch(raw.get("weeklyResetsAt")),
-        "sonnet_weekly_pct": _to_pct(raw.get("sonnetWeeklyPercent")),
-        "sonnet_weekly_resets_at": _to_epoch(raw.get("sonnetWeeklyResetsAt")),
-        "extra_pct": _to_pct(raw.get("extraUsagePercent")),
-        "extra_dollars": _to_pct(raw.get("extraUsageDollars")),
-        "extra_limit": _to_pct(raw.get("extraUsageLimit")),
+        "five_hour_pct": _to_pct(five.get("utilization")),
+        "five_hour_resets_at": _to_epoch(five.get("resets_at")),
+        "weekly_pct": _to_pct(seven.get("utilization")),
+        "weekly_resets_at": _to_epoch(seven.get("resets_at")),
+        "sonnet_weekly_pct": _to_pct(seven_sonnet.get("utilization")),
+        "sonnet_weekly_resets_at": _to_epoch(seven_sonnet.get("resets_at")),
+        "extra_pct": _to_pct(extra.get("utilization")),
+        "extra_dollars": _to_pct(extra.get("current_usage")),
+        "extra_limit": _to_pct(extra.get("monthly_limit")),
+        "extra_enabled": extra.get("is_enabled") is True,
     }
 
 
