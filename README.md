@@ -128,6 +128,46 @@ That's it. On first run, the plugin auto-configures:
 
 ---
 
+## Combining with other plugins
+
+Claude Code supports one `statusLine` command at a time. If you use poly
+alongside other plugins that also provide a statusLine, you can combine them
+with a simple wrapper script.
+
+**Example wrapper** (`~/.claude/statusline-wrapper.sh`):
+
+```bash
+#!/bin/bash
+# Combine multiple statusLine outputs into one line.
+# Each plugin emits its own section — the wrapper concatenates them.
+
+PLUGIN_A=$(node ~/.claude/plugins/plugin-a/hud.mjs 2>/dev/null)
+POLY=$(node ~/.claude/plugins/cache/claude-polyrouter/claude-polyrouter/current/hud/polyrouter-hud.mjs 2>/dev/null)
+
+parts=()
+[[ -n "$PLUGIN_A" ]] && parts+=("$PLUGIN_A")
+[[ -n "$POLY" ]]     && parts+=("$POLY")
+
+printf '%s' "$(IFS='  '; echo "${parts[*]}")"
+```
+
+Wire it up in `~/.claude/settings.json`:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-wrapper.sh"
+  }
+}
+```
+
+> **Note:** poly is designed to be the primary statusLine. If you use a
+> wrapper, test that the combined output fits your terminal width or enable
+> multi-line mode in your terminal.
+
+---
+
 ## HUD — Poly Mascot
 
 Poly lives in your statusLine and shows routing state at zero token cost.

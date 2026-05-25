@@ -1,33 +1,27 @@
 #!/usr/bin/env node
 /**
- * Poly HUD v1.9 — Animated ASCII mascot statusLine for Claude Polyrouter.
+ * Poly HUD v1.9.1 — Animated ASCII mascot statusLine for Claude Polyrouter.
  *
  * Reads Claude Code's statusLine stdin JSON for live ctx% and rate_limits,
  * with graceful fallback to the session-state file when stdin is absent or
  * fields are missing. Outputs a single statusLine string with zero
  * additionalContext token cost.
  *
- * v1.9 changes:
- *   - Removed OMC integration: poly is fully independent. CC concatenates
- *     statusLine outputs from multiple plugins automatically.
- *   - Removed cols-based tiered hiding: poly always emits its full content.
- *     CC owns terminal layout and wrapping.
- *   - exec segment renders "exec:running" when a subagent is active but the
- *     exec_model is not yet known.
- *   - verifiability indicator (✓ verifiable, ~ non_verifiable) appended to
- *     the model segment.
- *
- * Format (no subagent):
- *   [poly v1.9] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
- *
- * Format (with subagent):
- *   [poly v1.9] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ ... │ $9.50↓ es
+ * v1.9.1 changes:
+ *   - Native OAuth usage polling: reads ~/.claude/.credentials.json, calls
+ *     api.anthropic.com/api/oauth/usage in a detached child process, caches
+ *     to ~/.claude/polyrouter-usage-cache.json. Surfaces sonnet weekly (snt)
+ *     and Max-plan extra usage that CC stdin does not expose.
+ *   - 🧠 indicator on opus subagent / xhigh effort (deep reasoning).
+ *   - 📁<dir> CWD indicator in tail group.
  */
 
 import { readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawn } from "node:child_process";
+import { request as httpsRequest } from "node:https";
 
 const home = homedir();
 const POLY_LABEL = (() => {
@@ -40,6 +34,15 @@ const POLY_LABEL = (() => {
 const SESSION_PATH = join(home, ".claude", "polyrouter-session.json");
 const STATS_PATH = join(home, ".claude", "polyrouter-stats.json");
 const COMPACT_PATH = join(home, ".claude", "polyrouter-compact.json");
+
+// v1.9.1: OAuth usage polling (sonnet weekly + Max-plan extra usage).
+const CREDENTIALS_PATH = join(home, ".claude", ".credentials.json");
+const USAGE_CACHE_PATH = join(home, ".claude", "polyrouter-usage-cache.json");
+const USAGE_ENDPOINT_HOST = "api.anthropic.com";
+const USAGE_ENDPOINT_PATH = "/api/oauth/usage";
+const USAGE_TTL_SEC = 60;
+const USAGE_TIMEOUT_MS = 4000;
+const HUD_SCRIPT = fileURLToPath(import.meta.url);
 
 const SEP = " │ "; // ' │ '
 
@@ -133,6 +136,125 @@ function thresholdColor(pct) {
 function colorPct(pct) {
   const c = thresholdColor(pct);
   return c ? `${c}${pct}%${ANSI_RESET}` : `${pct}%`;
+}
+
+// --- OAuth usage polling (v1.9.1) ---
+// HUD reads cache synchronously; if stale, spawns a detached refresh process
+// that performs the HTTPS call and writes the cache. Current render returns
+// whatever is in cache (potentially stale or null). Never blocks rendering.
+
+function readUsageCache() {
+  if (!existsSync(USAGE_CACHE_PATH)) return null;
+  try {
+    const data = JSON.parse(readFileSync(USAGE_CACHE_PATH, "utf-8"));
+    if (typeof data !== "object" || data === null) return null;
+    return data;
+  } catch { return null; }
+}
+
+function isUsageCacheFresh(cache) {
+  if (!cache || typeof cache.cached_at !== "number") return false;
+  return (Date.now() / 1000 - cache.cached_at) < USAGE_TTL_SEC;
+}
+
+function spawnUsageRefresh() {
+  try {
+    const cp = spawn(process.execPath, [HUD_SCRIPT], {
+      detached: true,
+      stdio: "ignore",
+      env: { ...process.env, POLY_REFRESH_USAGE: "1" },
+    });
+    cp.unref();
+  } catch { /* silent — refresh is best-effort */ }
+}
+
+function getOAuthUsage() {
+  const cache = readUsageCache();
+  if (isUsageCacheFresh(cache)) return cache;
+  spawnUsageRefresh();
+  return cache; // may be stale or null this cycle; next render will see fresh
+}
+
+function readOAuthToken() {
+  if (!existsSync(CREDENTIALS_PATH)) return null;
+  let data;
+  try { data = JSON.parse(readFileSync(CREDENTIALS_PATH, "utf-8")); }
+  catch { return null; }
+  if (typeof data !== "object" || data === null) return null;
+  for (const key of ["claudeAiOauth", "oauth", "auth"]) {
+    const inner = data[key];
+    if (inner && typeof inner === "object") {
+      const tok = inner.accessToken || inner.access_token
+                  || inner.oauthToken || inner.token;
+      if (tok) return String(tok);
+    }
+  }
+  const tok = data.oauthToken || data.access_token || data.token;
+  return tok ? String(tok) : null;
+}
+
+function normalizeUsage(raw) {
+  const toEpoch = (v) => {
+    if (!v) return null;
+    if (typeof v === "number") return Math.floor(v);
+    const t = Date.parse(String(v));
+    return Number.isFinite(t) ? Math.floor(t / 1000) : null;
+  };
+  const toPct = (v) => {
+    if (v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  return {
+    five_hour_pct: toPct(raw.fiveHourPercent),
+    five_hour_resets_at: toEpoch(raw.fiveHourResetsAt),
+    weekly_pct: toPct(raw.weeklyPercent),
+    weekly_resets_at: toEpoch(raw.weeklyResetsAt),
+    sonnet_weekly_pct: toPct(raw.sonnetWeeklyPercent),
+    sonnet_weekly_resets_at: toEpoch(raw.sonnetWeeklyResetsAt),
+    extra_pct: toPct(raw.extraUsagePercent),
+    extra_dollars: toPct(raw.extraUsageDollars),
+    extra_limit: toPct(raw.extraUsageLimit),
+    cached_at: Date.now() / 1000,
+  };
+}
+
+function refreshUsageCache() {
+  return new Promise((resolve) => {
+    const token = readOAuthToken();
+    if (!token) { resolve(false); return; }
+    const req = httpsRequest({
+      host: USAGE_ENDPOINT_HOST,
+      path: USAGE_ENDPOINT_PATH,
+      method: "GET",
+      timeout: USAGE_TIMEOUT_MS,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "claude-polyrouter/1.9.1",
+      },
+    }, (res) => {
+      if (res.statusCode !== 200) { res.resume(); resolve(false); return; }
+      let body = "";
+      res.setEncoding("utf-8");
+      res.on("data", (chunk) => { body += chunk; });
+      res.on("end", () => {
+        try {
+          const parsed = JSON.parse(body);
+          if (typeof parsed !== "object" || parsed === null) { resolve(false); return; }
+          const normalized = normalizeUsage(parsed);
+          import("node:fs").then(({ writeFileSync }) => {
+            try { writeFileSync(USAGE_CACHE_PATH, JSON.stringify(normalized), "utf-8"); }
+            catch { /* silent */ }
+            resolve(true);
+          });
+        } catch { resolve(false); }
+      });
+    });
+    req.on("error", () => resolve(false));
+    req.on("timeout", () => { try { req.destroy(); } catch {} resolve(false); });
+    req.end();
+  });
 }
 
 // --- Helpers ---
@@ -245,14 +367,27 @@ function main() {
     sessionLimits.weekly_pct,
     sessionLimits.weekly_remaining_sec,
   );
-  // snt: Claude Code stdin does not expose Sonnet weekly. Session-only.
-  const snt = resolveLimit(
-    null,
-    sessionLimits.sonnet_weekly_pct,
-    sessionLimits.sonnet_weekly_remaining_sec,
-  );
-  const sntPct = snt.pct;
-  const sntRem = snt.rem;
+  // snt: prefer OAuth poll (v1.9.1), fall back to session.
+  // CC stdin does not expose Sonnet weekly at all.
+  const oauthUsage = getOAuthUsage();
+  let sntPct = null, sntRem = null;
+  if (oauthUsage && oauthUsage.sonnet_weekly_pct != null) {
+    sntPct = Math.round(oauthUsage.sonnet_weekly_pct);
+    if (oauthUsage.sonnet_weekly_resets_at) {
+      sntRem = Math.max(
+        0,
+        Math.floor(oauthUsage.sonnet_weekly_resets_at - Date.now() / 1000),
+      );
+    }
+  } else {
+    const snt = resolveLimit(
+      null,
+      sessionLimits.sonnet_weekly_pct,
+      sessionLimits.sonnet_weekly_remaining_sec,
+    );
+    sntPct = snt.pct;
+    sntRem = snt.rem;
+  }
 
   const state = detectState(session, compact, ctxPct);
   const tick = Math.floor(Date.now() / 1000);
@@ -351,6 +486,12 @@ function main() {
     } else if (verifType === "non_verifiable") {
       modelSeg += " ~";
     }
+
+    // v1.9.1: 🧠 thinking indicator for xhigh effort (only when no subagent —
+    // subagent case is handled below on the exec segment).
+    if (!subagentActive && effortLevel === "xhigh") {
+      modelSeg += "🧠";
+    }
   }
 
   // --- Exec segment ---
@@ -364,6 +505,11 @@ function main() {
       if (execEffort) execParts.push(execEffort);
       if (execAdvisor) execParts.push("adv");
       execSeg = ` ⚙ exec:${execParts.join("·")}`;
+      // v1.9.1: 🧠 when subagent is doing extended reasoning
+      // (opus tier OR xhigh effort regardless of tier).
+      const isDeepSubagent = String(execModel).toLowerCase().includes("opus")
+        || execEffort === "xhigh";
+      if (isDeepSubagent) execSeg += "🧠";
     } else {
       execSeg = ` ⚙ exec:running`;
     }
@@ -405,9 +551,25 @@ function main() {
   const b = renderLimit("wk", wk.pct, wk.rem); if (b) limitsParts.push(b);
   const c = renderLimit("snt", sntPct, sntRem); if (c) limitsParts.push(c);
 
-  // --- Tail: savings + lang ---
-  // v1.9: always emit when data is present.
+  // v1.9.1: Max-plan extra usage. Only render when OAuth poll reports it.
+  if (oauthUsage && oauthUsage.extra_pct != null) {
+    const pct = Math.round(oauthUsage.extra_pct);
+    const dol = oauthUsage.extra_dollars;
+    const lim = oauthUsage.extra_limit;
+    let label = `extra:${colorPct(pct)}`;
+    if (dol != null && lim != null) {
+      label += `($${Number(dol).toFixed(2)}/$${Number(lim).toFixed(2)})`;
+    }
+    limitsParts.push(label);
+  }
+
+  // --- Tail: CWD + savings + lang ---
+  // v1.9.1: 📁<dirname> shows current working directory.
   const tailParts = [];
+  try {
+    const cwdName = basename(process.cwd());
+    if (cwdName) tailParts.push(`📁${cwdName}`);
+  } catch { /* silent */ }
   if (stats && stats.estimated_savings > 0) {
     tailParts.push(`$${stats.estimated_savings.toFixed(2)}↓`);
   }
@@ -428,4 +590,11 @@ function main() {
  }
 }
 
-main();
+// v1.9.1: when invoked with POLY_REFRESH_USAGE=1, perform OAuth poll only
+// and exit. The HUD spawns this mode in a detached child to keep the visible
+// render fast.
+if (process.env.POLY_REFRESH_USAGE === "1") {
+  refreshUsageCache().then(() => process.exit(0), () => process.exit(0));
+} else {
+  main();
+}
