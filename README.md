@@ -2,9 +2,9 @@
 
 # claude-polyrouter
 
-![Version](https://img.shields.io/badge/version-1.8.3-blue)
+![Version](https://img.shields.io/badge/version-1.9.3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-895%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-909%20passed-brightgreen)
 ![Languages](https://img.shields.io/badge/languages-10-orange)
 ![Token Reduction](https://img.shields.io/badge/token%20reduction-82%25-success)
 ![Routing Accuracy](https://img.shields.io/badge/routing%20accuracy-98.9%25-brightgreen)
