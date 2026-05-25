@@ -217,8 +217,8 @@ function normalizeUsage(raw) {
     sonnet_weekly_pct: toPct(sevenSonnet.utilization),
     sonnet_weekly_resets_at: toEpoch(sevenSonnet.resets_at),
     extra_pct: toPct(extra.utilization),
-    extra_dollars: toPct(extra.current_usage),
-    extra_limit: toPct(extra.monthly_limit),
+    extra_dollars: extra.used_credits != null ? toPct(extra.used_credits) / 100 : null,
+    extra_limit: extra.monthly_limit != null ? toPct(extra.monthly_limit) / 100 : null,
     extra_enabled: extra.is_enabled === true,
     cached_at: Date.now() / 1000,
   };
@@ -236,7 +236,7 @@ function refreshUsageCache() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
-        "User-Agent": "claude-polyrouter/1.9.2",
+        "User-Agent": "claude-polyrouter/1.9.3",
       },
     }, (res) => {
       if (res.statusCode !== 200) { res.resume(); resolve(false); return; }
@@ -556,9 +556,9 @@ function main() {
   const b = renderLimit("wk", wk.pct, wk.rem); if (b) limitsParts.push(b);
   const c = renderLimit("snt", sntPct, sntRem); if (c) limitsParts.push(c);
 
-  // v1.9.1: Max-plan extra usage. Only render when OAuth poll reports it.
-  if (oauthUsage && oauthUsage.extra_pct != null) {
-    const pct = Math.round(oauthUsage.extra_pct);
+  // v1.9.2: Max-plan extra usage. Only render when OAuth reports it enabled.
+  if (oauthUsage && oauthUsage.extra_enabled) {
+    const pct = Math.round(oauthUsage.extra_pct ?? 0);
     const dol = oauthUsage.extra_dollars;
     const lim = oauthUsage.extra_limit;
     let label = `extra:${colorPct(pct)}`;

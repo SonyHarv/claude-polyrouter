@@ -92,7 +92,7 @@ def _fetch_usage(token: str) -> dict | None:
             headers={
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
-                "User-Agent": "claude-polyrouter/1.9.2",
+                "User-Agent": "claude-polyrouter/1.9.3",
             },
         )
         with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SEC) as resp:
@@ -142,8 +142,8 @@ def _normalize(raw: dict) -> dict:
         "sonnet_weekly_pct": _to_pct(seven_sonnet.get("utilization")),
         "sonnet_weekly_resets_at": _to_epoch(seven_sonnet.get("resets_at")),
         "extra_pct": _to_pct(extra.get("utilization")),
-        "extra_dollars": _to_pct(extra.get("current_usage")),
-        "extra_limit": _to_pct(extra.get("monthly_limit")),
+        "extra_dollars": (lambda v: v / 100 if v is not None else None)(_to_pct(extra.get("used_credits"))),
+        "extra_limit": (lambda v: v / 100 if v is not None else None)(_to_pct(extra.get("monthly_limit"))),
         "extra_enabled": extra.get("is_enabled") is True,
     }
 
