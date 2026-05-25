@@ -57,6 +57,8 @@ DEFAULT_SESSION = {
     # v1.8: CC v2.1.122+ effort passthrough + skew detection
     "cc_effort_level": None,       # effort CC actually executed (low/medium/high/xhigh)
     "effort_skew_detected": False, # True when poly's decision != CC's execution
+    # v1.9: Karpathy verifiability routing
+    "verifiability_type": None,    # "verifiable" | "non_verifiable" | "unknown" | None
 }
 
 
@@ -231,6 +233,20 @@ class SessionState:
                 state["effort_skew_detected"] = False
             self._state = state
             self._write(state)
+
+    def update_verifiability(self, vtype: str | None) -> None:
+        """Persist the Karpathy verifiability classification for this turn (v1.9).
+
+        Accepts "verifiable", "non_verifiable", "unknown", or None. Any other
+        value is silently ignored so callers can pass classifier output
+        directly without guarding.
+        """
+        if vtype is not None and vtype not in ("verifiable", "non_verifiable", "unknown"):
+            return
+        state = self.read()
+        state["verifiability_type"] = vtype
+        self._state = state
+        self._write(state)
 
     def update_ctx_tokens(self, tokens: int) -> None:
         """Persist latest context token count (written by classify-prompt)."""

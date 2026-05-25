@@ -830,6 +830,58 @@ def _detect_stats_command(
     return _stats_meta_output(_build_stats_block(session, config))
 
 
+# --- Verifiability detection (v1.9, Karpathy principle) ---
+# Verifiable tasks (code, tests, math, logic) → promote to Opus when scoring
+# already chose standard. Non-verifiable tasks (design, writing, opinion) →
+# keep on Sonnet even when scoring drifted to deep, because Opus's RL training
+# adds little value where there's no objective success signal.
+#
+# Patterns are deliberately bilingual (en/es) — poly's user base writes both.
+
+_VERIFIABLE_SIGNALS = [
+    # Código
+    r"\b(test|tests|spec|specs|jest|pytest|unittest)\b",
+    r"\b(compila|compile|build|buildea|run|ejecuta|corre)\b",
+    r"\b(fix|arregla|corrige|debug|debuggea)\s+(el\s+)?(bug|error|fallo|crash)\b",
+    r"\b(migration|migración|schema|query|sql)\b",
+    r"\b(algorithm|algoritmo|función|function|método|method)\b",
+    # Math/lógica
+    r"\b(calcula|calculate|compute|resuelve|solve)\b",
+    r"\b(prueba|prove|demuestra|demonstrate|verifica|verify)\b",
+]
+
+_NON_VERIFIABLE_SIGNALS = [
+    # Diseño/redacción
+    r"\b(diseña|design|mockup|wireframe|ui|ux|estilo|style)\b",
+    r"\b(escribe|write|redacta|draft|resume|summarize)\b",
+    r"\b(opina|opinion|recomienda|recommend|sugiere|suggest)\b",
+    r"\b(explica|explain|describe|qué es|what is|cómo funciona|how does)\b",
+]
+
+_VERIFIABLE_RE = [re.compile(p, re.IGNORECASE) for p in _VERIFIABLE_SIGNALS]
+_NON_VERIFIABLE_RE = [re.compile(p, re.IGNORECASE) for p in _NON_VERIFIABLE_SIGNALS]
+
+
+def detect_verifiability(query: str) -> tuple[str, float]:
+    """Classify a query as verifiable / non_verifiable / unknown.
+
+    Returns (type, confidence). Requires ≥2 hits on the winning side to
+    classify; otherwise returns ("unknown", 0.5) so the scorer keeps full
+    control. Confidence scales mildly with hit count, capped at 0.95.
+    """
+    if not isinstance(query, str) or not query:
+        return ("unknown", 0.5)
+
+    verifiable_hits = sum(1 for p in _VERIFIABLE_RE if p.search(query))
+    non_verifiable_hits = sum(1 for p in _NON_VERIFIABLE_RE if p.search(query))
+
+    if verifiable_hits > non_verifiable_hits and verifiable_hits >= 2:
+        return ("verifiable", min(0.95, 0.7 + verifiable_hits * 0.05))
+    if non_verifiable_hits > verifiable_hits and non_verifiable_hits >= 2:
+        return ("non_verifiable", min(0.95, 0.7 + non_verifiable_hits * 0.05))
+    return ("unknown", 0.5)
+
+
 # --- Stage functions ---
 
 def _stage_exception_check(query: str, session: SessionState) -> dict | None:
@@ -1305,6 +1357,35 @@ def main() -> None:
         )
     except Exception:
         pass  # Keep existing confidence
+
+    # --- Stage 8b: Verifiability routing (v1.9, Karpathy) ---
+    # Verifiable tasks (code/tests/math) promote standard → deep when scoring
+    # is confident. Non-verifiable tasks (design/writing) keep standard even
+    # when scoring drifted to deep, unless an arch-promotion already fired.
+    # Persisted to session so the HUD can render ✓ / ~ on the model segment.
+    try:
+        verifiability_type, _verif_conf = detect_verifiability(query)
+        if (
+            verifiability_type == "verifiable"
+            and level == "standard"
+            and confidence >= 0.7
+        ):
+            level = "deep"
+            method = f"{method}+verifiable"
+        elif (
+            verifiability_type == "non_verifiable"
+            and level == "deep"
+            and not arch_promoted
+            and not multifile_promoted
+        ):
+            level = "standard"
+            method = f"{method}+non_verifiable"
+        try:
+            session.update_verifiability(verifiability_type)
+        except Exception:
+            pass
+    except Exception:
+        pass  # Never block routing on verifiability classifier failure
 
     # --- Sync effort from env into session (user override path) ---
     try:

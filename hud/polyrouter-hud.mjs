@@ -1,27 +1,33 @@
 #!/usr/bin/env node
 /**
- * Poly HUD v1.6 — Animated ASCII mascot statusLine for Claude Polyrouter.
+ * Poly HUD v1.9 — Animated ASCII mascot statusLine for Claude Polyrouter.
  *
  * Reads Claude Code's statusLine stdin JSON for live ctx% and rate_limits,
  * with graceful fallback to the session-state file when stdin is absent or
  * fields are missing. Outputs a single statusLine string with zero
  * additionalContext token cost.
  *
+ * v1.9 changes:
+ *   - Removed OMC integration: poly is fully independent. CC concatenates
+ *     statusLine outputs from multiple plugins automatically.
+ *   - Removed cols-based tiered hiding: poly always emits its full content.
+ *     CC owns terminal layout and wrapping.
+ *   - exec segment renders "exec:running" when a subagent is active but the
+ *     exec_model is not yet known.
+ *   - verifiability indicator (✓ verifiable, ~ non_verifiable) appended to
+ *     the model segment.
+ *
  * Format (no subagent):
- *   [poly v1.6.2] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
+ *   [poly v1.9] [^.^]~ haiku·fast │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) │ $0.03↓ es
  *
  * Format (with subagent):
- *   [poly v1.6.2] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ ... │ $9.50↓ es
- *
- * Format (high ctx):
- *   [poly v1.6.2] [^.^]~ haiku·fast ⚠compact │ cache:████░ ctx:78% │ ... │ $0.03↓ es
+ *   [poly v1.9] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv │ 🤖1 cache:████░ ctx:15% │ ... │ $9.50↓ es
  */
 
 import { readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
 
 const home = homedir();
 const POLY_LABEL = (() => {
@@ -34,10 +40,8 @@ const POLY_LABEL = (() => {
 const SESSION_PATH = join(home, ".claude", "polyrouter-session.json");
 const STATS_PATH = join(home, ".claude", "polyrouter-stats.json");
 const COMPACT_PATH = join(home, ".claude", "polyrouter-compact.json");
-const OMC_HUD = join(home, ".claude", "hud", "omc-hud.mjs");
-const OMC_USAGE_CACHE = join(home, ".claude", "plugins", "oh-my-claudecode", ".usage-cache-anthropic.json");
 
-const SEP = " \u2502 "; // ' │ '
+const SEP = " │ "; // ' │ '
 
 // --- Poly mascot animation frames (must stay in sync with hud.py) ---
 
@@ -47,7 +51,7 @@ const MASCOT_STATES = {
     color: "#afa9ec",
   },
   routing: {
-    frames: ["[^o^]\u00BB", "[^o^]\u00BB\u00BB", "[^O^]\u00BB\u00BB\u00BB"],
+    frames: ["[^o^]»", "[^o^]»»", "[^O^]»»»"],
     color: "#5dcaa5",
   },
   keepalive: {
@@ -55,7 +59,7 @@ const MASCOT_STATES = {
     color: "#484f58",
   },
   danger: {
-    frames: ["[\u00B0O\u00B0]!", "[\u00B0O\u00B0]!!", "[>O<]!!!", "[>O<]!!!!"],
+    frames: ["[°O°]!", "[°O°]!!", "[>O<]!!!", "[>O<]!!!!"],
     color: "#e24b4a",
   },
   thinking: {
@@ -82,11 +86,11 @@ const TIER_MODELS = { fast: "haiku", standard: "sonnet", deep: "opus" };
 
 // --- Cache freshness bar ---
 const CACHE_BAR_LEVELS = [
-  { max: 600,  bar: "cache:\u2588\u2588\u2588\u2588\u2588", color: "#97c459" },   // 0-10 min: fresh
-  { max: 1800, bar: "cache:\u2588\u2588\u2588\u2588\u2591", color: "#ef9f27" },   // 10-30 min: warm
-  { max: 3000, bar: "cache:\u2588\u2588\u2588\u2591\u2591 !", color: "#e8853a" }, // 30-50 min: warning
+  { max: 600,  bar: "cache:█████", color: "#97c459" },   // 0-10 min: fresh
+  { max: 1800, bar: "cache:████░", color: "#ef9f27" },   // 10-30 min: warm
+  { max: 3000, bar: "cache:███░░ !", color: "#e8853a" }, // 30-50 min: warning
 ];
-const CACHE_BAR_EXPIRED = { bar: "cache:\u2591\u2591\u2591\u2591\u2591 exp", color: "#e24b4a" };
+const CACHE_BAR_EXPIRED = { bar: "cache:░░░░░ exp", color: "#e24b4a" };
 
 function cacheBar(elapsedSec) {
   for (const lvl of CACHE_BAR_LEVELS) {
@@ -94,12 +98,6 @@ function cacheBar(elapsedSec) {
   }
   return CACHE_BAR_EXPIRED;
 }
-
-const OMC_NOISE = [
-  /omc-setup/i, /not installed/i, /not built/i, /\[OMC HUD\]/i,
-  /\[OMC\].*setup/i, /Claude Code has switched/i, /switched to/i,
-  /model changed/i, /switching/i,
-];
 
 // --- ANSI true-color helpers ---
 
@@ -151,25 +149,6 @@ function parseStdinJson(stdin) {
 function readJson(path) {
   if (!existsSync(path)) return null;
   try { return JSON.parse(readFileSync(path, "utf-8")); } catch { return null; }
-}
-
-// OMC ships an Anthropic-API-fed rate-limit cache at .usage-cache-anthropic.json
-// when installed. Returns the inner data block or null when OMC is absent or
-// the cache is unparseable. Third-tier fallback for 5h/wk and only non-session
-// source for sonnet weekly.
-function readOmcUsageCache() {
-  const raw = readJson(OMC_USAGE_CACHE);
-  return raw && raw.data ? raw.data : null;
-}
-
-function omcBlock(pct, isoString) {
-  if (typeof pct !== "number") return null;
-  let resetsAt = null;
-  if (typeof isoString === "string") {
-    const ts = Date.parse(isoString);
-    if (!Number.isNaN(ts)) resetsAt = Math.floor(ts / 1000);
-  }
-  return { used_percentage: pct, resets_at: resetsAt };
 }
 
 function getFrame(state, tick) {
@@ -230,24 +209,6 @@ function detectState(session, compact, ctxPct) {
   return "idle";
 }
 
-function getOmcOutput(stdin) {
-  if (!existsSync(OMC_HUD)) return "";
-  try {
-    const raw = execSync(`node "${OMC_HUD}"`, {
-      timeout: 5000, encoding: "utf-8",
-      input: stdin, stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-    if (!raw) return "";
-    return raw.split("\n").filter(l => !OMC_NOISE.some(re => re.test(l))).join("\n").trim();
-  } catch { return ""; }
-}
-
-// --- Terminal width helpers ---
-
-function terminalCols() {
-  return process.stdout.columns ?? Infinity;
-}
-
 // --- Main ---
 
 function main() {
@@ -262,13 +223,7 @@ function main() {
   if (session && session.last_query_time) {
     const elapsed = (Date.now() / 1000) - session.last_query_time;
     if (elapsed > 1800) {
-      const omc = getOmcOutput(stdin);
-      if (omc) {
-        console.log(omc);
-      } else {
-        // Non-OMC users: emit a minimal fallback so the statusline is never blank
-        console.log(`[${POLY_LABEL}] [^.^]~ idle`);
-      }
+      console.log(`[${POLY_LABEL}] [^.^]~ idle`);
       return;
     }
   }
@@ -279,28 +234,20 @@ function main() {
   const ctxPct = (typeof liveCtx === "number")
     ? Math.round(liveCtx)
     : ((session && session.ctx_tokens) ? session.ctx_tokens : null);
-  // OMC cache (when installed) provides Anthropic-API-fresh values; used as
-  // the next fallback after stdin and session, and as the only non-session
-  // source for sonnet weekly.
-  const omcUsage = readOmcUsageCache();
-  const omcFh = omcUsage ? omcBlock(omcUsage.fiveHourPercent, omcUsage.fiveHourResetsAt) : null;
-  const omcWk = omcUsage ? omcBlock(omcUsage.weeklyPercent, omcUsage.weeklyResetsAt) : null;
-  const omcSn = omcUsage ? omcBlock(omcUsage.sonnetWeeklyPercent, omcUsage.sonnetWeeklyResetsAt) : null;
 
   const fh = resolveLimit(
-    cc?.rate_limits?.five_hour ?? omcFh,
+    cc?.rate_limits?.five_hour,
     sessionLimits.five_hour_pct,
     sessionLimits.five_hour_remaining_sec,
   );
   const wk = resolveLimit(
-    cc?.rate_limits?.seven_day ?? omcWk,
+    cc?.rate_limits?.seven_day,
     sessionLimits.weekly_pct,
     sessionLimits.weekly_remaining_sec,
   );
-  // snt: Claude Code stdin does not expose Sonnet weekly. Source order:
-  // OMC cache (Anthropic API) -> polyrouter session-state.
+  // snt: Claude Code stdin does not expose Sonnet weekly. Session-only.
   const snt = resolveLimit(
-    omcSn,
+    null,
     sessionLimits.sonnet_weekly_pct,
     sessionLimits.sonnet_weekly_remaining_sec,
   );
@@ -333,8 +280,8 @@ function main() {
   const retryToTier = session && session.retry_to_tier;
   const retryToEffort = session && session.retry_to_effort;
   const retryAtCeiling = session && session.retry_at_ceiling === true;
-
-  const cols = terminalCols();
+  // v1.9: Karpathy verifiability routing
+  const verifType = session && session.verifiability_type;
 
   // --- Model segment ---
   let modelSeg = "";
@@ -352,32 +299,32 @@ function main() {
       const toRoute = TIER_SHORT[retryToTier] || retryToTier;
       let fromEff = "";
       if (retryFromTier === "deep" && (retryFromEffort === "high" || retryFromEffort === "xhigh")) {
-        fromEff = `\u00B7${retryFromEffort}`;
+        fromEff = `·${retryFromEffort}`;
       }
       let toEff = "";
       if (retryToTier === "deep" && (retryToEffort === "high" || retryToEffort === "xhigh")) {
-        toEff = `\u00B7${retryToEffort}`;
+        toEff = `·${retryToEffort}`;
       }
-      base = `${fromModel}\u00B7${fromRoute}${fromEff} \u2192 ${toModel}\u00B7${toRoute}${toEff}`;
+      base = `${fromModel}·${fromRoute}${fromEff} → ${toModel}·${toRoute}${toEff}`;
     } else {
       const model = TIER_MODELS[tier] || tier;
       const route = TIER_SHORT[tier] || tier;
       let effortSuffix = "";
       if (tier === "deep" && (effortLevel === "high" || effortLevel === "xhigh")) {
-        effortSuffix = `\u00B7${effortLevel}`;
+        effortSuffix = `·${effortLevel}`;
       }
-      base = `${model}\u00B7${route}${effortSuffix}`;
+      base = `${model}·${route}${effortSuffix}`;
     }
 
     if (subagentActive) {
       modelSeg = `prompt:${base}`;
       if (execAdvisor) {
-        modelSeg += `\u00B7adv`;
+        modelSeg += `·adv`;
       }
     } else {
       modelSeg = base;
       if (requiresAdvisor) {
-        modelSeg += `\u00B7adv`;
+        modelSeg += `·adv`;
       }
     }
 
@@ -385,27 +332,41 @@ function main() {
     const ctxCompact = (ctxPct !== null && ctxPct >= 70)
       || (cc && cc.exceeds_200k_tokens === true);
     if (ctxCompact) {
-      modelSeg += " \u26A0compact";
+      modelSeg += " ⚠compact";
     }
 
     // v1.7: silent model swap (CC used a different family than poly routed)
     if (swapDetected) {
-      modelSeg += " \u26A0swap";
+      modelSeg += " ⚠swap";
     }
 
     // v1.7: retry at ceiling (deep/xhigh) — no escalation possible
     if (retryActive && retryAtCeiling) {
-      modelSeg += " \u26A0max";
+      modelSeg += " ⚠max";
+    }
+
+    // v1.9: Karpathy verifiability indicator
+    if (verifType === "verifiable") {
+      modelSeg += " ✓"; // ✓
+    } else if (verifType === "non_verifiable") {
+      modelSeg += " ~";
     }
   }
 
   // --- Exec segment ---
+  // v1.9: show indicator whenever a subagent is active, even when the
+  // exec_model snapshot has not landed yet (race between Task dispatch
+  // and PreToolUse:Task hook write).
   let execSeg = "";
-  if (subagentActive && execModel) {
-    const execParts = [execModel];
-    if (execEffort) execParts.push(execEffort);
-    if (execAdvisor) execParts.push("adv");
-    execSeg = ` \u2699 exec:${execParts.join("\u00B7")}`;
+  if (subagentActive) {
+    if (execModel) {
+      const execParts = [execModel];
+      if (execEffort) execParts.push(execEffort);
+      if (execAdvisor) execParts.push("adv");
+      execSeg = ` ⚙ exec:${execParts.join("·")}`;
+    } else {
+      execSeg = ` ⚙ exec:running`;
+    }
   }
 
   // --- Group 1: prefix + mascot + model + exec ---
@@ -418,24 +379,21 @@ function main() {
   const group1 = group1Parts.join(" ");
 
   // --- Middle group: 🤖N cache ctx ---
-  // Priority for dropping: snt > wk > 5h > ctx > 🤖N > cache
-  // v1.8.2 tiered hiding: < 60 drops \uD83E\uDD16N + cache, 60-79 drops ctx, 80+ keeps all
+  // v1.9: always emit when data is present. CC owns terminal-width wrapping.
   const middleParts = [];
-  if (subagentCount > 0 && cols >= 60) {
-    middleParts.push(`\uD83E\uDD16${subagentCount}`);
+  if (subagentCount > 0) {
+    middleParts.push(`🤖${subagentCount}`);
   }
-  if (elapsed !== null && cols >= 60) {
+  if (elapsed !== null) {
     const cb = cacheBar(elapsed);
     middleParts.push(ansiColor(cb.bar, cb.color));
   }
-  if (ctxPct !== null && cols >= 80) {
+  if (ctxPct !== null) {
     middleParts.push(`ctx:${colorPct(ctxPct)}`);
   }
 
-  // --- Limits group (tiered hiding) ---
-  // Live values from Claude Code stdin override session-file values when
-  // present. snt segment is session-only since Claude Code does not expose
-  // Sonnet weekly usage.
+  // --- Limits group ---
+  // v1.9: always emit when data is present.
   const limitsParts = [];
   const renderLimit = (label, pct, remSec) => {
     if (pct == null) return null;
@@ -443,29 +401,17 @@ function main() {
     const v = colorPct(pct);
     return r ? `${label}:${v}(${r})` : `${label}:${v}`;
   };
-  // v1.8.2 tiered hiding for limits group
-  if (cols >= 120) {
-    // cols 120+: show 5h + wk + snt
-    const a = renderLimit("5h", fh.pct, fh.rem); if (a) limitsParts.push(a);
-    const b = renderLimit("wk", wk.pct, wk.rem); if (b) limitsParts.push(b);
-    const c = renderLimit("snt", sntPct, sntRem); if (c) limitsParts.push(c);
-  } else if (cols >= 100) {
-    // cols 100-119: show 5h + wk, drop snt
-    const a = renderLimit("5h", fh.pct, fh.rem); if (a) limitsParts.push(a);
-    const b = renderLimit("wk", wk.pct, wk.rem); if (b) limitsParts.push(b);
-  } else if (cols >= 80) {
-    // cols 80-99: show only 5h, drop wk + snt
-    const a = renderLimit("5h", fh.pct, fh.rem); if (a) limitsParts.push(a);
-  }
-  // cols < 80: limits dropped entirely
+  const a = renderLimit("5h", fh.pct, fh.rem); if (a) limitsParts.push(a);
+  const b = renderLimit("wk", wk.pct, wk.rem); if (b) limitsParts.push(b);
+  const c = renderLimit("snt", sntPct, sntRem); if (c) limitsParts.push(c);
 
   // --- Tail: savings + lang ---
-  // v1.8.2 tiered hiding: savings >= 100, lang >= 120
+  // v1.9: always emit when data is present.
   const tailParts = [];
-  if (stats && stats.estimated_savings > 0 && cols >= 100) {
-    tailParts.push(`$${stats.estimated_savings.toFixed(2)}\u2193`);
+  if (stats && stats.estimated_savings > 0) {
+    tailParts.push(`$${stats.estimated_savings.toFixed(2)}↓`);
   }
-  if (session && session.last_language && cols >= 120) {
+  if (session && session.last_language) {
     tailParts.push(session.last_language);
   }
 
@@ -475,13 +421,7 @@ function main() {
   if (limitsParts.length > 0) segments.push(limitsParts.join(" "));
   if (tailParts.length > 0) segments.push(tailParts.join(" "));
 
-  const polyLine = segments.join(SEP);
-
-  // OMC coexistence: OMC goes first
-  const omc = getOmcOutput(stdin);
-  const output = omc ? `${omc}  ${polyLine}` : polyLine;
-
-  console.log(output);
+  console.log(segments.join(SEP));
  } catch (_e) {
   // v1.8.2: never let the HUD vanish — emit minimal fallback on any throw.
   try { console.log(`[${POLY_LABEL}] [^.^]~`); } catch (_e2) { /* silent */ }
