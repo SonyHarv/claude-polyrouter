@@ -92,7 +92,7 @@ def _fetch_usage(token: str) -> dict | None:
             headers={
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
-                "User-Agent": "claude-polyrouter/1.9.3",
+                "User-Agent": "claude-polyrouter/1.9.4",
             },
         )
         with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SEC) as resp:

@@ -236,7 +236,7 @@ function refreshUsageCache() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
-        "User-Agent": "claude-polyrouter/1.9.3",
+        "User-Agent": "claude-polyrouter/1.9.4",
       },
     }, (res) => {
       if (res.statusCode !== 200) { res.resume(); resolve(false); return; }

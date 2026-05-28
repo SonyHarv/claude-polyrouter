@@ -54,6 +54,9 @@ DEFAULT_SESSION = {
     # v1.7 CALIDAD #17: CC's session_name (preserved across /clear in
     # CC v2.1.120+). Empty / unnamed sessions store None.
     "session_name": None,
+    # v1.9.4: intelligent slash commands — content of the active spec
+    # set by /spec, consumed by /work
+    "active_spec": None,
     # v1.8: CC v2.1.122+ effort passthrough + skew detection
     "cc_effort_level": None,       # effort CC actually executed (low/medium/high/xhigh)
     "effort_skew_detected": False, # True when poly's decision != CC's execution
@@ -210,6 +213,24 @@ class SessionState:
             return
         state = self.read()
         state["session_name"] = name
+        self._state = state
+        self._write(state)
+
+    def set_active_spec(self, content: str | None) -> None:
+        """Persist the active spec text used by /work (v1.9.4)."""
+        state = self.read()
+        state["active_spec"] = content
+        self._state = state
+        self._write(state)
+
+    def get_active_spec(self) -> str | None:
+        """Return the active spec text or None (v1.9.4)."""
+        return self.read().get("active_spec")
+
+    def clear_active_spec(self) -> None:
+        """Clear the active spec (v1.9.4)."""
+        state = self.read()
+        state["active_spec"] = None
         self._state = state
         self._write(state)
 

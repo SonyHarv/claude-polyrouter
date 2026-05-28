@@ -884,36 +884,99 @@ def detect_verifiability(query: str) -> tuple[str, float]:
 
 # --- Stage functions ---
 
-def _stage_exception_check(query: str, session: SessionState) -> dict | None:
-    """Stage 1: Check for exceptions that skip routing entirely.
+def _stage_exception_check(
+    query: str,
+    session: SessionState,
+    config: dict,
+) -> tuple[dict | None, str, str | None]:
+    """Stage 1: exceptions + intelligent slash-command routing (v1.9.4).
 
-    Returns a skip output dict if routing should be skipped, None otherwise.
+    Returns (early_output, modified_query, force_min_tier):
+      - early_output: print + return immediately when non-None.
+      - modified_query: possibly-rewritten query for downstream stages.
+      - force_min_tier: "standard" or "deep" tier floor, applied after
+        scoring so /spec lands on deep and /work never lands on fast.
     """
     # Empty or whitespace-only input
     if not query or not query.strip():
-        return _skip_output("empty_input")
+        return _skip_output("empty_input"), query, None
 
     stripped = query.strip()
 
-    # Slash commands
+    # Slash commands — v1.9.4 intelligent routing
     if stripped.startswith("/"):
-        return _skip_output("slash_command")
+        parts = stripped.split(None, 1)
+        cmd = parts[0].lower()
+        has_context = len(parts) > 1 and bool(parts[1].strip())
+
+        # /spec → always deep/opus, with or without context
+        if cmd == "/spec":
+            inner = parts[1].strip() if has_context else "implementation"
+            # Inject arch keywords so the scorer also routes to deep.
+            new_query = f"plan architecture design spec {inner}"
+            return None, new_query, "deep"
+
+        # /work → never fast; use saved spec when available
+        if cmd == "/work":
+            try:
+                spec = session.get_active_spec()
+            except Exception:
+                spec = None
+            if spec:
+                return None, spec, "standard"
+            if has_context:
+                return None, parts[1].strip(), "standard"
+            # No spec and no context → route to standard with a warning.
+            level_cfg = config.get("levels", {}).get("standard", {})
+            model = level_cfg.get("model", "sonnet")
+            agent = level_cfg.get("agent", "standard-executor")
+            return (
+                _route_output(
+                    level="standard",
+                    model=model,
+                    agent=agent,
+                    confidence=0.8,
+                    method="work_no_spec",
+                    signals="no_active_spec",
+                    language="es",
+                    query="/work",
+                    effort="medium",
+                    advisor_block_override=(
+                        "[POLY] No hay spec activo.\n"
+                        "Recomendación: usa /spec antes de /work\n"
+                        "para definir criterios de éxito y scope."
+                    ),
+                ),
+                query,
+                None,
+            )
+
+        # /commit-push-pr → always standard/sonnet
+        if cmd == "/commit-push-pr":
+            return None, "review code commit prepare pull request", "standard"
+
+        # Other slash commands with context → score the context
+        if has_context:
+            return None, parts[1].strip(), None
+
+        # Bare slash command → skip
+        return _skip_output("slash_command"), query, None
 
     # Meta-queries about the router itself
     query_lower = stripped.lower()
     for keyword in META_KEYWORDS:
         if keyword in query_lower:
-            return _skip_output("meta_query")
+            return _skip_output("meta_query"), query, None
 
     # Continuation tokens: reuse last route
     if query_lower in CONTINUATION_TOKENS:
         state = session.read()
         last_level = state.get("last_level")
         if last_level:
-            return None  # Will be handled as follow-up with cached route
-        return _skip_output("continuation_no_history")
+            return None, query, None  # follow-up handled with cached route
+        return _skip_output("continuation_no_history"), query, None
 
-    return None
+    return None, query, None
 
 
 def _stage_cache_lookup(query: str, cache: Cache) -> dict | None:
@@ -1167,13 +1230,17 @@ def main() -> None:
         print(json.dumps(stats_output))
         return
 
-    # --- Stage 1: Exception check ---
+    # --- Stage 1: Exception check + intelligent slash commands (v1.9.4) ---
+    force_min_tier: str | None = None
     try:
-        skip_result = _stage_exception_check(query, session)
+        skip_result, query, force_min_tier = _stage_exception_check(
+            query, session, config,
+        )
         if skip_result is not None:
             print(json.dumps(skip_result))
             return
     except Exception:
+        force_min_tier = None
         pass  # Continue pipeline on error
 
     # --- Stage 2: Intent Override (always max priority) ---
@@ -1396,6 +1463,21 @@ def main() -> None:
     except Exception:
         pass
 
+    # --- Stage 8c: Slash-command tier floor (v1.9.4) ---
+    # /spec forces deep at minimum; /work and /commit-push-pr force standard
+    # at minimum. Runs after Stage 8b so verifiability cannot downgrade
+    # /spec back to standard. Method is tagged unconditionally so the
+    # downstream active-spec persistence gate fires even when scoring
+    # already landed on deep on its own.
+    if force_min_tier == "deep":
+        if level != "deep":
+            level = "deep"
+        method = f"{method}+slash_spec"
+    elif force_min_tier == "standard":
+        if level == "fast":
+            level = "standard"
+        method = f"{method}+slash_floor"
+
     # --- Build output ---
     level_cfg = config.get("levels", {}).get(level, {})
     model = level_cfg.get("model", level)
@@ -1439,6 +1521,15 @@ def main() -> None:
         session.update(level, display_language)
     except Exception:
         pass
+
+    # v1.9.4: Persist active spec when /spec resolves to deep so /work can
+    # reuse it. Gated on the synthetic method suffix to avoid catching
+    # unrelated paths that happen to end up at deep.
+    if level == "deep" and "slash_spec" in method:
+        try:
+            session.set_active_spec(query)
+        except Exception:
+            pass
 
     # --- Dynamic effort: deep tier gets sub-classification ---
     # User override (env var) wins over dynamic; compute_effort already honors it.
