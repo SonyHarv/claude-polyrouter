@@ -305,7 +305,7 @@ class TestFormatStatusLine:
             tier="fast",
             swap_detected=True,
             swap_expected="haiku",
-            swap_actual="claude-opus-4-7",
+            swap_actual="claude-opus-4-8",
         )
         assert "\u26a0swap" in line
 
@@ -336,7 +336,7 @@ class TestFormatStatusLine:
             exec_effort="xhigh",
             swap_detected=True,
             swap_expected="haiku",
-            swap_actual="claude-opus-4-7",
+            swap_actual="claude-opus-4-8",
         )
         assert "\u26a0swap" in line
         assert "exec:opus" in line

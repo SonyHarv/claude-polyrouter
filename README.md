@@ -33,6 +33,38 @@ Routing happens automatically on every query via a `UserPromptSubmit` hook. No m
 
 ---
 
+## v1.9.5 Highlights
+
+### Routing más inteligente
+- **Context-aware prompt enhancer**: prompts de implementación largos
+  se elevan automáticamente a Sonnet/Opus — ya no van a Haiku
+- **Slash commands inteligentes**: /spec siempre → Opus,
+  /work analiza el spec activo para decidir el modelo
+- **Soul Map**: aprende tus preferencias explícitas de modelo
+  (cuando mencionas "usa opus", "con sonnet", etc.)
+
+### HUD honesto
+- **exec_model real**: el HUD ahora muestra el modelo que CC
+  realmente usó para ejecutar, no solo el que poly predijo
+- **Prompt quality scorer**: q:N% en el HUD cuando el prompt
+  puede mejorar (oculto cuando es >= 80%)
+- **⏱ Tiempo de sesión**: muestra cuánto lleva la sesión activa
+  (verde <30m, amarillo 30-60m, rojo >60m → señal para /compact)
+- **🤖99+**: soporte para Dynamic Workflows con cientos de subagentes
+
+### Robustez
+- **Session state por proyecto**: cada proyecto tiene su propio
+  estado de routing — las sesiones ya no se interfieren entre sí
+- **Fallback model support**: si Opus no está disponible,
+  poly degrada a Sonnet automáticamente
+- **Effort skew detection**: detecta cuando CC usa un effort
+  diferente al que poly esperaba
+
+### Core
+- **claude-opus-4-8**: modelo actualizado al último Opus
+- **CC max → xhigh**: el nivel max de CC mapea al techo de poly
+- **983 tests passing**
+
 ## v1.9 Highlights
 
 - **Verifiability routing (Karpathy)** — Tasks with verifiable outcomes route to Opus; heuristic-only tasks stay on Sonnet. `✓`/`~` indicator in the HUD model segment

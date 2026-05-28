@@ -27,7 +27,7 @@ class TestDefaultConfig:
     def test_model_ids_pin_explicit_versions(self):
         assert DEFAULT_CONFIG["levels"]["fast"]["model_id"] == "claude-haiku-4-5"
         assert DEFAULT_CONFIG["levels"]["standard"]["model_id"] == "claude-sonnet-4-6"
-        assert DEFAULT_CONFIG["levels"]["deep"]["model_id"] == "claude-opus-4-7"
+        assert DEFAULT_CONFIG["levels"]["deep"]["model_id"] == "claude-opus-4-8"
 
     def test_default_level_is_fast(self):
         assert DEFAULT_CONFIG["default_level"] == "fast"

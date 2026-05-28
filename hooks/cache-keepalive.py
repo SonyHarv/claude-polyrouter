@@ -28,9 +28,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from lib.config import DEFAULT_CONFIG, load_config
+from lib.config import DEFAULT_CONFIG, SESSION_PATH, load_config
 
-SESSION_PATH = Path.home() / ".claude" / "polyrouter-session.json"
 
 DEFAULT_KEEPALIVE = {
     "enabled": True,

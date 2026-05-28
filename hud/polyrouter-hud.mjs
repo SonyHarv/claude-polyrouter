@@ -31,7 +31,13 @@ const POLY_LABEL = (() => {
     return pkg && pkg.version ? `poly v${pkg.version}` : "poly";
   } catch { return "poly"; }
 })();
-const SESSION_PATH = join(home, ".claude", "polyrouter-session.json");
+const projectDir = process.env.CLAUDE_PROJECT_DIR || "";
+const projectName = projectDir
+  ? basename(projectDir).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 50)
+  : null;
+const SESSION_PATH = projectName
+  ? join(home, ".claude", `polyrouter-session-${projectName}.json`)
+  : join(home, ".claude", "polyrouter-session.json");
 const STATS_PATH = join(home, ".claude", "polyrouter-stats.json");
 const COMPACT_PATH = join(home, ".claude", "polyrouter-compact.json");
 
@@ -413,6 +419,8 @@ function main() {
   const effortLevel = session && session.effort_level;
   const requiresAdvisor = session && session.requires_advisor;
   const swapDetected = session && session.swap_detected === true;
+  // v1.9.6: effort skew (CC's executed effort != poly's decision)
+  const effortSkewDetected = session && session.effort_skew_detected === true;
   // v1.7: retry-escalation state
   const retryActive = session && session.retry_active === true;
   const retryFromTier = session && session.retry_from_tier;
@@ -422,6 +430,13 @@ function main() {
   const retryAtCeiling = session && session.retry_at_ceiling === true;
   // v1.9: Karpathy verifiability routing
   const verifType = session && session.verifiability_type;
+  // v1.9.6: prompt quality scorer (0-100) + active-session start time
+  const promptQuality = session && typeof session.prompt_quality === "number"
+    ? session.prompt_quality
+    : null;
+  const routingStartedAt = session && typeof session.routing_started_at === "number"
+    ? session.routing_started_at
+    : null;
 
   // --- Model segment ---
   let modelSeg = "";
@@ -480,6 +495,11 @@ function main() {
       modelSeg += " ⚠swap";
     }
 
+    // v1.9.6: effort skew (CC's executed effort != poly's decision)
+    if (effortSkewDetected) {
+      modelSeg += " ⚠skew";
+    }
+
     // v1.7: retry at ceiling (deep/xhigh) — no escalation possible
     if (retryActive && retryAtCeiling) {
       modelSeg += " ⚠max";
@@ -496,6 +516,14 @@ function main() {
     // subagent case is handled below on the exec segment).
     if (!subagentActive && effortLevel === "xhigh") {
       modelSeg += "🧠";
+    }
+
+    // v1.9.6: prompt quality nudge — hide when good (>=80); yellow 50-79,
+    // red <50 so an under-specified prompt is visible at a glance.
+    if (promptQuality !== null && promptQuality < 80) {
+      const qColor = promptQuality >= 50 ? ANSI_YELLOW : ANSI_RED;
+      const qText = `q:${promptQuality}%`;
+      modelSeg += " " + (colorEnabled() ? `${qColor}${qText}${ANSI_RESET}` : qText);
     }
   }
 
@@ -533,7 +561,10 @@ function main() {
   // v1.9: always emit when data is present. CC owns terminal-width wrapping.
   const middleParts = [];
   if (subagentCount > 0) {
-    middleParts.push(`🤖${subagentCount}`);
+    // v1.9.6: Dynamic Workflows can fan out to hundreds of subagents —
+    // cap the display at 99+ so the status line never bloats.
+    const countLabel = subagentCount >= 100 ? "99+" : String(subagentCount);
+    middleParts.push(`🤖${countLabel}`);
   }
   if (elapsed !== null) {
     const cb = cacheBar(elapsed);
@@ -575,6 +606,14 @@ function main() {
     const cwdName = basename(process.cwd());
     if (cwdName) tailParts.push(`📁${cwdName}`);
   } catch { /* silent */ }
+  // v1.9.6: ⏱{m}m active-session time. Green <30min, yellow 30-60 (consider
+  // /compact), red >60 (restart recommended).
+  if (routingStartedAt !== null) {
+    const elapsedMin = Math.max(0, Math.floor((Date.now() / 1000 - routingStartedAt) / 60));
+    const tColor = elapsedMin > 60 ? ANSI_RED : (elapsedMin >= 30 ? ANSI_YELLOW : ANSI_GREEN);
+    const tText = `⏱${elapsedMin}m`;
+    tailParts.push(colorEnabled() ? `${tColor}${tText}${ANSI_RESET}` : tText);
+  }
   if (stats && stats.estimated_savings > 0) {
     tailParts.push(`$${stats.estimated_savings.toFixed(2)}↓`);
   }

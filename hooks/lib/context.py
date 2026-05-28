@@ -2,12 +2,14 @@
 
 import copy
 import json
+import os
 import re
 import time
 from pathlib import Path
 
 DEFAULT_SESSION = {
     "last_route": None,
+    "project_dir": None,  # CLAUDE_PROJECT_DIR cuando está disponible
     "last_level": None,
     "conversation_depth": 0,
     "last_query_time": None,
@@ -19,6 +21,7 @@ DEFAULT_SESSION = {
     # v1.6 additions
     "subagent_count": 0,
     "exec_model": None,
+    "exec_model_full": None,  # full model id e.g. claude-opus-4-8 (real, from transcript)
     "exec_effort": None,
     "exec_advisor": False,
     "ctx_tokens": 0,
@@ -26,7 +29,7 @@ DEFAULT_SESSION = {
     # v1.7: silent model swap detection
     "swap_detected": False,
     "swap_expected": None,   # tier family, e.g. "haiku"
-    "swap_actual": None,     # full model id from transcript, e.g. "claude-opus-4-7"
+    "swap_actual": None,     # full model id from transcript, e.g. "claude-opus-4-8"
     # v1.7: retry-escalation arrow
     "retry_active": False,
     "retry_from_tier": None,    # "fast" | "standard" | "deep"
@@ -62,6 +65,10 @@ DEFAULT_SESSION = {
     "effort_skew_detected": False, # True when poly's decision != CC's execution
     # v1.9: Karpathy verifiability routing
     "verifiability_type": None,    # "verifiable" | "non_verifiable" | "unknown" | None
+    # v1.9.6: fallback-model degradation (ANTHROPIC_FALLBACK_MODEL active)
+    "fallback_used": False,        # True when the primary deep model was unavailable
+    # v1.9.6: prompt quality scorer (HUD nudge) — 0-100 or None
+    "prompt_quality": None,
 }
 
 
@@ -135,7 +142,12 @@ class SessionState:
         exec_effort: str | None = None,
         exec_advisor: bool = False,
     ) -> None:
-        """Set subagent_active, increment counter, snapshot exec params."""
+        """Set subagent_active, increment counter, snapshot exec params.
+
+        No artificial cap on the counter — Dynamic Workflows can fan out to
+        hundreds of concurrent subagents. The HUD caps the *display* at 99+
+        (see lib.hud); the stored count stays exact.
+        """
         state = self.read()
         state["subagent_active"] = True
         state["subagent_count"] = state.get("subagent_count", 0) + 1
@@ -159,6 +171,29 @@ class SessionState:
         self._state = state
         self._write(state)
 
+    def update_exec_model_real(self, model_id: str) -> None:
+        """Update exec_model with the real model CC used (read from transcript).
+
+        Called from SubagentStop after the subagent finishes. This overwrites
+        the predicted exec_model (set by mark_subagent_active) with the actual
+        model id Claude Code assigned, so the HUD reflects reality rather than
+        poly's routing guess.
+        """
+        if not isinstance(model_id, str) or not model_id:
+            return
+        state = self.read()
+        # Normalize model_id to family name for HUD display
+        # e.g. "claude-opus-4-8" → "opus", "claude-sonnet-4-6" → "sonnet"
+        family = (
+            "opus" if "opus" in model_id else
+            "sonnet" if "sonnet" in model_id else
+            "haiku" if "haiku" in model_id else model_id
+        )
+        state["exec_model"] = family
+        state["exec_model_full"] = model_id  # guardar ID completo también
+        self._state = state
+        self._write(state)
+
     def reset_subagent_state(self) -> None:
         """Force-clear subagent tracking fields (v1.8.3, SessionStart safety net).
 
@@ -170,8 +205,10 @@ class SessionState:
         state["subagent_active"] = False
         state["subagent_count"] = 0
         state["exec_model"] = None
+        state["exec_model_full"] = None
         state["exec_effort"] = None
         state["exec_advisor"] = False
+        state["project_dir"] = os.environ.get("CLAUDE_PROJECT_DIR", None)
         self._state = state
         self._write(state)
 
@@ -243,8 +280,8 @@ class SessionState:
         """
         if cc_effort is None or cc_effort in ("low", "medium", "high", "xhigh", "max"):
             state = self.read()
-            # Normalize "max" → "high" to match CC's effort_level enum
-            normalized = "high" if cc_effort == "max" else cc_effort
+            # v1.9.5: map CC's "max" (Opus 4.8) → poly's ceiling "xhigh"
+            normalized = "xhigh" if cc_effort == "max" else cc_effort
             state["cc_effort_level"] = normalized
             # Skew = poly routed X but CC executed Y (only flag when both known)
             poly_effort = state.get("effort_level")
@@ -269,6 +306,45 @@ class SessionState:
         self._state = state
         self._write(state)
 
+    def update_fallback_used(self, used: bool) -> None:
+        """Persist whether the primary (deep) model was unavailable this turn.
+
+        Set from classify-prompt when ANTHROPIC_FALLBACK_MODEL is active and
+        the deep tier was degraded to standard. The HUD surfaces it so the
+        routed tier is honest about what model will actually run.
+        """
+        state = self.read()
+        state["fallback_used"] = bool(used)
+        self._state = state
+        self._write(state)
+
+    def set_effort_skew(self, detected: bool) -> None:
+        """Force the effort-skew flag (v1.9.6).
+
+        update_cc_effort() flags skew by comparing CC's effort against poly's
+        decision. This setter lets the router assert skew after the routing
+        tier is final — e.g. CC requested "max" but poly routed below deep.
+        """
+        state = self.read()
+        state["effort_skew_detected"] = bool(detected)
+        self._state = state
+        self._write(state)
+
+    def update_prompt_quality(self, score: int | None) -> None:
+        """Persist the 0-100 prompt-quality score for this turn (v1.9.6).
+
+        None clears it; any int is clamped to [0, 100]. The HUD renders a
+        q:N% nudge when the score is below the 'good' threshold so the user
+        sees, at a glance, when a prompt is under-specified.
+        """
+        state = self.read()
+        if score is None:
+            state["prompt_quality"] = None
+        else:
+            state["prompt_quality"] = max(0, min(100, int(score)))
+        self._state = state
+        self._write(state)
+
     def update_ctx_tokens(self, tokens: int) -> None:
         """Persist latest context token count (written by classify-prompt)."""
         state = self.read()
@@ -287,7 +363,7 @@ class SessionState:
         """Persist a silent model swap detection (v1.7).
 
         expected: tier family poly routed for (e.g. "haiku").
-        actual:   model id Claude Code actually used (e.g. "claude-opus-4-7").
+        actual:   model id Claude Code actually used (e.g. "claude-opus-4-8").
         """
         state = self.read()
         state["swap_detected"] = True

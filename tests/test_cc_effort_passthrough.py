@@ -15,11 +15,11 @@ def test_update_cc_effort_persists(tmp_path):
     assert state["cc_effort_level"] == "xhigh"
 
 
-def test_update_cc_effort_normalizes_max_to_high(tmp_path):
+def test_update_cc_effort_normalizes_max_to_xhigh(tmp_path):
     s = SessionState(tmp_path / "session.json")
     s.update_cc_effort("max")
     state = json.loads((tmp_path / "session.json").read_text())
-    assert state["cc_effort_level"] == "high"
+    assert state["cc_effort_level"] == "xhigh"
 
 
 def test_effort_skew_when_poly_and_cc_differ(tmp_path):

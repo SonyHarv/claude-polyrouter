@@ -13,8 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from lib.context import SessionState  # noqa: E402
-
-SESSION_PATH = Path.home() / ".claude" / "polyrouter-session.json"
+from lib.config import SESSION_PATH  # noqa: E402
 
 
 def main() -> None:

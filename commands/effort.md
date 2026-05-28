@@ -43,7 +43,8 @@ Example:
 
 - `xhigh` — polyrouter-only level; the native slider does not reach it.
 - **Visible in the polyrouter HUD** — the native slider does not write
-  to `~/.claude/polyrouter-session.json`, so the HUD effort segment
-  cannot reflect it.
+  to the session file (`~/.claude/polyrouter-session-<project>.json` per
+  project, or `~/.claude/polyrouter-session.json` when no project is set),
+  so the HUD effort segment cannot reflect it.
 - **One-shot semantics** — temporary boost without disturbing the
   global slider state.

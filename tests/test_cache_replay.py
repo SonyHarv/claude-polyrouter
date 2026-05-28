@@ -30,6 +30,9 @@ def run_hook(query: str, home_dir: str) -> dict:
     env["HOME"] = home_dir
     # Ensure no env effort override interferes
     env.pop("CLAUDE_CODE_EFFORT_LEVEL", None)
+    # Per-project session uses CLAUDE_PROJECT_DIR; clear it so the subprocess
+    # writes to the global file this test reads (deterministic fallback).
+    env.pop("CLAUDE_PROJECT_DIR", None)
 
     input_data = json.dumps({"hookEventName": "UserPromptSubmit", "query": query})
     result = subprocess.run(

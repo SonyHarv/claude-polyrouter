@@ -198,6 +198,9 @@ def format_status_line(
     swap_detected: bool = False,
     swap_expected: str | None = None,
     swap_actual: str | None = None,
+    effort_skew_detected: bool = False,
+    prompt_quality: int | None = None,
+    session_elapsed_min: int | None = None,
     retry_active: bool = False,
     retry_from_tier: str | None = None,
     retry_from_effort: str | None = None,
@@ -271,9 +274,17 @@ def format_status_line(
         if swap_detected:
             model_seg += " \u26a0swap"
 
+        # v1.9.6: effort skew (CC's executed effort != poly's decision)
+        if effort_skew_detected:
+            model_seg += " \u26a0skew"
+
         # v1.7: retry at ceiling (deep/xhigh) — no escalation possible
         if retry_active and retry_at_ceiling:
             model_seg += " \u26a0max"
+
+        # v1.9.6: prompt quality nudge \u2014 hide when good (>=80), else q:N%.
+        if prompt_quality is not None and prompt_quality < 80:
+            model_seg += f" q:{prompt_quality}%"
 
     # --- Exec segment (only when subagent active) ---
     exec_seg = ""
@@ -295,7 +306,10 @@ def format_status_line(
     # --- Middle group: 🤖N cache ctx ---
     middle_parts = []
     if subagent_count > 0:
-        middle_parts.append(f"\U0001f916{subagent_count}")
+        # v1.9.6: Dynamic Workflows can fan out to hundreds of subagents —
+        # cap the display at 99+ so the status line never bloats.
+        count_label = "99+" if subagent_count >= 100 else str(subagent_count)
+        middle_parts.append(f"\U0001f916{count_label}")
     if elapsed is not None:
         bar, _color = cache_bar(elapsed)
         middle_parts.append(bar)
@@ -322,8 +336,11 @@ def format_status_line(
             rem_str = _format_seconds(snt_rem)
             limits_parts.append(f"snt:{snt_pct}%({rem_str})" if rem_str else f"snt:{snt_pct}%")
 
-    # --- Tail: savings + language ---
+    # --- Tail: session time + savings + language ---
     tail_parts = []
+    # v1.9.6: \u23f1{m}m active-session time (from session.routing_started_at).
+    if session_elapsed_min is not None:
+        tail_parts.append(f"\u23f1{session_elapsed_min}m")
     if savings > 0:
         tail_parts.append(f"${savings:.2f}\u2193")
     if language:

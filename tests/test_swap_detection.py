@@ -55,9 +55,9 @@ class TestGetLastAssistantModel:
         path = transcript([
             "claude-haiku-4-5",
             "claude-sonnet-4-6",
-            "claude-opus-4-7",
+            "claude-opus-4-8",
         ])
-        assert get_last_assistant_model(str(path)) == "claude-opus-4-7"
+        assert get_last_assistant_model(str(path)) == "claude-opus-4-8"
 
     def test_returns_none_for_empty_transcript(self, tmp_path):
         empty = tmp_path / "empty.jsonl"
@@ -77,7 +77,7 @@ class TestDetectSilentSwap:
 
     def test_first_turn_no_last_level_clears_flag(self, session):
         # Pre-seed an old swap flag to verify it's cleared.
-        session.mark_swap("haiku", "claude-opus-4-7")
+        session.mark_swap("haiku", "claude-opus-4-8")
         assert session.read()["swap_detected"] is True
 
         classify_prompt._detect_silent_swap({}, session)
@@ -102,7 +102,7 @@ class TestDetectSilentSwap:
 
     def test_match_opus_no_swap(self, session, transcript):
         session.update("deep", "en")
-        path = transcript(["claude-opus-4-7"])
+        path = transcript(["claude-opus-4-8"])
         classify_prompt._detect_silent_swap(
             {"transcript_path": str(path)}, session
         )
@@ -117,7 +117,7 @@ class TestDetectSilentSwap:
         positive, so the gate clears the flag without firing mark_swap.
         """
         session.update("fast", "en")
-        path = transcript(["claude-opus-4-7"])
+        path = transcript(["claude-opus-4-8"])
         classify_prompt._detect_silent_swap(
             {"transcript_path": str(path)}, session
         )
@@ -129,7 +129,7 @@ class TestDetectSilentSwap:
     def test_standard_tier_transcript_signal_is_gated_v1_8_1(self, session, transcript):
         """v1.8.1: same gate applies to `standard` tier."""
         session.update("standard", "en")
-        path = transcript(["claude-opus-4-7"])
+        path = transcript(["claude-opus-4-8"])
         classify_prompt._detect_silent_swap(
             {"transcript_path": str(path)}, session
         )
@@ -137,9 +137,9 @@ class TestDetectSilentSwap:
 
     def test_fast_tier_clears_prior_swap_flag_v1_8_1(self, session, transcript):
         """Gate must clear any stale swap flag from a prior turn."""
-        session.mark_swap("haiku", "claude-opus-4-7")
+        session.mark_swap("haiku", "claude-opus-4-8")
         session.update("fast", "en")
-        path = transcript(["claude-opus-4-7"])
+        path = transcript(["claude-opus-4-8"])
         classify_prompt._detect_silent_swap(
             {"transcript_path": str(path)}, session
         )
@@ -166,7 +166,7 @@ class TestDetectSilentSwap:
         session.update("deep", "en")
         # Transcript says opus (would match expected) — stdin says haiku
         # (mismatches) → swap is detected on stdin signal.
-        path = transcript(["claude-opus-4-7"])
+        path = transcript(["claude-opus-4-8"])
         classify_prompt._detect_silent_swap(
             {"transcript_path": str(path), "effective_model": "claude-haiku-4-5"},
             session,
@@ -186,7 +186,7 @@ class TestDetectSilentSwap:
         """
         session.update("standard", "en")
         classify_prompt._detect_silent_swap(
-            {"effective_model": "claude-opus-4-7", "model": "claude-opus-4-7"},
+            {"effective_model": "claude-opus-4-8", "model": "claude-opus-4-8"},
             session,
         )
         state = session.read()
@@ -198,7 +198,7 @@ class TestDetectSilentSwap:
         """v1.8.2: same gate must apply to fast tier when stdin.model present."""
         session.update("fast", "en")
         classify_prompt._detect_silent_swap(
-            {"model": "claude-opus-4-7"},
+            {"model": "claude-opus-4-8"},
             session,
         )
         assert session.read()["swap_detected"] is False
@@ -222,10 +222,10 @@ class TestDetectSilentSwap:
 
     def test_match_clears_prior_swap(self, session, transcript):
         # Turn N-1: swap was detected.
-        session.mark_swap("haiku", "claude-opus-4-7")
+        session.mark_swap("haiku", "claude-opus-4-8")
         # Turn N: poly routes deep, CC follows → expected family matches.
         session.update("deep", "en")
-        path = transcript(["claude-opus-4-7"])
+        path = transcript(["claude-opus-4-8"])
         classify_prompt._detect_silent_swap(
             {"transcript_path": str(path)}, session
         )

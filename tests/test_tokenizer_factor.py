@@ -1,6 +1,6 @@
 """Tests for v1.7 ADICIONAL #11: tokenizer calibration factor.
 
-The Claude 4.x family (haiku-4-5 / sonnet-4-6 / opus-4-7) tokenizes
+The Claude 4.x family (haiku-4-5 / sonnet-4-6 / opus-4-8) tokenizes
 ~1.35× denser than the pre-4.x tokenizer used to derive the per-prompt
 token estimates in _calculate_savings. The factor is configurable via
 the top-level `tokenizer_factor` field, applied uniformly across all

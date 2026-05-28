@@ -20,10 +20,28 @@ See `docs/ADDING-A-TIER.md` for the runbook.
 import copy
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
 GLOBAL_CONFIG_PATH = Path.home() / ".claude" / "polyrouter" / "config.json"
+
+
+def get_session_path() -> Path:
+    """Return the session-file path for the current project.
+
+    With CLAUDE_PROJECT_DIR set, use a per-project session file.
+    Fallback to the shared global file for backward compatibility.
+    """
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
+    if project_dir:
+        project_name = Path(project_dir).name
+        safe_name = re.sub(r"[^a-zA-Z0-9_-]", "-", project_name)[:50]
+        return Path.home() / ".claude" / f"polyrouter-session-{safe_name}.json"
+    return Path.home() / ".claude" / "polyrouter-session.json"
+
+
+SESSION_PATH = get_session_path()
 
 DEFAULT_CONFIG = {
     "version": "1.4.0",
@@ -49,11 +67,13 @@ DEFAULT_CONFIG = {
         },
         "deep": {
             "model": "opus",
-            "model_id": "claude-opus-4-7",
+            "model_id": "claude-opus-4-8",
             "agent": "deep-executor",
             "default_effort": "high",
             "cost_per_1k_input": 0.015,
             "cost_per_1k_output": 0.075,
+            "fast_mode_cost_per_1k_input": 0.010,
+            "fast_mode_cost_per_1k_output": 0.050,
         },
     },
     "default_level": "fast",
@@ -71,7 +91,7 @@ DEFAULT_CONFIG = {
     # Tokenizer calibration: Claude 4.x family produces ~1.35× the tokens
     # of the pre-4.x tokenizer used to derive the per-prompt token estimates
     # in _calculate_savings. Applied uniformly across all tiers because
-    # haiku-4-5 / sonnet-4-6 / opus-4-7 share the same tokenizer family.
+    # haiku-4-5 / sonnet-4-6 / opus-4-8 share the same tokenizer family.
     # Set to 1.0 to recover pre-calibration behavior; bump if a future model
     # family changes the ratio again.
     "tokenizer_factor": 1.35,

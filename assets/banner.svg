@@ -24,24 +24,26 @@
   <rect x="0" y="184" width="780" height="56" fill="#161b22"/>
   <rect x="0" y="184" width="780" height="1" fill="#21262d"/>
   <text x="24" y="196" font-family="monospace" font-size="10">
-    <tspan fill="#f9fafb">[poly v1.9.3]</tspan>
+    <tspan fill="#f9fafb">[poly v1.9.5]</tspan>
     <tspan fill="#afa9ec"> [^.^]~</tspan>
     <tspan fill="#6ee7b7"> prompt:haiku·fast✓</tspan>
-    <tspan fill="#9ca3af"> ⚙ exec:opus·xhigh·adv🧠</tspan>
+    <tspan fill="#9ca3af"> ⚙ exec:opus·xhigh🧠</tspan>
+    <tspan fill="#ef9f27"> q:87%</tspan>
     <tspan fill="#6b7280"> │ </tspan>
-    <tspan fill="#afa9ec">🤖1</tspan>
+    <tspan fill="#afa9ec">🤖2</tspan>
     <tspan fill="#28c840"> cache:█████</tspan>
-    <tspan fill="#34d399"> ctx:6%</tspan>
-     <tspan fill="#6b7280">│ </tspan>
-    <tspan fill="#34d399">5h:45%(1h2m)</tspan>
-    <tspan fill="#34d399"> wk:9%(6d19h)</tspan>
+    <tspan fill="#34d399"> ctx:7%</tspan>
   </text>
   <text x="24" y="214" font-family="monospace" font-size="10">
-    <tspan fill="#34d399"> snt:3%(6d19h)</tspan>
-    <tspan fill="#34d399"> extra:1%($2.09/$150.00)</tspan>
+    <tspan fill="#6b7280">│ </tspan>
+    <tspan fill="#34d399">5h:45%(1h2m)</tspan>
+    <tspan fill="#34d399"> wk:28%(1h48m)</tspan>
+    <tspan fill="#34d399"> snt:30%(1h48m)</tspan>
+    <tspan fill="#ef9f27"> extra:1%($2.09/$150.00)</tspan>
     <tspan fill="#6b7280"> │ </tspan>
     <tspan fill="#9ca3af">📁mi-proyecto</tspan>
-    <tspan fill="#34d399"> $108↓</tspan>
+    <tspan fill="#6b7280"> ⏱47m</tspan>
+    <tspan fill="#34d399"> $124↓</tspan>
     <tspan fill="#9ca3af"> es</tspan>
   </text>
 </svg>

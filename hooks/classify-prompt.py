@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from lib.cache import Cache, fingerprint
 from lib.classifier import ClassificationResult, extract_signals, compile_patterns
-from lib.config import DEFAULT_CONFIG, load_config
+from lib.config import DEFAULT_CONFIG, SESSION_PATH, load_config
 from lib.context import SessionState
 from lib.detector import detect_language, load_languages
 from lib.intent_override import detect_intent_override
@@ -49,8 +49,9 @@ PLUGIN_ROOT = Path(
 )
 LANG_DIR = PLUGIN_ROOT / "languages"
 STATS_PATH = Path.home() / ".claude" / "polyrouter-stats.json"
-SESSION_PATH = Path.home() / ".claude" / "polyrouter-session.json"
 CACHE_PATH = Path.home() / ".claude" / "polyrouter-cache.json"
+# v1.9.6: Soul Map — learned record of EXPLICIT model preferences only.
+SOUL_PATH = Path.home() / ".claude" / "poly-soul.json"
 
 CONTINUATION_TOKENS = {
     "y", "sí", "si", "ok", "okay", "yes", "go", "sure", "right",
@@ -60,6 +61,218 @@ CONTINUATION_TOKENS = {
 }
 
 META_KEYWORDS = {"polyrouter", "routing", "router"}
+
+# v1.9.6: context-aware complexity enhancer — signal patterns. A prompt that
+# describes a substantial implementation task should never route below a
+# floor tier, even when the keyword scorer underestimates it.
+IMPLEMENTATION_SIGNALS = [
+    r'\b(implement|implementa|create|crea|build|construye|develop|desarrolla)\b',
+    r'\b(refactor|migrate|migra|upgrade|actualiza)\b',
+    r'\b(module|módulo|component|componente|service|servicio)\b',
+    r'\b(architecture|arquitectura|system|sistema|pipeline)\b',
+    r'\b(integration|integración|api|endpoint|database|base de datos)\b',
+]
+
+COMPLEXITY_SIGNALS = [
+    r'\b(complete|completo|full|entire|entero|all|todo)\b',
+    r'\b(multiple|múltiple|several|varios|all files|todos los archivos)\b',
+    r'\b(step by step|paso a paso|detailed|detallado)\b',
+]
+
+
+def detect_implementation_complexity(query: str) -> str | None:
+    """Detect if prompt is a complex implementation task.
+
+    Returns minimum tier override or None.
+    Rule: if prompt has 3+ implementation signals OR
+          (2+ implementation signals AND 1+ complexity signal)
+          AND word count > 30 → minimum standard.
+
+          if word count > 100 AND 2+ implementation signals → deep.
+    """
+    if not isinstance(query, str) or not query.strip():
+        return None
+    query_lower = query.lower()
+    word_count = len(query.split())
+
+    impl_hits = sum(
+        1 for p in IMPLEMENTATION_SIGNALS
+        if re.search(p, query_lower)
+    )
+    complex_hits = sum(
+        1 for p in COMPLEXITY_SIGNALS
+        if re.search(p, query_lower)
+    )
+
+    # Prompt largo con señales de implementación → opus (deep)
+    if word_count > 100 and impl_hits >= 2:
+        return "deep"
+
+    # Prompt con múltiples señales → sonnet (standard) mínimo
+    if (impl_hits >= 3 or (impl_hits >= 2 and complex_hits >= 1)) and word_count > 30:
+        return "standard"
+
+    return None
+
+
+# v1.9.6: prompt quality scorer — keyword groups for the HUD nudge.
+_QUALITY_SUCCESS = (
+    "success", "criteria", "criterion", "expected", "debe",
+    "criterio", "éxito", "exito",
+)
+_QUALITY_SCOPE = (
+    "only", "solo", "specifically", "específicamente", "especificamente",
+    "scope", "alcance",
+)
+_QUALITY_CONTEXT = (
+    "stack", "archivo", "file", "ruta", "path", "directory", "directorio",
+    "module", "módulo", "modulo",
+)
+_QUALITY_XML = ("<role>", "<task>", "<context>", "<goal>", "<scope>")
+_QUALITY_VAGUE = (
+    "make it better", "fix this", "improve", "hazlo mejor",
+    "mejóralo", "mejoralo", "arréglalo", "arreglalo",
+)
+# A token that looks like a file/path reference (foo.py, src/bar, ./x).
+_QUALITY_PATH_RE = re.compile(r"\b[\w./-]+\.[a-z]{1,5}\b|(?:\./|/)\w+", re.I)
+
+
+def score_prompt_quality(query: str) -> int:
+    """Score prompt quality 0-100 for HUD display (v1.9.6).
+
+    Heuristic nudge that rewards prompts stating success criteria, scope,
+    project context, XML structure, and a useful length; it penalises bare
+    one-liners and vague phrasing. Never raises; clamps to [0, 100].
+
+    Criteria (additive deltas from a neutral 50 baseline):
+        +20  success criteria  (success, criteria, expected, debe…)
+        +20  defined scope     (only, solo, specifically…)
+        +15  project context   (stack/file/path mentioned)
+        +15  XML structure     (<role>, <task>, <context>…)
+        +15  useful length     (20-200 words)
+        -30  ambiguous         (1-3 words, no context)
+        -20  vague language    (make it better, fix this, improve)
+    """
+    if not isinstance(query, str):
+        return 0
+    text = query.strip()
+    if not text:
+        return 0
+    lower = text.lower()
+    word_count = len(text.split())
+    score = 50
+
+    if any(kw in lower for kw in _QUALITY_SUCCESS):
+        score += 20
+    if any(kw in lower for kw in _QUALITY_SCOPE):
+        score += 20
+    if any(kw in lower for kw in _QUALITY_CONTEXT) or _QUALITY_PATH_RE.search(text):
+        score += 15
+    if any(tag in lower for tag in _QUALITY_XML):
+        score += 15
+    if 20 <= word_count <= 200:
+        score += 15
+
+    if word_count <= 3:
+        score -= 30
+    if any(phrase in lower for phrase in _QUALITY_VAGUE):
+        score -= 20
+
+    return max(0, min(100, score))
+
+
+# v1.9.6: Soul Map — learn ONLY from explicit user model preferences.
+# Never learns from poly's automatic routing or OMC escalations: the
+# patterns below require the user to literally name a model.
+SOUL_PATTERNS = [
+    re.compile(r"\b(?:usa|use|fuerza|force)\s+(opus|sonnet|haiku)\b", re.I),
+    re.compile(r"\b(?:con|with)\s+(opus|sonnet|haiku)\b", re.I),
+    re.compile(r"\b(?:quiero|want|necesito|need)\s+(opus|sonnet|haiku)\b", re.I),
+]
+_SOUL_MIN_COUNT = 3       # repeats before a preference boosts confidence
+_SOUL_BOOST = 0.15        # confidence added when an established pref recurs
+
+
+def detect_soul_preference(query: str) -> tuple[str, str] | None:
+    """Return (signal, model) when the user explicitly named a model.
+
+    signal is the matched phrase (e.g. "usa opus"); model is one of
+    opus/sonnet/haiku. Returns None when no explicit preference is present —
+    this gate is what keeps the Soul Map from learning automatic routing.
+    """
+    if not isinstance(query, str) or not query.strip():
+        return None
+    for pat in SOUL_PATTERNS:
+        m = pat.search(query)
+        if m:
+            return m.group(0).strip().lower(), m.group(1).lower()
+    return None
+
+
+def _load_soul(path: Path | None = None) -> dict:
+    """Read the Soul Map file; return an empty map on any failure.
+
+    path defaults to the module-level SOUL_PATH resolved at call time so the
+    location can be overridden (e.g. in tests) without rebinding defaults.
+    """
+    path = path or SOUL_PATH
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, dict) and isinstance(data.get("patterns"), list):
+            return data
+    except Exception:
+        pass
+    return {"patterns": []}
+
+
+def learn_soul_preference(
+    query: str, path: Path | None = None, now: float | None = None,
+) -> dict | None:
+    """Persist an explicit model preference to the Soul Map (v1.9.6).
+
+    No-op (returns None) when the prompt names no model. Otherwise increments
+    the matching pattern's count and stamps last_seen, then writes the file.
+    Returns the updated pattern record.
+    """
+    detected = detect_soul_preference(query)
+    if detected is None:
+        return None
+    path = path or SOUL_PATH
+    signal, model = detected
+    timestamp = now if now is not None else time.time()
+    data = _load_soul(path)
+    record = None
+    for entry in data["patterns"]:
+        if entry.get("signal") == signal and entry.get("model") == model:
+            record = entry
+            break
+    if record is None:
+        record = {"signal": signal, "model": model, "count": 0, "last_seen": None}
+        data["patterns"].append(record)
+    record["count"] = int(record.get("count", 0)) + 1
+    record["last_seen"] = timestamp
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        pass  # Never block routing on a Soul Map write failure.
+    return record
+
+
+def soul_confidence_boost(model: str | None, soul: dict) -> float:
+    """Boost when the user has explicitly preferred `model` _SOUL_MIN_COUNT+ times.
+
+    Returns _SOUL_BOOST once the learned preference is established, else 0.0.
+    Pure read over the Soul Map data — safe to call on the hot routing path.
+    """
+    if not model:
+        return 0.0
+    total = sum(
+        int(e.get("count", 0))
+        for e in soul.get("patterns", [])
+        if e.get("model") == model
+    )
+    return _SOUL_BOOST if total >= _SOUL_MIN_COUNT else 0.0
 
 # v1.7: tier → expected model family substring (case-insensitive match
 # against the actual model id read from the transcript or stdin).
@@ -216,7 +429,7 @@ def _calculate_savings(level: str, config: dict) -> float:
 
     The estimate is scaled by `tokenizer_factor` (default 1.0 if absent), which
     accounts for tokenizer drift between Claude families. The Claude 4.x family
-    (haiku-4-5 / sonnet-4-6 / opus-4-7) tokenizes ~1.35× denser than the
+    (haiku-4-5 / sonnet-4-6 / opus-4-8) tokenizes ~1.35× denser than the
     pre-4.x tokenizer used to derive these constants — see DEFAULT_CONFIG.
     """
     # Approximate tokens per prompt (input + output)
@@ -1193,6 +1406,19 @@ def main() -> None:
         except Exception:
             pass
 
+    # v1.9.6: prompt quality scorer — persist a 0-100 HUD nudge every turn.
+    try:
+        session.update_prompt_quality(score_prompt_quality(query))
+    except Exception:
+        pass
+
+    # v1.9.6: Soul Map — learn ONLY explicit model preferences. No-ops when
+    # the user named no model, so automatic routing is never learned.
+    try:
+        learn_soul_preference(query)
+    except Exception:
+        pass
+
     # v1.8: persist CC's actual effort + compute skew vs poly's decision
     try:
         session.update_cc_effort(cc_effort)
@@ -1229,6 +1455,16 @@ def main() -> None:
     if stats_output is not None:
         print(json.dumps(stats_output))
         return
+
+    # --- Stage 0.5: Context-aware complexity detection (v1.9.6) ---
+    # Analyse the raw prompt for implementation/complexity signals. The result
+    # is a minimum tier that is enforced in the Build output below, after the
+    # normal scoring — so a verbose implementation request can never route
+    # below the detected floor even if the keyword scorer underestimates it.
+    try:
+        min_tier = detect_implementation_complexity(query)
+    except Exception:
+        min_tier = None
 
     # --- Stage 1: Exception check + intelligent slash commands (v1.9.4) ---
     force_min_tier: str | None = None
@@ -1425,6 +1661,21 @@ def main() -> None:
     except Exception:
         pass  # Keep existing confidence
 
+    # --- Stage 8a: Soul Map confidence boost (v1.9.6) ---
+    # When the user explicitly names a model THIS turn and has done so
+    # _SOUL_MIN_COUNT+ times before, nudge confidence up so downstream
+    # promotion (e.g. verifiability) trusts the routing more. Learning
+    # already happened above; this only reads the established preference.
+    try:
+        soul_pref = detect_soul_preference(query)
+        if soul_pref is not None:
+            boost = soul_confidence_boost(soul_pref[1], _load_soul())
+            if boost > 0.0:
+                confidence = min(1.0, confidence + boost)
+                method = f"{method}+soul"
+    except Exception:
+        pass  # Never block routing on Soul Map read failure.
+
     # --- Stage 8b: Verifiability routing (v1.9, Karpathy) ---
     # Verifiable tasks (code/tests/math) promote standard → deep when scoring
     # is confident. Non-verifiable tasks (design/writing) keep standard even
@@ -1477,6 +1728,39 @@ def main() -> None:
         if level == "fast":
             level = "standard"
         method = f"{method}+slash_floor"
+
+    # --- Stage 8d: Context-aware complexity floor (v1.9.6) ---
+    # Enforce the minimum tier detected in Stage 0.5. Runs last among the
+    # tier-mutating stages so a complex implementation prompt cannot route
+    # below its floor. model/agent/effort are (re)derived from `level` in
+    # the Build output below, so no recompute is needed here.
+    if min_tier:
+        tier_order = config.get("tier_order", ["fast", "standard", "deep"])
+        try:
+            if tier_order.index(level) < tier_order.index(min_tier):
+                level = min_tier
+                method = f"{method}+complexity_floor"
+        except ValueError:
+            pass  # Unknown tier name — never block routing on a floor miss.
+
+    # --- Stage 8e: Fallback-model degradation (v1.9.6) ---
+    # CC exports ANTHROPIC_FALLBACK_MODEL with the model it will use when the
+    # primary is unavailable/overloaded. If we routed deep but the fallback is
+    # not an opus-family model, the deep model is effectively unavailable this
+    # turn — degrade to standard and flag it so the HUD stays honest about
+    # what will actually run. Runs after the floor so it has the final say.
+    fallback_used = False
+    try:
+        fallback_model = os.environ.get("ANTHROPIC_FALLBACK_MODEL", "")
+        if fallback_model and level == "deep":
+            deep_family = _TIER_TO_FAMILY.get("deep", "opus")
+            if deep_family not in fallback_model.lower():
+                level = "standard"
+                method = f"{method}+fallback"
+                fallback_used = True
+        session.update_fallback_used(fallback_used)
+    except Exception:
+        pass  # Never block routing on fallback detection failure.
 
     # --- Build output ---
     level_cfg = config.get("levels", {}).get(level, {})
@@ -1579,6 +1863,17 @@ def main() -> None:
             pass
         try:
             session.set_advisor(advisor_flag)
+        except Exception:
+            pass
+
+    # --- Feature 2 (v1.9.6): max-effort skew ---
+    # CC requested "max" effort (Opus 4.8 ceiling) but poly routed below the
+    # deep tier — the user's effort intent and poly's tier disagree. Assert
+    # the skew flag after the tier is final so the HUD renders ⚠skew. Only
+    # flips it on; the comparison path in update_cc_effort owns the off-state.
+    if cc_effort == "max" and level != "deep":
+        try:
+            session.set_effort_skew(True)
         except Exception:
             pass
 
