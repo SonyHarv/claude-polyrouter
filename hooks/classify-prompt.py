@@ -1097,6 +1097,47 @@ def detect_verifiability(query: str) -> tuple[str, float]:
 
 # --- Stage functions ---
 
+# v1.9.6: slash commands are detected in ANY position, not only at the start
+# of the message. A "/word" token at the start of the string or after
+# whitespace, and NOT immediately followed by another "/", is treated as a
+# command — so absolute paths (/etc/hosts) and embedded paths (src/lib) are
+# never mistaken for commands. ":" is part of the token so plugin-namespaced
+# commands (/polyrouter:stats, /ecc:code-review) match as a single command.
+_SLASH_CMD_RE = re.compile(r"(?:(?<=\s)|^)(/[a-zA-Z][\w:-]*)(?![\w:/-])")
+# Commands whose tier floor is fixed regardless of surrounding context.
+_ALWAYS_DEEP = {"/spec", "/security-review"}
+_ALWAYS_STANDARD = {"/work", "/commit-push-pr", "/techdebt"}
+
+
+def _extract_slash_commands(text: str) -> tuple[set[str], str]:
+    """Find slash commands anywhere in ``text``; return (commands, clean_text).
+
+    ``commands`` is the lowercased set of command tokens found; ``clean_text``
+    is ``text`` with those tokens removed and whitespace collapsed (original
+    casing preserved for downstream scoring and spec persistence).
+    """
+    if not text:
+        return set(), text
+    cmds = {m.lower() for m in _SLASH_CMD_RE.findall(text)}
+    if not cmds:
+        return set(), text
+    clean = re.sub(r"\s+", " ", _SLASH_CMD_RE.sub("", text)).strip()
+    return cmds, clean
+
+
+def _slash_floor(cmds: set[str]) -> str:
+    """Minimum tier for a slash command WITH context (v1.9.6).
+
+    /spec and /security-review floor at deep. Every other command (known
+    standard ones in _ALWAYS_STANDARD, or any unknown command) floors at
+    standard — a slash command + context never routes below standard, so it
+    can never silently fall to fast/haiku.
+    """
+    if cmds & _ALWAYS_DEEP:
+        return "deep"
+    return "standard"
+
+
 def _stage_exception_check(
     query: str,
     session: SessionState,
@@ -1116,64 +1157,73 @@ def _stage_exception_check(
 
     stripped = query.strip()
 
-    # Slash commands — v1.9.4 intelligent routing
-    if stripped.startswith("/"):
-        parts = stripped.split(None, 1)
-        cmd = parts[0].lower()
-        has_context = len(parts) > 1 and bool(parts[1].strip())
+    # Slash commands — v1.9.4 special cases + v1.9.6 anywhere detection.
+    # Detect commands in ANY position so "contexto /spec" or "fix bug\n/work"
+    # are routed by the command, never silently scored down to fast/haiku.
+    slash_cmds, slash_clean = _extract_slash_commands(stripped)
+    if slash_cmds:
+        # --- Canonical start-position special commands (v1.9.4) ---
+        # These carry richer behaviour (arch-keyword injection, saved-spec
+        # reuse, no-spec warning) that only applies when the command leads
+        # the message and the rest of the line is its context.
+        if stripped.startswith("/"):
+            parts = stripped.split(None, 1)
+            cmd = parts[0].lower()
+            has_context = len(parts) > 1 and bool(parts[1].strip())
 
-        # /spec → always deep/opus, with or without context
-        if cmd == "/spec":
-            inner = parts[1].strip() if has_context else "implementation"
-            # Inject arch keywords so the scorer also routes to deep.
-            new_query = f"plan architecture design spec {inner}"
-            return None, new_query, "deep"
+            # /spec → always deep/opus, with or without context
+            if cmd == "/spec":
+                inner = parts[1].strip() if has_context else "implementation"
+                # Inject arch keywords so the scorer also routes to deep.
+                new_query = f"plan architecture design spec {inner}"
+                return None, new_query, "deep"
 
-        # /work → never fast; use saved spec when available
-        if cmd == "/work":
-            try:
-                spec = session.get_active_spec()
-            except Exception:
-                spec = None
-            if spec:
-                return None, spec, "standard"
-            if has_context:
-                return None, parts[1].strip(), "standard"
-            # No spec and no context → route to standard with a warning.
-            level_cfg = config.get("levels", {}).get("standard", {})
-            model = level_cfg.get("model", "sonnet")
-            agent = level_cfg.get("agent", "standard-executor")
-            return (
-                _route_output(
-                    level="standard",
-                    model=model,
-                    agent=agent,
-                    confidence=0.8,
-                    method="work_no_spec",
-                    signals="no_active_spec",
-                    language="es",
-                    query="/work",
-                    effort="medium",
-                    advisor_block_override=(
-                        "[POLY] No hay spec activo.\n"
-                        "Recomendación: usa /spec antes de /work\n"
-                        "para definir criterios de éxito y scope."
+            # /work → never fast; use saved spec when available
+            if cmd == "/work":
+                try:
+                    spec = session.get_active_spec()
+                except Exception:
+                    spec = None
+                if spec:
+                    return None, spec, "standard"
+                if has_context:
+                    return None, parts[1].strip(), "standard"
+                # No spec and no context → route to standard with a warning.
+                level_cfg = config.get("levels", {}).get("standard", {})
+                model = level_cfg.get("model", "sonnet")
+                agent = level_cfg.get("agent", "standard-executor")
+                return (
+                    _route_output(
+                        level="standard",
+                        model=model,
+                        agent=agent,
+                        confidence=0.8,
+                        method="work_no_spec",
+                        signals="no_active_spec",
+                        language="es",
+                        query="/work",
+                        effort="medium",
+                        advisor_block_override=(
+                            "[POLY] No hay spec activo.\n"
+                            "Recomendación: usa /spec antes de /work\n"
+                            "para definir criterios de éxito y scope."
+                        ),
                     ),
-                ),
-                query,
-                None,
-            )
+                    query,
+                    None,
+                )
 
-        # /commit-push-pr → always standard/sonnet
-        if cmd == "/commit-push-pr":
-            return None, "review code commit prepare pull request", "standard"
+            # /commit-push-pr → always standard/sonnet
+            if cmd == "/commit-push-pr":
+                return None, "review code commit prepare pull request", "standard"
 
-        # Other slash commands with context → score the context
-        if has_context:
-            return None, parts[1].strip(), None
-
-        # Bare slash command → skip
-        return _skip_output("slash_command"), query, None
+        # --- General slash routing (v1.9.6): command in any position ---
+        # Strip the command token(s) and route on the surrounding context.
+        # A bare command (no remaining context) is skipped just like before;
+        # a command WITH context never routes below its tier floor.
+        if not slash_clean:
+            return _skip_output("slash_command"), query, None
+        return None, slash_clean, _slash_floor(slash_cmds)
 
     # Meta-queries about the router itself
     query_lower = stripped.lower()
