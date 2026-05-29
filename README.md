@@ -2,9 +2,9 @@
 
 # claude-polyrouter
 
-![Version](https://img.shields.io/badge/version-1.9.3-blue)
+![Version](https://img.shields.io/badge/version-1.9.5-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-909%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-983%20passed-brightgreen)
 ![Languages](https://img.shields.io/badge/languages-10-orange)
 ![Token Reduction](https://img.shields.io/badge/token%20reduction-82%25-success)
 ![Routing Accuracy](https://img.shields.io/badge/routing%20accuracy-98.9%25-brightgreen)
@@ -15,7 +15,7 @@
 >
 > - **Live HUD** — `ctx:%`, real-time `5h`/`wk`/`snt` rate-limit bars with threshold-based colors, animated Poly mascot, idle fallback
 > - **Dynamic effort per query** — `medium` → `high` → `xhigh` chosen from a multi-signal score (architecture, file count, tool intensity)
-> - **Opus 4.7 sub-effort routing** — deep-tier queries get the right Opus effort level automatically; architectural calls escalate to `xhigh + adv`
+> - **Opus 4.8 sub-effort routing** — deep-tier queries get the right Opus effort level automatically; architectural calls escalate to `xhigh + adv`
 > - **10 languages, full parity** — EN · ES · FR · DE · PT · JA · KO · ZH · AR · RU all share the same deep/arch pattern coverage
 
 ---
@@ -26,8 +26,8 @@
 |-------|------|-------|--------|--------|
 | "hola" / "ok" / "what is X?" | Fast | Haiku 4.5 | low | Short or simple question |
 | "create a function" / "fix this bug" | Standard | Sonnet 4.6 | medium | Coding task |
-| "debug this stack trace across 3 files" | Deep | Opus 4.7 | high | Multi-file, tool-heavy |
-| "redesign the auth architecture" | Deep | Opus 4.7 | **xhigh + adv** | Architectural scope → Advisor engaged |
+| "debug this stack trace across 3 files" | Deep | Opus 4.8 | high | Multi-file, tool-heavy |
+| "redesign the auth architecture" | Deep | Opus 4.8 | **xhigh + adv** | Architectural scope → Advisor engaged |
 
 Routing happens automatically on every query via a `UserPromptSubmit` hook. No manual intervention needed.
 
@@ -217,29 +217,29 @@ Poly lives in your statusLine and shows routing state at zero token cost.
 
 **No subagent:**
 ```
-[poly v1.9.3] [^.^]~ haiku·fast✓ │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) extra:1%($2.09/$150.00) │ 📁mi-proyecto $0.03↓ es
+[poly v1.9.5] [^.^]~ haiku·fast✓ │ cache:████░ ctx:8% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) extra:1%($2.09/$150.00) │ 📁mi-proyecto $0.03↓ es
 ```
 
 **With subagent (thinking model):**
 ```
-[poly v1.9.3] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv🧠 │ 🤖1 cache:████░ ctx:15% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) extra:1%($2.09/$150.00) │ 📁mi-proyecto $9.50↓ es
+[poly v1.9.5] [^.^]~ prompt:haiku·fast ⚙ exec:opus·xhigh·adv🧠 │ 🤖1 cache:████░ ctx:15% │ 5h:45%(1h2m) wk:9%(6d19h) snt:3%(6d19h) extra:1%($2.09/$150.00) │ 📁mi-proyecto $9.50↓ es
 ```
 
 **High context (compact advisory):**
 ```
-[poly v1.9.3] [^.^]~ haiku·fast✓ ⚠compact │ cache:████░ ctx:78% │ 5h:45%(1h2m) wk:9%(6d19h) │ 📁mi-proyecto $0.03↓ es
+[poly v1.9.5] [^.^]~ haiku·fast✓ ⚠compact │ cache:████░ ctx:78% │ 5h:45%(1h2m) wk:9%(6d19h) │ 📁mi-proyecto $0.03↓ es
 ```
 
 **Stale session (>30 min, no OMC):**
 ```
-[poly v1.9.3] [^.^]~ idle
+[poly v1.9.5] [^.^]~ idle
 ```
 
 ### HUD Element Reference
 
 | Element | When shown | Meaning |
 |---------|-----------|---------|
-| `[poly v1.9.3]` | Always | Plugin prefix + version |
+| `[poly v1.9.5]` | Always | Plugin prefix + version |
 | `[^.^]~` / `[^-^]` / `[>.^]` / `[x.x]` | Always | Mascot state (see below) |
 | `haiku·fast` / `sonnet·std` / `opus·deep` | After a route | Model + tier, dot-separated |
 | `✓` / `~` | After a route | Verifiability — `✓` task is verifiable, `~` heuristic only |
@@ -315,7 +315,7 @@ Global config at `~/.claude/polyrouter/config.json`:
   "levels": {
     "fast":     { "model": "haiku",  "model_id": "claude-haiku-4-5",  "agent": "fast-executor" },
     "standard": { "model": "sonnet", "model_id": "claude-sonnet-4-6", "agent": "standard-executor" },
-    "deep":     { "model": "opus",   "model_id": "claude-opus-4-7",   "agent": "deep-executor" }
+    "deep":     { "model": "opus",   "model_id": "claude-opus-4-8",   "agent": "deep-executor" }
   },
   "scoring": {
     "thresholds": { "fast_max": 0.35, "standard_max": 0.65 }
@@ -435,7 +435,7 @@ survives in repo memory and we don't re-litigate the same designs.
 
 - **`max` tier above `xhigh`.** Multi-pass Opus, Opus 1M pinning, and
   opus-vs-opus consensus were evaluated. Discarded — `xhigh` remains the
-  recommended ceiling for Opus 4.7; a `max` tier would risk overthinking
+  recommended ceiling for Opus 4.8; a `max` tier would risk overthinking
   without measurable quality gains, while doubling per-prompt cost. The
   escape hatch for genuinely architectural prompts is
   `/polyrouter:advisor`, which already locks to `deep/xhigh +
@@ -470,6 +470,21 @@ survives in repo memory and we don't re-litigate the same designs.
 - [x] OAuth field mapping bugfixes (v1.9.2 nested response, v1.9.3 cents division + `is_enabled` gate)
 - [x] 909 tests passing (14 new verifiability tests)
 
+### v1.9.5 (completed)
+
+- [x] Context-aware prompt enhancer — long implementation prompts promote off Haiku
+- [x] Intelligent slash command routing (`/spec` → opus, `/work` reads the active spec)
+- [x] Soul Map — learns explicit model preferences ("usa opus", "con sonnet")
+- [x] exec_model real — HUD shows the model CC actually executed (read from transcript)
+- [x] Prompt quality scorer (`q:N%`) — hidden when ≥ 80%
+- [x] ⏱ session elapsed time (green <30m, yellow 30-60m, red >60m → `/compact` signal)
+- [x] 🤖99+ subagent counter cap for Dynamic Workflows
+- [x] Per-project session state — concurrent sessions no longer interfere
+- [x] Fallback model support — Opus → Sonnet degrade when unavailable
+- [x] Effort skew detection
+- [x] claude-opus-4-8 + CC `max` → `xhigh` mapping
+- [x] 983 tests passing
+
 ### v2 (planned)
 
 - [ ] Multi-agent support: Codex CLI, Gemini CLI
@@ -485,7 +500,7 @@ survives in repo memory and we don't re-litigate the same designs.
 2. Create a branch: `git checkout -b feat/my-feature`
 3. Add tests in `tests/`
 4. Run the test suite: `python -m pytest tests/ -v`
-5. Ensure all 909+ tests pass before submitting
+5. Ensure all 983+ tests pass before submitting
 6. Commit using conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
 7. Open a pull request with a clear description of the change
 
