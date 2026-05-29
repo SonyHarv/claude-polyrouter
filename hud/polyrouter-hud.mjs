@@ -611,7 +611,7 @@ function main() {
   if (routingStartedAt !== null) {
     const elapsedMin = Math.max(0, Math.floor((Date.now() / 1000 - routingStartedAt) / 60));
     const tColor = elapsedMin > 60 ? ANSI_RED : (elapsedMin >= 30 ? ANSI_YELLOW : ANSI_GREEN);
-    const tText = `⏱${elapsedMin}m`;
+    const tText = `⏱ ${elapsedMin}m`;
     tailParts.push(colorEnabled() ? `${tColor}${tText}${ANSI_RESET}` : tText);
   }
   if (stats && stats.estimated_savings > 0) {
