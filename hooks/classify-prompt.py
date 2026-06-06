@@ -35,6 +35,8 @@ from lib.effort import (
     requires_advisor,
     maybe_promote_to_deep_xhigh,
     maybe_promote_multifile_refactor,
+    is_ultracode_trigger,
+    ULTRACODE_EFFORT,
 )
 from lib.compact import CompactAdvisor, load_compact_state, save_compact_state
 from lib.advisor import detect_advisor_category, format_advisor_block
@@ -738,6 +740,65 @@ def _detect_advisor_command(
         return None
 
 
+def _route_ultracode(
+    query: str,
+    config: dict,
+    stats: Stats,
+    session: SessionState,
+) -> dict | None:
+    """Force-route a strict ultracode trigger to the Opus ceiling.
+
+    Locked target (v1.9.8): tier=deep, effort=xhigh, agent=opus-orchestrator,
+    advisor=True — once the user explicitly asks for ultracode the session
+    must never drop below Opus. Mirrors the advisor manual hand-off.
+    """
+    try:
+        level = "deep"
+        effort = ULTRACODE_EFFORT
+        level_cfg = config.get("levels", {}).get(level, {})
+        model = level_cfg.get("model", "opus")
+        # Locked agent — opus-orchestrator, not the default deep-executor.
+        agent = "opus-orchestrator"
+
+        try:
+            language = session.read().get("last_language") or "en"
+            session.update(level, language, requires_advisor=True)
+            session.update_effort(effort)
+            session.set_advisor(True)
+            # poly (xhigh) now matches CC's intent (xhigh) — no skew here.
+            session.set_effort_skew(False)
+        except Exception:
+            language = "en"
+
+        savings = _calculate_savings(level, config)
+        try:
+            stats.record(
+                level, language, False, savings,
+                session_name=session.read().get("session_name"),
+            )
+        except Exception:
+            pass
+        try:
+            session.record_route(level, effort, "ultracode", language, savings)
+        except Exception:
+            pass
+
+        return _route_output(
+            level=level,
+            model=model,
+            agent=agent,
+            confidence=1.0,
+            method="ultracode",
+            signals="ultracode_trigger",
+            language=language,
+            query=query,
+            effort=effort,
+            advisor=True,
+        )
+    except Exception:
+        return None
+
+
 # --- Effort one-shot override (v1.7 SCOPE FIRME #5) ---
 
 _EFFORT_MARKER = "<!-- POLY:EFFORT:v1 -->"
@@ -1417,6 +1478,14 @@ def main() -> None:
         if env_old in ("low", "medium", "high", "xhigh", "max"):
             cc_effort = env_old
 
+    # v1.9.8: ultracode — strict explicit max-effort trigger. ONLY a prompt
+    # that begins with "/effort ultracode" or "ultracode:" qualifies; an
+    # in-text mention is ignored entirely. Normalize to xhigh so the persisted
+    # cc_effort and the skew comparison reflect the user's true intent.
+    ultracode_explicit = is_ultracode_trigger(query)
+    if ultracode_explicit:
+        cc_effort = ULTRACODE_EFFORT
+
     # Load configuration and resources
     try:
         config = load_config()
@@ -1474,6 +1543,19 @@ def main() -> None:
         session.update_cc_effort(cc_effort)
     except Exception:
         pass
+
+    # v1.9.8: ultracode forced route — lock deep/xhigh/opus-orchestrator so the
+    # session never drops below Opus. The flag is persisted on every turn
+    # (on AND off) so the HUD 🔥 only shows for the current trigger turn.
+    try:
+        session.set_ultracode(ultracode_explicit)
+    except Exception:
+        pass
+    if ultracode_explicit:
+        ultracode_output = _route_ultracode(query, config, stats, session)
+        if ultracode_output is not None:
+            print(json.dumps(ultracode_output))
+            return
 
     # --- v1.7: Silent model swap detection (runs even when routing skips) ---
     _detect_silent_swap(input_data, session)

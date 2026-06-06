@@ -63,6 +63,8 @@ DEFAULT_SESSION = {
     # v1.8: CC v2.1.122+ effort passthrough + skew detection
     "cc_effort_level": None,       # effort CC actually executed (low/medium/high/xhigh)
     "effort_skew_detected": False, # True when poly's decision != CC's execution
+    # v1.9.8: ultracode — strict explicit Opus-ceiling trigger active this turn
+    "ultracode_active": False,
     # v1.9: Karpathy verifiability routing
     "verifiability_type": None,    # "verifiable" | "non_verifiable" | "unknown" | None
     # v1.9.6: fallback-model degradation (ANTHROPIC_FALLBACK_MODEL active)
@@ -327,6 +329,18 @@ class SessionState:
         """
         state = self.read()
         state["effort_skew_detected"] = bool(detected)
+        self._state = state
+        self._write(state)
+
+    def set_ultracode(self, active: bool) -> None:
+        """Persist whether ultracode (the strict xhigh ceiling) is active (v1.9.8).
+
+        Set when the prompt begins with "/effort ultracode" or "ultracode:".
+        Persisted every turn — a non-trigger turn clears it — so the HUD 🔥
+        reflects only the current turn, never a stale one.
+        """
+        state = self.read()
+        state["ultracode_active"] = bool(active)
         self._state = state
         self._write(state)
 

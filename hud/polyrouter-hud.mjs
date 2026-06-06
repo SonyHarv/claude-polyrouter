@@ -421,6 +421,8 @@ function main() {
   const swapDetected = session && session.swap_detected === true;
   // v1.9.6: effort skew (CC's executed effort != poly's decision)
   const effortSkewDetected = session && session.effort_skew_detected === true;
+  // v1.9.8: ultracode — strict explicit Opus-ceiling trigger active this turn
+  const ultracodeActive = session && session.ultracode_active === true;
   // v1.7: retry-escalation state
   const retryActive = session && session.retry_active === true;
   const retryFromTier = session && session.retry_from_tier;
@@ -481,6 +483,12 @@ function main() {
       if (requiresAdvisor) {
         modelSeg += `·adv`;
       }
+    }
+
+    // v1.9.8: ultracode — explicit Opus-ceiling trigger active this turn
+    if (ultracodeActive) {
+      const uText = "🔥 ultracode";
+      modelSeg += " " + (colorEnabled() ? `${ANSI_RED}${uText}${ANSI_RESET}` : uText);
     }
 
     // ⚠compact when ctx >= 70% or Claude Code flags 200k overflow

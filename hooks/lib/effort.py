@@ -35,6 +35,30 @@ VALID_EFFORTS = {"low", "medium", "high", "xhigh"}
 # Same set as VALID_EFFORTS as of v1.7; kept distinct for forward-compat.
 DISPLAY_EFFORTS = {"low", "medium", "high", "xhigh"}
 
+# v1.9.8: ultracode — an explicit alias for the xhigh effort ceiling. The
+# alias resolves to xhigh ONLY through the strict start-of-prompt trigger
+# below; there is no free-standing "ultracode" value in VALID_EFFORTS, so a
+# casual mention of the word can never reach the effort machinery.
+ULTRACODE_EFFORT = "xhigh"
+_ULTRACODE_PREFIXES = ("/effort ultracode", "ultracode:")
+
+
+def is_ultracode_trigger(query: str) -> bool:
+    """Return True only when the prompt explicitly invokes ultracode.
+
+    Valid forms (case-insensitive, anchored to the start after stripping
+    surrounding whitespace):
+        "/effort ultracode ..."
+        "ultracode: ..."
+
+    Anchoring to the start is deliberate: a mid-sentence "ultracode" — e.g.
+    "should I use ultracode here?" — must never force the Opus ceiling.
+    """
+    if not isinstance(query, str):
+        return False
+    head = query.strip().lower()
+    return head.startswith(_ULTRACODE_PREFIXES)
+
 
 def effort_for_tier(tier: str, config: dict | None = None) -> str:
     """Return the default effort label for a tier.
