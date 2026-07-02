@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.9] - 2026-07-02
+
+**Standard tier defaults to Claude Sonnet 5**
+
+### Changed
+- `DEFAULT_CONFIG` standard tier `model_id` bumped `claude-sonnet-4-6` → `claude-sonnet-5` in `hooks/lib/config.py`.
+- Updated the pinned-model assertion in `tests/test_config.py` and the routing/config examples in `README.md`.
+
 ## [1.6.2] - 2026-04-16
 
 **Hotfix · HUD version string**

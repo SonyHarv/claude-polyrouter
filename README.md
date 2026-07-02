@@ -25,7 +25,7 @@
 | Query | Tier | Model | Effort | Reason |
 |-------|------|-------|--------|--------|
 | "hola" / "ok" / "what is X?" | Fast | Haiku 4.5 | low | Short or simple question |
-| "create a function" / "fix this bug" | Standard | Sonnet 4.6 | medium | Coding task |
+| "create a function" / "fix this bug" | Standard | Sonnet 5 | medium | Coding task |
 | "debug this stack trace across 3 files" | Deep | Opus 4.8 | high | Multi-file, tool-heavy |
 | "redesign the auth architecture" | Deep | Opus 4.8 | **xhigh + adv** | Architectural scope → Advisor engaged |
 
@@ -314,7 +314,7 @@ Global config at `~/.claude/polyrouter/config.json`:
   "confidence_threshold": 0.7,
   "levels": {
     "fast":     { "model": "haiku",  "model_id": "claude-haiku-4-5",  "agent": "fast-executor" },
-    "standard": { "model": "sonnet", "model_id": "claude-sonnet-4-6", "agent": "standard-executor" },
+    "standard": { "model": "sonnet", "model_id": "claude-sonnet-5", "agent": "standard-executor" },
     "deep":     { "model": "opus",   "model_id": "claude-opus-4-8",   "agent": "deep-executor" }
   },
   "scoring": {

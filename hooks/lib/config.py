@@ -59,7 +59,7 @@ DEFAULT_CONFIG = {
         },
         "standard": {
             "model": "sonnet",
-            "model_id": "claude-sonnet-4-6",
+            "model_id": "claude-sonnet-5",
             "agent": "standard-executor",
             "default_effort": "medium",
             "cost_per_1k_input": 0.003,
